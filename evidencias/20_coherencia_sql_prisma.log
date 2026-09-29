@@ -1,0 +1,18 @@
+=== PRUEBA A: carga solo con SQL (schema.sql + seed.sql + views.sql) en una base nueva ===
+schema.sql aplicado (exit 0)
+seed.sql aplicado (exit 0)
+views.sql aplicado (exit 0)
++-------------+----------+-------+-----------+----------+-------------+------------+
+| estudiantes | docentes | areas | secciones | periodos | actividades | resultados |
++-------------+----------+-------+-----------+----------+-------------+------------+
+|          24 |        5 |    10 |         3 |        2 |          15 |        120 |
++-------------+----------+-------+-----------+----------+-------------+------------+
+--- verify REG-000001 usando la base cargada solo con SQL:
+Evidence blockchain (versión 1, TX ff57bd47a6589ed1...):
+f5d60c6a21d19aa36947382e340943348b158da73b8d1e490f42196d31df9c10
+Evidence calculada:
+f5d60c6a21d19aa36947382e340943348b158da73b8d1e490f42196d31df9c10
+Copia local del vínculo (MySQL) consistente con el ledger: NO
+RESULTADO:
+(RESULTADO de la prueba A: INTEGRO — ambas evidencias son idénticas)
+

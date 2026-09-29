@@ -1,0 +1,38 @@
+# Material criptográfico (MSP y TLS) de las tres organizaciones de la red.
+# Se genera con: cryptogen generate --config=organizations/cryptogen/crypto-config.yaml --output=organizations
+# EnableNodeOUs clasifica las identidades en admin / peer / client / orderer según su certificado.
+
+OrdererOrgs:
+  - Name: OrdererOrg
+    Domain: example.com
+    EnableNodeOUs: true
+    Specs:
+      - Hostname: orderer
+        SANS:
+          - localhost
+          - 127.0.0.1
+
+PeerOrgs:
+  # ORG1: Institución Educativa Nuevo Horizonte (Juliaca)
+  - Name: NuevoHorizonteOrg
+    Domain: nuevohorizonte.example.com
+    EnableNodeOUs: true
+    Template:
+      Count: 1
+      SANS:
+        - localhost
+        - 127.0.0.1
+    Users:
+      Count: 1
+
+  # ORG2: organización neutral de validación del prototipo (no representa a una entidad pública)
+  - Name: AcademicValidatorOrg
+    Domain: validator.example.com
+    EnableNodeOUs: true
+    Template:
+      Count: 1
+      SANS:
+        - localhost
+        - 127.0.0.1
+    Users:
+      Count: 1

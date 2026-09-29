@@ -1,0 +1,51 @@
+==================================================
+CASO 2: Fabric confirma, pero falla la escritura del TX_ID en MySQL
+==================================================
+--- Inyección del fallo: trigger que rechaza marcar EVD-REG-000013-V1 como CONFIRMADO
++------------------------+
+| TRIGGER_NAME           |
++------------------------+
+| pt_caso2_fallo_vinculo |
++------------------------+
+--- npm run record -- REG-000013
+Error occurred during query execution:
+ConnectorError(ConnectorError { user_facing_error: None, kind: QueryError(Server(MysqlError { code: 1644, message: "Fallo simulado de escritura del TX_ID", state: "45000" })), transient: false })
+[ERROR] Fabric confirmó la transacción pero falló la persistencia en MySQL {"evidenceId":"EVD-REG-000013-V1","txId":"3c7273d64b3ffcbece3a2e6361a8019443f0b5940ef4e44d8ceaaa622b885f16"}
+PROCESO NO COMPLETADO.
+EvidenceLinkError: La evidencia EVD-REG-000013-V1 quedó registrada en Fabric (TX_ID 3c7273d64b3ffcbece3a2e6361a8019443f0b5940ef4e44d8ceaaa622b885f16) pero no se pudo persistir el vínculo en MySQL. Vuelva a ejecutar el registro para reconciliar.
+(código de salida: 1)
+--- Estado en MySQL tras el fallo (vínculo sin TX_ID):
++-------------------+-----------+-------+
+| evidence_id       | status    | tx_id |
++-------------------+-----------+-------+
+| EVD-REG-000013-V1 | PENDIENTE | NULL  |
++-------------------+-----------+-------+
+--- Estado en el ledger (consulta directa con peer CLI): la evidencia SÍ existe
+{"actorReference":"ADM-PSE-001","actorRole":"ADMINISTRADOR","algorithm":"HMAC-SHA-256","docType":"academicEvidence","eventType":"REGISTRO","evidence":"3374ab9a02dc437f88b06a694ec04355e60e8ed73159f99680842704c8474223","evidenceId":"EVD-REG-000013-V1","recordReference":"REG-000013","status":"REGISTRADO","submitterMspId":"NuevoHorizonteMSP","timestamp":"2026-09-28T22:45:16.003Z","txId":"3c7273d64b3ffcbece3a2e6361a8019443f0b5940ef4e44d8ceaaa622b885f16","version":1}
+
+--- Se retira el trigger (se corrige la causa) y se reintenta:
+--- npm run record -- REG-000013
+1  (REGISTRO)
+Evidence (HMAC-SHA-256):
+3374ab9a02dc437f88b06a694ec04355e60e8ed73159f99680842704c8474223
+Evidence ID:
+EVD-REG-000013-V1
+La evidencia ya existía en el ledger: vínculo reconciliado.
+TX_ID:
+3c7273d64b3ffcbece3a2e6361a8019443f0b5940ef4e44d8ceaaa622b885f16
+Referencia blockchain guardada en MySQL (blockchain_evidence).
+PROCESO COMPLETADO CORRECTAMENTE.
+(código de salida: 0)
++-------------------+------------+------------------+--------------+
+| evidence_id       | status     | tx_id            | block_number |
++-------------------+------------+------------------+--------------+
+| EVD-REG-000013-V1 | CONFIRMADO | 3c7273d64b3ffcbe |         NULL |
++-------------------+------------+------------------+--------------+
++------------+------------+------------------+--------------------------------------+
+| event_type | status     | tx               | detail                               |
++------------+------------+------------------+--------------------------------------+
+| REGISTRO   | CONFIRMADO | 3c7273d64b3ffcbe | V�nculo reconciliado desde el ledger |
++------------+------------+------------------+--------------------------------------+
+
+NOTA: "V?nculo" en la tabla anterior es un problema de codificación de la consola mysql (cliente sin utf8mb4).
+Consulta con --default-character-set=utf8mb4: "Vínculo reconciliado desde el ledger" (dato almacenado correctamente).

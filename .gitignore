@@ -1,0 +1,8 @@
+# Raíz del proyecto Hito 3
+node_modules/
+.env
+*.log
+!evidencias/*.log
+*.zip
+.DS_Store
+docs-src/out/

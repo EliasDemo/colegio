@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>{{TITLE}}</title>
+<style>
+  @page {
+    size: A4;
+    margin: 20mm 17mm 20mm 17mm;
+    @bottom-left { content: "PPI Grupo 7 · Hito 3 · I.E. Nuevo Horizonte"; font: 8.5pt "Segoe UI", Arial, sans-serif; color: #7a8896; }
+    @bottom-right { content: "Página " counter(page) " de " counter(pages); font: 8.5pt "Segoe UI", Arial, sans-serif; color: #7a8896; }
+  }
+  :root { --ink: #1b2a3a; --muted: #5b6b7c; --navy: #1b3a5c; --line: #d5dde6; --soft: #f3f6f9; }
+  html { font-family: "Segoe UI", Arial, sans-serif; font-size: 10.3pt; color: var(--ink); line-height: 1.5; }
+  body { margin: 0; }
+  header.cover { border-bottom: 3px solid var(--navy); padding-bottom: 12px; margin-bottom: 18px; }
+  header.cover .kicker { font-size: 8.5pt; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+  header.cover h1 { font-size: 20pt; margin: 4px 0 2px; color: var(--navy); line-height: 1.2; }
+  header.cover .subtitle { font-size: 11pt; color: #34495e; }
+  header.cover table { margin-top: 10px; font-size: 8.8pt; }
+  header.cover td { border: none; padding: 1px 12px 1px 0; }
+  header.cover td:first-child { color: var(--muted); }
+  h2 { font-size: 13.5pt; color: var(--navy); margin: 22px 0 8px; padding-bottom: 3px; border-bottom: 1px solid var(--line); break-after: avoid; }
+  h3 { font-size: 11pt; color: #23466b; margin: 16px 0 6px; break-after: avoid; }
+  p { margin: 6px 0; text-align: justify; }
+  ul, ol { margin: 6px 0 6px 0; padding-left: 20px; }
+  li { margin: 2px 0; }
+  table { border-collapse: collapse; width: 100%; margin: 8px 0 12px; font-size: 9pt; break-inside: auto; }
+  th { background: var(--navy); color: #fff; text-align: left; padding: 5px 7px; font-weight: 600; }
+  td { border: 1px solid var(--line); padding: 4px 7px; vertical-align: top; }
+  tr { break-inside: avoid; }
+  tbody tr:nth-child(even) td { background: #f8fafc; }
+  code { font-family: Consolas, "Cascadia Mono", monospace; font-size: 8.8pt; background: var(--soft); padding: 0 3px; border-radius: 3px; }
+  figure { margin: 8px 0 12px; }
+  figure.log, figure.code { break-inside: auto; }
+  figure pre { margin: 0; font-family: Consolas, "Cascadia Mono", monospace; font-size: 7.6pt; line-height: 1.35; white-space: pre-wrap; word-break: break-all; padding: 8px 10px; border-radius: 0 0 6px 6px; }
+  figure.log pre { background: #0f1b28; color: #dbe6f1; }
+  figure.code pre { background: var(--soft); color: #1b2a3a; border: 1px solid var(--line); border-top: none; }
+  figure.wide pre { font-size: 6.4pt; }
+  figure.xwide pre { font-size: 5.3pt; }
+  figcaption { font-size: 7.8pt; color: #fff; background: #34495e; padding: 3px 10px; border-radius: 6px 6px 0 0; font-family: Consolas, monospace; }
+  img.diagram { width: 100%; border: 1px solid var(--line); border-radius: 6px; margin: 6px 0 4px; }
+  .caption { font-size: 8.5pt; color: var(--muted); text-align: center; margin-bottom: 12px; }
+  .box { border: 1px solid var(--line); border-left: 4px solid var(--navy); background: #f7f9fc; padding: 8px 12px; margin: 10px 0; border-radius: 4px; break-inside: avoid; }
+  .box.ok { border-left-color: #2e8b57; background: #f1f8f3; }
+  .box.warn { border-left-color: #d89b2b; background: #fffaf0; }
+  .ok-tag { color: #1e6b40; font-weight: 700; }
+  .bad-tag { color: #a83232; font-weight: 700; }
+  .pending-tag { color: #8a5a00; font-weight: 700; }
+  .pb { break-before: page; }
+  .tc { break-inside: auto; border: 1px solid var(--line); border-radius: 6px; margin: 10px 0 14px; }
+  .tc > h3 { margin: 0; padding: 6px 10px; background: #eaf0f7; border-radius: 6px 6px 0 0; }
+  .tc table { margin: 0; }
+  .tc td:first-child { width: 22%; font-weight: 600; color: #34495e; background: #fbfcfd; }
+  .tc figure { margin: 0; }
+</style>
+</head>
+<body>
+<header class="cover">
+  <div class="kicker">Proyecto de investigación · Grupo 7 · Hito 3</div>
+  <h1>{{TITLE}}</h1>
+  <div class="subtitle">{{SUBTITLE}}</div>
+  <table>
+    <tr><td>Proyecto</td><td>Arquitectura híbrida basada en blockchain permisionada para la trazabilidad microcurricular de registros académicos</td></tr>
+    <tr><td>Caso de estudio</td><td>Institución Educativa Nuevo Horizonte — Juliaca, Puno, Perú</td></tr>
+    <tr><td>Integrantes</td><td>Abdul · Franck · Julmer</td></tr>
+    <tr><td>Hito</td><td>Hito 3 — Blockchain y almacenamiento Off-chain operan de forma integrada (29 de septiembre de 2026)</td></tr>
+  </table>
+</header>
+{{CONTENT}}
+</body>
+</html>

@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><title>Red Fabric</title>
+<style>html,body{margin:0;background:#fff}svg{display:block;font-family:"Segoe UI",Arial,sans-serif}</style></head>
+<body>
+<svg width="1600" height="980" viewBox="0 0 1600 980" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#34495e"/></marker>
+    <marker id="arrP" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#7a4fb0"/></marker>
+    <marker id="arrB" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#1f6fb2"/></marker>
+  </defs>
+  <rect width="1600" height="980" fill="#ffffff"/>
+  <text x="800" y="46" text-anchor="middle" font-size="30" font-weight="700" fill="#1b3a5c">Red Hyperledger Fabric 2.5 del prototipo — organizaciones y nodos</text>
+  <text x="800" y="78" text-anchor="middle" font-size="17" fill="#5b6b7c">Red Docker fabric_academic · canal academicchannel · chaincode academic-traceability 1.0 · endorsement MAJORITY (ambas organizaciones)</text>
+
+  <!-- Fila superior -->
+  <rect x="80" y="130" width="470" height="170" rx="14" fill="#fff" stroke="#1f6fb2" stroke-width="2"/>
+  <text x="315" y="166" text-anchor="middle" font-size="19" font-weight="700" fill="#1b2a3a">Next.js (servidor) · scripts CLI</text>
+  <text x="315" y="196" text-anchor="middle" font-size="14.5" fill="#34495e">@hyperledger/fabric-gateway (gRPC + TLS)</text>
+  <text x="315" y="222" text-anchor="middle" font-size="14.5" fill="#34495e">identidad User1@nuevohorizonte · NuevoHorizonteMSP</text>
+  <text x="315" y="248" text-anchor="middle" font-size="14" fill="#5b6b7c">localhost:7051 → peer0.nuevohorizonte</text>
+  <text x="315" y="274" text-anchor="middle" font-size="14" fill="#5b6b7c">Prisma → MySQL (Off-chain, fuera de esta red)</text>
+
+  <rect x="610" y="130" width="380" height="170" rx="14" fill="#fff6e5" stroke="#d89b2b" stroke-width="2.5"/>
+  <text x="800" y="164" text-anchor="middle" font-size="19" font-weight="700" fill="#8a5a00">OrdererOrg · OrdererMSP</text>
+  <rect x="640" y="180" width="320" height="100" rx="10" fill="#fff" stroke="#d89b2b" stroke-width="1.5"/>
+  <text x="800" y="210" text-anchor="middle" font-size="17" font-weight="600" fill="#1b2a3a">orderer.example.com</text>
+  <text x="800" y="235" text-anchor="middle" font-size="14" fill="#34495e">Raft (1 nodo) · ordena y crea bloques</text>
+  <text x="800" y="260" text-anchor="middle" font-size="13" fill="#5b6b7c">:7050 servicio · :7053 admin · :9443 ops</text>
+
+  <rect x="1050" y="130" width="470" height="170" rx="14" fill="#fff" stroke="#34495e" stroke-width="2"/>
+  <text x="1285" y="166" text-anchor="middle" font-size="19" font-weight="700" fill="#1b2a3a">Contenedor cli (fabric-tools)</text>
+  <text x="1285" y="196" text-anchor="middle" font-size="14.5" fill="#34495e">cryptogen · configtxgen · osnadmin · peer</text>
+  <text x="1285" y="222" text-anchor="middle" font-size="14.5" fill="#34495e">genera identidades, crea el canal</text>
+  <text x="1285" y="248" text-anchor="middle" font-size="14.5" fill="#34495e">y despliega el chaincode</text>
+  <text x="1285" y="274" text-anchor="middle" font-size="14" fill="#5b6b7c">usa las identidades Admin@ de cada organización</text>
+
+  <!-- ORG1 -->
+  <rect x="80" y="370" width="570" height="310" rx="14" fill="#e9f3ec" stroke="#2e8b57" stroke-width="2.5"/>
+  <text x="104" y="404" font-size="19" font-weight="700" fill="#1e6b40">NuevoHorizonteOrg · NuevoHorizonteMSP</text>
+  <text x="104" y="428" font-size="14" fill="#35584a">I.E. Nuevo Horizonte (ORG1)</text>
+  <rect x="104" y="450" width="200" height="120" rx="10" fill="#fff" stroke="#2e8b57" stroke-width="1.5"/>
+  <text x="204" y="484" text-anchor="middle" font-size="16" font-weight="600" fill="#1b2a3a">CA</text>
+  <text x="204" y="508" text-anchor="middle" font-size="13" fill="#34495e">ca-nuevohorizonte</text>
+  <text x="204" y="530" text-anchor="middle" font-size="13" fill="#34495e">emite certificados</text>
+  <text x="204" y="552" text-anchor="middle" font-size="13" fill="#5b6b7c">:7054</text>
+  <rect x="324" y="450" width="306" height="120" rx="10" fill="#fff" stroke="#2e8b57" stroke-width="1.5"/>
+  <text x="477" y="480" text-anchor="middle" font-size="16" font-weight="600" fill="#1b2a3a">peer0.nuevohorizonte</text>
+  <text x="477" y="503" text-anchor="middle" font-size="13" fill="#34495e">endosa · valida · guarda el ledger</text>
+  <text x="477" y="525" text-anchor="middle" font-size="13" fill="#34495e">Gateway · anchor peer · LevelDB</text>
+  <text x="477" y="549" text-anchor="middle" font-size="13" fill="#5b6b7c">:7051 · :9444 ops</text>
+  <text x="104" y="620" font-size="13.5" fill="#35584a">Identidades: Admin@ · User1@ (cliente de la app) · peer0 — MSP + TLS</text>
+  <text x="104" y="646" font-size="13.5" fill="#35584a">Dominio: nuevohorizonte.example.com</text>
+
+  <!-- ORG2 -->
+  <rect x="950" y="370" width="570" height="310" rx="14" fill="#e8f0fa" stroke="#1f6fb2" stroke-width="2.5"/>
+  <text x="1496" y="404" text-anchor="end" font-size="19" font-weight="700" fill="#174f80">AcademicValidatorOrg · AcademicValidatorMSP</text>
+  <text x="1496" y="428" text-anchor="end" font-size="14" fill="#2f4d6b">Validación del prototipo, neutral (ORG2)</text>
+  <rect x="970" y="450" width="306" height="120" rx="10" fill="#fff" stroke="#1f6fb2" stroke-width="1.5"/>
+  <text x="1123" y="480" text-anchor="middle" font-size="16" font-weight="600" fill="#1b2a3a">peer0.validator</text>
+  <text x="1123" y="503" text-anchor="middle" font-size="13" fill="#34495e">endosa · valida · réplica del ledger</text>
+  <text x="1123" y="525" text-anchor="middle" font-size="13" fill="#34495e">anchor peer · LevelDB</text>
+  <text x="1123" y="549" text-anchor="middle" font-size="13" fill="#5b6b7c">:9051 · :9445 ops</text>
+  <rect x="1296" y="450" width="200" height="120" rx="10" fill="#fff" stroke="#1f6fb2" stroke-width="1.5"/>
+  <text x="1396" y="484" text-anchor="middle" font-size="16" font-weight="600" fill="#1b2a3a">CA</text>
+  <text x="1396" y="508" text-anchor="middle" font-size="13" fill="#34495e">ca-validator</text>
+  <text x="1396" y="530" text-anchor="middle" font-size="13" fill="#34495e">emite certificados</text>
+  <text x="1396" y="552" text-anchor="middle" font-size="13" fill="#5b6b7c">:8054</text>
+  <text x="1496" y="620" text-anchor="end" font-size="13.5" fill="#2f4d6b">Identidades: Admin@ · User1@ · peer0 — MSP + TLS</text>
+  <text x="1496" y="646" text-anchor="end" font-size="13.5" fill="#2f4d6b">Dominio: validator.example.com</text>
+
+  <!-- Chaincode en el centro -->
+  <rect x="700" y="455" width="200" height="90" rx="10" fill="#f3ecfa" stroke="#7a4fb0" stroke-width="2"/>
+  <text x="800" y="484" text-anchor="middle" font-size="15" font-weight="700" fill="#4d2b7a">academic-traceability</text>
+  <text x="800" y="506" text-anchor="middle" font-size="13" fill="#4d2b7a">chaincode CCaaS (Node 20)</text>
+  <text x="800" y="528" text-anchor="middle" font-size="13" fill="#5b6b7c">contenedor :9999</text>
+
+  <!-- Conexiones -->
+  <line x1="590" y1="300" x2="590" y2="447" stroke="#1f6fb2" stroke-width="2.5" marker-end="url(#arrB)"/>
+  <text x="600" y="345" font-size="13" fill="#174f80">gRPC + TLS</text>
+  <line x1="630" y1="490" x2="697" y2="490" stroke="#7a4fb0" stroke-width="2" marker-end="url(#arrP)"/>
+  <line x1="970" y1="490" x2="903" y2="490" stroke="#7a4fb0" stroke-width="2" marker-end="url(#arrP)"/>
+  <text x="664" y="480" text-anchor="middle" font-size="12.5" fill="#4d2b7a">invoca</text>
+  <text x="936" y="480" text-anchor="middle" font-size="12.5" fill="#4d2b7a">invoca</text>
+  <line x1="680" y1="450" x2="720" y2="303" stroke="#34495e" stroke-width="2" marker-end="url(#arr)"/>
+  <line x1="920" y1="450" x2="880" y2="303" stroke="#34495e" stroke-width="2" marker-end="url(#arr)"/>
+  <text x="800" y="352" text-anchor="middle" font-size="13" fill="#34495e">tx endosadas →</text>
+  <text x="800" y="372" text-anchor="middle" font-size="13" fill="#34495e">← bloques</text>
+  <line x1="630" y1="560" x2="970" y2="560" stroke="#2e8b57" stroke-width="2" stroke-dasharray="6 5"/>
+  <text x="800" y="582" text-anchor="middle" font-size="12.5" fill="#1e6b40">gossip · descubrimiento</text>
+
+  <!-- Canal -->
+  <rect x="80" y="710" width="1440" height="84" rx="14" fill="#1b3a5c"/>
+  <text x="800" y="744" text-anchor="middle" font-size="20" font-weight="700" fill="#fff">Canal academicchannel — ledger replicado en ambos peers</text>
+  <text x="800" y="772" text-anchor="middle" font-size="15" fill="#d6e2ef">Miembros: NuevoHorizonteMSP · AcademicValidatorMSP · ordenado por OrdererMSP · estado: evidencias EVD-REG-xxxxxx-Vn</text>
+
+  <!-- Notas -->
+  <rect x="80" y="820" width="1440" height="130" rx="14" fill="#f7f9fc" stroke="#c9d3df" stroke-width="1.5"/>
+  <text x="104" y="852" font-size="15" font-weight="700" fill="#1b2a3a">Flujo de una transacción</text>
+  <text x="104" y="878" font-size="14" fill="#34495e">1) La app firma la propuesta con User1@ y la envía al Gateway del peer0.nuevohorizonte.  2) El Gateway, vía descubrimiento, pide el endoso a ambos peers;</text>
+  <text x="104" y="902" font-size="14" fill="#34495e">cada uno ejecuta el chaincode y firma el resultado.  3) La transacción endosada va al orderer, que la incluye en un bloque.  4) Ambos peers validan</text>
+  <text x="104" y="926" font-size="14" fill="#34495e">el bloque (política MAJORITY) y actualizan su ledger; el Gateway devuelve el TX_ID y el número de bloque.  Ledgers en volúmenes Docker persistentes.</text>
+</svg>
+</body></html>

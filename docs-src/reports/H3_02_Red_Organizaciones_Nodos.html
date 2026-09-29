@@ -1,0 +1,75 @@
+<!-- title: H3-02 · Red, organizaciones y nodos -->
+<!-- subtitle: Actividad 14 — Estructura mínima de organizaciones, peers, identidades y canal -->
+
+<h2>1. Resumen</h2>
+<p>La red permisionada del prototipo está formada por tres organizaciones: una de ordenamiento y dos de aplicación. La <strong>I.E. Nuevo Horizonte</strong> opera el nodo que usa la aplicación; la <strong>AcademicValidatorOrg</strong> es una organización neutral de validación del prototipo (no representa a ninguna entidad pública) cuyo papel es custodiar una réplica independiente del ledger y co-firmar cada evidencia. Ambas participan en el canal <code>academicchannel</code>, donde se despliega el chaincode <code>academic-traceability</code>.</p>
+{{img:H3_02_Diagrama_Red_Fabric.png}}
+<div class="caption">Figura 1. H3_02_Diagrama_Red_Fabric.png — organizaciones, nodos, canal y flujo transaccional.</div>
+
+<table><thead><tr><th>Organización</th><th>MSP ID</th><th>Nodos</th><th>Dominio</th></tr></thead><tbody>
+<tr><td>OrdererOrg</td><td><code>OrdererMSP</code></td><td>orderer.example.com (Raft)</td><td>example.com</td></tr>
+<tr><td>NuevoHorizonteOrg (ORG1)</td><td><code>NuevoHorizonteMSP</code></td><td>peer0.nuevohorizonte, ca.nuevohorizonte</td><td>nuevohorizonte.example.com</td></tr>
+<tr><td>AcademicValidatorOrg (ORG2)</td><td><code>AcademicValidatorMSP</code></td><td>peer0.validator, ca.validator</td><td>validator.example.com</td></tr>
+</tbody></table>
+<p>Se usan dominios <code>example.com</code> (reservados para documentación) para no suplantar dominios reales.</p>
+
+<h2>2. Conceptos y su implementación</h2>
+<h3>2.1 Organización</h3>
+<p>Una organización es un miembro de la red con identidad propia, representado por su MSP. Cada organización administra sus nodos y usuarios y firma con sus propias claves; ninguna puede actuar en nombre de otra. En el prototipo, la separación entre la institución educativa y el validador asegura que una evidencia solo se registra si <em>ambas</em> la endosan.</p>
+<h3>2.2 Peer</h3>
+<p>Nodo que mantiene una copia del ledger (cadena de bloques + estado actual en LevelDB), ejecuta el chaincode para <strong>endosar</strong> propuestas y <strong>valida</strong> cada bloque antes de aplicarlo. <code>peer0.nuevohorizonte</code> además expone el servicio <em>Gateway</em> (Fabric 2.4+), que coordina endoso, envío y espera de commit en nombre de la aplicación. Ambos peers son <em>anchor peers</em>, declarados en el bloque génesis para que se descubran mediante gossip.</p>
+<h3>2.3 Orderer</h3>
+<p>Servicio que ordena las transacciones endosadas y las empaqueta en bloques (hasta 10 transacciones o 2 segundos). Usa consenso Raft con un único nodo, suficiente para un prototipo pero sin tolerancia a fallos. El orderer <strong>no</strong> ejecuta el chaincode ni conoce el significado de los datos.</p>
+<h3>2.4 MSP (Membership Service Provider)</h3>
+<p>Define qué certificados pertenecen a una organización y con qué rol. Contiene la CA raíz (<code>cacerts/</code>), la CA de TLS (<code>tlscacerts/</code>) y la configuración <em>NodeOUs</em>, que clasifica cada identidad según el campo OU de su certificado: <code>admin</code>, <code>peer</code>, <code>client</code> u <code>orderer</code>. Las políticas del canal se expresan sobre esos roles (p. ej. <code>NuevoHorizonteMSP.peer</code>).</p>
+<h3>2.5 CA (Certificate Authority)</h3>
+<p>Cada organización de aplicación tiene una Fabric CA (v1.5.22) en ejecución. Las identidades iniciales se generan con <code>cryptogen</code> y las CAs operan con <strong>esa misma CA raíz</strong> (se montan su certificado y clave), de modo que las identidades que se registren en los hitos siguientes (usuarios por rol) serán válidas para el mismo MSP.</p>
+<h3>2.6 Certificados</h3>
+<p>Cada nodo y usuario tiene dos pares de claves: uno de <strong>firma</strong> (MSP: <code>signcerts/</code> + <code>keystore/</code>) y otro de <strong>TLS</strong> (<code>tls/</code>) para cifrar y autenticar las conexiones gRPC. Los certificados usan ECDSA P-256 y vencen en 2036. Los campos C/ST/L (US, California, San Francisco) son los valores por defecto de cryptogen; pueden personalizarse en <code>crypto-config.yaml</code> sin afectar el funcionamiento.</p>
+<h3>2.7 Canal</h3>
+<p><code>academicchannel</code> es un ledger privado compartido por NuevoHorizonteMSP y AcademicValidatorMSP. Su configuración (bloque génesis) contiene las organizaciones, sus MSP, anchor peers, políticas, el consenso y los parámetros de bloque. Se creó sin canal de sistema, uniendo el orderer mediante la API <code>osnadmin</code>.</p>
+<h3>2.8 Endorsement</h3>
+<p>Política por defecto <code>MAJORITY Endorsement</code>: con dos organizaciones, se requieren los endosos de <strong>ambas</strong>. Cada peer simula la transacción de forma independiente y firma el resultado (conjunto de lecturas/escrituras); la transacción solo es válida si los resultados coinciden y las firmas cumplen la política. Por eso el chaincode escribe el JSON con claves ordenadas y toma el timestamp de la propuesta, no del reloj del peer.</p>
+<h3>2.9 Identidades usadas</h3>
+<table><thead><tr><th>Identidad</th><th>Rol (OU)</th><th>Uso</th></tr></thead><tbody>
+<tr><td>peer0.nuevohorizonte / peer0.validator</td><td>peer</td><td>endosar y validar</td></tr>
+<tr><td>orderer.example.com</td><td>orderer</td><td>ordenar y firmar bloques</td></tr>
+<tr><td>Admin@nuevohorizonte / Admin@validator</td><td>admin</td><td>unir peers al canal; instalar, aprobar y confirmar el chaincode</td></tr>
+<tr><td>User1@nuevohorizonte</td><td>client</td><td>identidad con la que Next.js firma las transacciones de la aplicación</td></tr>
+</tbody></table>
+<p>Nota: la identidad de Fabric (User1) es la de la <em>aplicación</em>; el actor académico (p. ej. <code>ADM-PSE-001</code>) se registra dentro de la evidencia como referencia seudónima. La emisión de identidades Fabric por usuario queda para el hito de autenticación.</p>
+
+<h2>3. Flujo transaccional</h2>
+<ol>
+<li>La aplicación construye la propuesta <code>createAcademicEvidence(...)</code> y la firma con User1@NuevoHorizonteMSP.</li>
+<li>El Gateway de peer0.nuevohorizonte consulta el plan de endoso (descubrimiento) y envía la propuesta a peer0.nuevohorizonte y peer0.validator.</li>
+<li>Cada peer ejecuta el chaincode (contenedor <code>academic-traceability-cc</code>), valida las entradas y devuelve su endoso firmado.</li>
+<li>El Gateway ensambla la transacción con ambos endosos y la envía al orderer.</li>
+<li>El orderer la incluye en un bloque y lo distribuye a los peers.</li>
+<li>Cada peer valida el bloque (firmas, política MAJORITY, conflictos MVCC) y actualiza su ledger.</li>
+<li>El Gateway informa a la aplicación el estado del commit (<code>VALID</code>), el TX_ID y el número de bloque.</li>
+</ol>
+
+<h2>4. Evidencias</h2>
+<h3>4.1 Identidades, roles NodeOU y CAs</h3>
+{{log:26_identidades_msp_ca.log|grep:^===|^- |subject|issuer|notAfter|Enable|OrganizationalUnitIdentifier|CAName}}
+<h3>4.2 Ambas organizaciones en el canal y aprobando el chaincode</h3>
+{{log:02_create_channel.log|grep:unido|Channels|^academicchannel$}}
+{{log:03_deploy_chaincode.log|grep:MSP|committed with status}}
+<h3>4.3 La política de endorsement exige a ambas organizaciones</h3>
+<p>Se detuvo <code>peer0.validator</code> y se intentó registrar una evidencia. Sin el endoso de AcademicValidatorOrg la transacción no se confirma; al restablecer el peer, el reintento se completa. (La primera ejecución se clasificó como <code>PEER_UNAVAILABLE</code>; se añadió el código específico <code>ENDORSEMENT_FAILED</code> y se repitió la prueba.)</p>
+{{log:23_endorsement_dos_organizaciones.log}}
+<h3>4.4 Réplica idéntica del ledger en las dos organizaciones</h3>
+{{log:14_reinicio_contenedores.log|grep:Blockchain info}}
+<p>Ambos peers reportan la misma altura y el mismo hash del último bloque: las dos organizaciones custodian copias idénticas e independientes del ledger.</p>
+
+<h2>5. Criterios de aceptación</h2>
+<table><thead><tr><th>Criterio</th><th>Resultado</th></tr></thead><tbody>
+<tr><td>Tres organizaciones con MSP propio</td><td class="ok-tag">Cumplido</td></tr>
+<tr><td>Un peer por organización de aplicación, activo</td><td class="ok-tag">Cumplido</td></tr>
+<tr><td>Orderer activo</td><td class="ok-tag">Cumplido</td></tr>
+<tr><td>Una CA por organización de aplicación, respondiendo</td><td class="ok-tag">Cumplido (<code>/cainfo</code> v1.5.22)</td></tr>
+<tr><td>Identidades con roles admin / peer / client / orderer</td><td class="ok-tag">Cumplido</td></tr>
+<tr><td>Canal <code>academicchannel</code> con ambas organizaciones</td><td class="ok-tag">Cumplido</td></tr>
+<tr><td>Endorsement de ambas organizaciones requerido</td><td class="ok-tag">Cumplido y probado</td></tr>
+</tbody></table>

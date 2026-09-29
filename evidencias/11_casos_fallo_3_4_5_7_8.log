@@ -1,0 +1,66 @@
+==================================================
+CASO 3: registro inexistente (REG-999999)
+==================================================
+------------------------------------
+REGISTRO ACADÉMICO
+------------------------------------
+[INFO] Buscando registro REG-999999
+PROCESO NO COMPLETADO.
+RecordNotFoundError: El registro académico REG-999999 no existe en la base de datos Off-chain
+(código de salida: 1)
+
+==================================================
+CASO 4: evidencia no coincide (REG-000003 alterado en MySQL; intento de re-registro)
+==================================================
+------------------------------------
+[INFO] Buscando registro REG-000003
+[INFO] Registro encontrado {"version":1}
+[INFO] Evidence generada {"evidenceId":"EVD-REG-000003-V1"}
+PROCESO NO COMPLETADO.
+EvidenceConflictError: Conflicto de evidencia EVD-REG-000003-V1: el registro cambió sin una rectificación autorizada; ejecute la verificación de integridad
+(código de salida: 1)
+
+==================================================
+CASO 4 (b): verificación del mismo registro
+==================================================
+e138cc8623efc7b1a2bf4ed9673bcd7a45007ae2f03a53a4cdc54f00508e7d60
+Evidence calculada:
+585497cbd35c9acb0d73b6bf07695fb182699f70d7f0ab036cc94875288213c5
+Copia local del vínculo (MySQL) consistente con el ledger: SÍ
+RESULTADO:
+ALTERADO
+(código de salida: 3)
+
+==================================================
+CASO 5: certificado inválido (identidad de AcademicValidatorMSP presentada como NuevoHorizonteMSP)
+==================================================
+[INFO] Evidence generada {"evidenceId":"EVD-REG-000011-V1"}
+[INFO] Conectando a Fabric {"channel":"academicchannel","chaincode":"academic-traceability"}
+[ERROR] Fallo al registrar en Fabric {"evidenceId":"EVD-REG-000011-V1","error":"9 FAILED_PRECONDITION: evaluate call to endorser returned error: error validating proposal: access denied: channel [academicchannel] creator org unknown, creator is malformed | NuevoHorizonteMSP@peer0.nuevohorizonte.example.com:7051: error validating proposal: access denied: channel [academicchannel] creator org unknown, creator is malformed"}
+PROCESO NO COMPLETADO.
+[IDENTITY_INVALID] Certificado o clave privada inválidos o no autorizados para la organización.
+Detalle: 9 FAILED_PRECONDITION: evaluate call to endorser returned error: error validating proposal: access denied: channel [academicchannel] creator org unknown, creator is malformed | NuevoHorizonteMSP@peer0.nuevohorizonte.example.com:7051: error validating proposal: access denied: channel [academicchannel] creator org unknown, creator is malformed
+(código de salida: 1)
+
+==================================================
+CASO 7: chaincode no desplegado (nombre inexistente)
+==================================================
+[INFO] Evidence generada {"evidenceId":"EVD-REG-000011-V1"}
+[INFO] Conectando a Fabric {"channel":"academicchannel","chaincode":"chaincode-inexistente"}
+[ERROR] Fallo al registrar en Fabric {"evidenceId":"EVD-REG-000011-V1","error":"9 FAILED_PRECONDITION: no peers available to evaluate chaincode chaincode-inexistente in channel academicchannel"}
+PROCESO NO COMPLETADO.
+[CHAINCODE_NOT_DEPLOYED] El chaincode no está desplegado en el canal (fabric-network/scripts/deployChaincode.sh).
+Detalle: 9 FAILED_PRECONDITION: no peers available to evaluate chaincode chaincode-inexistente in channel academicchannel
+(código de salida: 1)
+
+==================================================
+CASO 8: canal incorrecto
+==================================================
+[INFO] Evidence generada {"evidenceId":"EVD-REG-000011-V1"}
+[INFO] Conectando a Fabric {"channel":"canalinexistente","chaincode":"academic-traceability"}
+[ERROR] Fallo al registrar en Fabric {"evidenceId":"EVD-REG-000011-V1","error":"14 UNAVAILABLE: failed to get config for channel [canalinexistente]: could not get last config for channel canalinexistente"}
+PROCESO NO COMPLETADO.
+[CHANNEL_NOT_FOUND] El canal no existe o el peer no está unido a él (FABRIC_CHANNEL_NAME).
+Detalle: 14 UNAVAILABLE: failed to get config for channel [canalinexistente]: could not get last config for channel canalinexistente
+(código de salida: 1)
+

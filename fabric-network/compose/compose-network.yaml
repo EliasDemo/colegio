@@ -1,0 +1,187 @@
+# Red Hyperledger Fabric 2.5 del prototipo de trazabilidad académica.
+#   OrdererOrg            → orderer.example.com (Raft, 1 nodo)
+#   NuevoHorizonteOrg     → peer0.nuevohorizonte.example.com + ca.nuevohorizonte.example.com
+#   AcademicValidatorOrg  → peer0.validator.example.com + ca.validator.example.com
+# Los ledgers se guardan en volúmenes con nombre: sobreviven a "network.sh down" y a reinicios.
+
+name: fabric-academic
+
+networks:
+  academic:
+    name: fabric_academic
+
+volumes:
+  orderer.example.com:
+  peer0.nuevohorizonte.example.com:
+  peer0.validator.example.com:
+
+x-peer-common: &peer-common
+  image: hyperledger/fabric-peer:${FABRIC_VERSION:-2.5}
+  networks: [academic]
+  restart: unless-stopped
+  command: peer node start
+  working_dir: /opt/gopath/src/github.com/hyperledger/fabric/peer
+
+services:
+  orderer.example.com:
+    container_name: orderer.example.com
+    image: hyperledger/fabric-orderer:${FABRIC_VERSION:-2.5}
+    networks: [academic]
+    restart: unless-stopped
+    environment:
+      - FABRIC_LOGGING_SPEC=INFO
+      - ORDERER_GENERAL_LISTENADDRESS=0.0.0.0
+      - ORDERER_GENERAL_LISTENPORT=7050
+      - ORDERER_GENERAL_LOCALMSPID=OrdererMSP
+      - ORDERER_GENERAL_LOCALMSPDIR=/var/hyperledger/orderer/msp
+      - ORDERER_GENERAL_TLS_ENABLED=true
+      - ORDERER_GENERAL_TLS_PRIVATEKEY=/var/hyperledger/orderer/tls/server.key
+      - ORDERER_GENERAL_TLS_CERTIFICATE=/var/hyperledger/orderer/tls/server.crt
+      - ORDERER_GENERAL_TLS_ROOTCAS=[/var/hyperledger/orderer/tls/ca.crt]
+      - ORDERER_GENERAL_CLUSTER_CLIENTCERTIFICATE=/var/hyperledger/orderer/tls/server.crt
+      - ORDERER_GENERAL_CLUSTER_CLIENTPRIVATEKEY=/var/hyperledger/orderer/tls/server.key
+      - ORDERER_GENERAL_CLUSTER_ROOTCAS=[/var/hyperledger/orderer/tls/ca.crt]
+      - ORDERER_GENERAL_BOOTSTRAPMETHOD=none
+      - ORDERER_CHANNELPARTICIPATION_ENABLED=true
+      - ORDERER_ADMIN_TLS_ENABLED=true
+      - ORDERER_ADMIN_TLS_CERTIFICATE=/var/hyperledger/orderer/tls/server.crt
+      - ORDERER_ADMIN_TLS_PRIVATEKEY=/var/hyperledger/orderer/tls/server.key
+      - ORDERER_ADMIN_TLS_ROOTCAS=[/var/hyperledger/orderer/tls/ca.crt]
+      - ORDERER_ADMIN_TLS_CLIENTROOTCAS=[/var/hyperledger/orderer/tls/ca.crt]
+      - ORDERER_ADMIN_LISTENADDRESS=0.0.0.0:7053
+      - ORDERER_OPERATIONS_LISTENADDRESS=0.0.0.0:9443
+      - ORDERER_METRICS_PROVIDER=prometheus
+    working_dir: /root
+    command: orderer
+    volumes:
+      - ../organizations/ordererOrganizations/example.com/orderers/orderer.example.com/msp:/var/hyperledger/orderer/msp
+      - ../organizations/ordererOrganizations/example.com/orderers/orderer.example.com/tls:/var/hyperledger/orderer/tls
+      - orderer.example.com:/var/hyperledger/production/orderer
+    ports:
+      - "7050:7050"
+      - "7053:7053"
+      - "9443:9443"
+
+  peer0.nuevohorizonte.example.com:
+    <<: *peer-common
+    container_name: peer0.nuevohorizonte.example.com
+    environment:
+      - FABRIC_CFG_PATH=/etc/hyperledger/fabric
+      - FABRIC_LOGGING_SPEC=INFO
+      - CORE_VM_ENDPOINT=
+      - CORE_PEER_TLS_ENABLED=true
+      - CORE_PEER_TLS_CERT_FILE=/etc/hyperledger/fabric/tls/server.crt
+      - CORE_PEER_TLS_KEY_FILE=/etc/hyperledger/fabric/tls/server.key
+      - CORE_PEER_TLS_ROOTCERT_FILE=/etc/hyperledger/fabric/tls/ca.crt
+      - CORE_PEER_ID=peer0.nuevohorizonte.example.com
+      - CORE_PEER_ADDRESS=peer0.nuevohorizonte.example.com:7051
+      - CORE_PEER_LISTENADDRESS=0.0.0.0:7051
+      - CORE_PEER_CHAINCODEADDRESS=peer0.nuevohorizonte.example.com:7052
+      - CORE_PEER_CHAINCODELISTENADDRESS=0.0.0.0:7052
+      - CORE_PEER_GOSSIP_BOOTSTRAP=peer0.nuevohorizonte.example.com:7051
+      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer0.nuevohorizonte.example.com:7051
+      - CORE_PEER_LOCALMSPID=NuevoHorizonteMSP
+      - CORE_PEER_MSPCONFIGPATH=/etc/hyperledger/fabric/msp
+      - CORE_OPERATIONS_LISTENADDRESS=0.0.0.0:9444
+      - CORE_METRICS_PROVIDER=prometheus
+      - CORE_LEDGER_STATE_STATEDATABASE=goleveldb
+      - CORE_LEDGER_HISTORY_ENABLEHISTORYDATABASE=true
+    volumes:
+      - ../organizations/peerOrganizations/nuevohorizonte.example.com/peers/peer0.nuevohorizonte.example.com/msp:/etc/hyperledger/fabric/msp
+      - ../organizations/peerOrganizations/nuevohorizonte.example.com/peers/peer0.nuevohorizonte.example.com/tls:/etc/hyperledger/fabric/tls
+      - peer0.nuevohorizonte.example.com:/var/hyperledger/production
+    ports:
+      - "7051:7051"
+      - "9444:9444"
+    depends_on: [orderer.example.com]
+
+  peer0.validator.example.com:
+    <<: *peer-common
+    container_name: peer0.validator.example.com
+    environment:
+      - FABRIC_CFG_PATH=/etc/hyperledger/fabric
+      - FABRIC_LOGGING_SPEC=INFO
+      - CORE_VM_ENDPOINT=
+      - CORE_PEER_TLS_ENABLED=true
+      - CORE_PEER_TLS_CERT_FILE=/etc/hyperledger/fabric/tls/server.crt
+      - CORE_PEER_TLS_KEY_FILE=/etc/hyperledger/fabric/tls/server.key
+      - CORE_PEER_TLS_ROOTCERT_FILE=/etc/hyperledger/fabric/tls/ca.crt
+      - CORE_PEER_ID=peer0.validator.example.com
+      - CORE_PEER_ADDRESS=peer0.validator.example.com:9051
+      - CORE_PEER_LISTENADDRESS=0.0.0.0:9051
+      - CORE_PEER_CHAINCODEADDRESS=peer0.validator.example.com:9052
+      - CORE_PEER_CHAINCODELISTENADDRESS=0.0.0.0:9052
+      - CORE_PEER_GOSSIP_BOOTSTRAP=peer0.validator.example.com:9051
+      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer0.validator.example.com:9051
+      - CORE_PEER_LOCALMSPID=AcademicValidatorMSP
+      - CORE_PEER_MSPCONFIGPATH=/etc/hyperledger/fabric/msp
+      - CORE_OPERATIONS_LISTENADDRESS=0.0.0.0:9445
+      - CORE_METRICS_PROVIDER=prometheus
+      - CORE_LEDGER_STATE_STATEDATABASE=goleveldb
+      - CORE_LEDGER_HISTORY_ENABLEHISTORYDATABASE=true
+    volumes:
+      - ../organizations/peerOrganizations/validator.example.com/peers/peer0.validator.example.com/msp:/etc/hyperledger/fabric/msp
+      - ../organizations/peerOrganizations/validator.example.com/peers/peer0.validator.example.com/tls:/etc/hyperledger/fabric/tls
+      - peer0.validator.example.com:/var/hyperledger/production
+    ports:
+      - "9051:9051"
+      - "9445:9445"
+    depends_on: [orderer.example.com]
+
+  # Autoridades de certificación: operan con la CA raíz generada por cryptogen, de modo que
+  # las nuevas identidades que se registren (Hito 5: usuarios por rol) pertenezcan al mismo MSP.
+  ca.nuevohorizonte.example.com:
+    container_name: ca.nuevohorizonte.example.com
+    image: hyperledger/fabric-ca:${FABRIC_CA_VERSION:-1.5}
+    networks: [academic]
+    restart: unless-stopped
+    environment:
+      - FABRIC_CA_HOME=/etc/hyperledger/fabric-ca-server
+      - FABRIC_CA_SERVER_CA_NAME=ca-nuevohorizonte
+      - FABRIC_CA_SERVER_CA_CERTFILE=/etc/hyperledger/fabric-ca-server-config/ca.nuevohorizonte.example.com-cert.pem
+      - FABRIC_CA_SERVER_CA_KEYFILE=/etc/hyperledger/fabric-ca-server-config/priv_sk
+      - FABRIC_CA_SERVER_TLS_ENABLED=true
+      - FABRIC_CA_SERVER_PORT=7054
+      - FABRIC_CA_SERVER_CSR_HOSTS=ca.nuevohorizonte.example.com,localhost
+      - FABRIC_CA_SERVER_OPERATIONS_LISTENADDRESS=0.0.0.0:17054
+    command: sh -c 'fabric-ca-server start -b ${CA_ADMIN_USER:-admin}:${CA_ADMIN_PASSWORD:-adminpw}'
+    volumes:
+      - ../organizations/peerOrganizations/nuevohorizonte.example.com/ca:/etc/hyperledger/fabric-ca-server-config:ro
+    ports:
+      - "7054:7054"
+
+  ca.validator.example.com:
+    container_name: ca.validator.example.com
+    image: hyperledger/fabric-ca:${FABRIC_CA_VERSION:-1.5}
+    networks: [academic]
+    restart: unless-stopped
+    environment:
+      - FABRIC_CA_HOME=/etc/hyperledger/fabric-ca-server
+      - FABRIC_CA_SERVER_CA_NAME=ca-validator
+      - FABRIC_CA_SERVER_CA_CERTFILE=/etc/hyperledger/fabric-ca-server-config/ca.validator.example.com-cert.pem
+      - FABRIC_CA_SERVER_CA_KEYFILE=/etc/hyperledger/fabric-ca-server-config/priv_sk
+      - FABRIC_CA_SERVER_TLS_ENABLED=true
+      - FABRIC_CA_SERVER_PORT=8054
+      - FABRIC_CA_SERVER_CSR_HOSTS=ca.validator.example.com,localhost
+      - FABRIC_CA_SERVER_OPERATIONS_LISTENADDRESS=0.0.0.0:18054
+    command: sh -c 'fabric-ca-server start -b ${CA_ADMIN_USER:-admin}:${CA_ADMIN_PASSWORD:-adminpw}'
+    volumes:
+      - ../organizations/peerOrganizations/validator.example.com/ca:/etc/hyperledger/fabric-ca-server-config:ro
+    ports:
+      - "8054:8054"
+
+  # Contenedor de herramientas (peer CLI, configtxgen, osnadmin, cryptogen).
+  cli:
+    container_name: cli
+    image: hyperledger/fabric-tools:${FABRIC_VERSION:-2.5}
+    networks: [academic]
+    tty: true
+    stdin_open: true
+    environment:
+      - FABRIC_LOGGING_SPEC=INFO
+    working_dir: /opt/network
+    command: /bin/bash
+    volumes:
+      - ../organizations:/opt/network/organizations
+      - ../configtx:/opt/network/configtx
+      - ../channel-artifacts:/opt/network/channel-artifacts

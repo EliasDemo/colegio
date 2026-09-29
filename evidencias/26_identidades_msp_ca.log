@@ -1,0 +1,78 @@
+=== Estructura de identidades generada por cryptogen (directorios) ===
+  peerOrganizations/nuevohorizonte.example.com
+  peerOrganizations/nuevohorizonte.example.com/ca
+  peerOrganizations/nuevohorizonte.example.com/msp
+  peerOrganizations/nuevohorizonte.example.com/msp/admincerts
+  peerOrganizations/nuevohorizonte.example.com/msp/cacerts
+  peerOrganizations/nuevohorizonte.example.com/msp/tlscacerts
+  peerOrganizations/nuevohorizonte.example.com/peers
+  peerOrganizations/nuevohorizonte.example.com/peers/peer0.nuevohorizonte.example.com
+  peerOrganizations/nuevohorizonte.example.com/peers/peer0.nuevohorizonte.example.com/msp
+  peerOrganizations/nuevohorizonte.example.com/peers/peer0.nuevohorizonte.example.com/msp/admincerts
+  peerOrganizations/nuevohorizonte.example.com/peers/peer0.nuevohorizonte.example.com/msp/cacerts
+  peerOrganizations/nuevohorizonte.example.com/peers/peer0.nuevohorizonte.example.com/msp/keystore
+  peerOrganizations/nuevohorizonte.example.com/peers/peer0.nuevohorizonte.example.com/msp/signcerts
+  peerOrganizations/nuevohorizonte.example.com/peers/peer0.nuevohorizonte.example.com/msp/tlscacerts
+  peerOrganizations/nuevohorizonte.example.com/peers/peer0.nuevohorizonte.example.com/tls
+  peerOrganizations/nuevohorizonte.example.com/tlsca
+  peerOrganizations/nuevohorizonte.example.com/users
+  peerOrganizations/nuevohorizonte.example.com/users/Admin@nuevohorizonte.example.com
+  peerOrganizations/nuevohorizonte.example.com/users/Admin@nuevohorizonte.example.com/msp
+  peerOrganizations/nuevohorizonte.example.com/users/Admin@nuevohorizonte.example.com/msp/admincerts
+  peerOrganizations/nuevohorizonte.example.com/users/Admin@nuevohorizonte.example.com/msp/cacerts
+  peerOrganizations/nuevohorizonte.example.com/users/Admin@nuevohorizonte.example.com/msp/keystore
+  peerOrganizations/nuevohorizonte.example.com/users/Admin@nuevohorizonte.example.com/msp/signcerts
+  peerOrganizations/nuevohorizonte.example.com/users/Admin@nuevohorizonte.example.com/msp/tlscacerts
+  peerOrganizations/nuevohorizonte.example.com/users/Admin@nuevohorizonte.example.com/tls
+  peerOrganizations/nuevohorizonte.example.com/users/User1@nuevohorizonte.example.com
+  peerOrganizations/nuevohorizonte.example.com/users/User1@nuevohorizonte.example.com/msp
+  peerOrganizations/nuevohorizonte.example.com/users/User1@nuevohorizonte.example.com/msp/admincerts
+  peerOrganizations/nuevohorizonte.example.com/users/User1@nuevohorizonte.example.com/msp/cacerts
+  peerOrganizations/nuevohorizonte.example.com/users/User1@nuevohorizonte.example.com/msp/keystore
+  peerOrganizations/nuevohorizonte.example.com/users/User1@nuevohorizonte.example.com/msp/signcerts
+  peerOrganizations/nuevohorizonte.example.com/users/User1@nuevohorizonte.example.com/msp/tlscacerts
+  peerOrganizations/nuevohorizonte.example.com/users/User1@nuevohorizonte.example.com/tls
+
+=== Sujeto y emisor de los certificados (NodeOUs: rol en el campo OU) ===
+- peer0.nuevohorizonte.example.com-cert.pem
+    subject=C = US, ST = California, L = San Francisco, OU = peer, CN = peer0.nuevohorizonte.example.com
+    issuer=C = US, ST = California, L = San Francisco, O = nuevohorizonte.example.com, CN = ca.nuevohorizonte.example.com
+    notAfter=Sep 25 22:33:00 2036 GMT
+- Admin@nuevohorizonte.example.com-cert.pem
+    subject=C = US, ST = California, L = San Francisco, OU = admin, CN = Admin@nuevohorizonte.example.com
+    issuer=C = US, ST = California, L = San Francisco, O = nuevohorizonte.example.com, CN = ca.nuevohorizonte.example.com
+    notAfter=Sep 25 22:33:00 2036 GMT
+- User1@nuevohorizonte.example.com-cert.pem
+    subject=C = US, ST = California, L = San Francisco, OU = client, CN = User1@nuevohorizonte.example.com
+    issuer=C = US, ST = California, L = San Francisco, O = nuevohorizonte.example.com, CN = ca.nuevohorizonte.example.com
+    notAfter=Sep 25 22:33:00 2036 GMT
+- peer0.validator.example.com-cert.pem
+    subject=C = US, ST = California, L = San Francisco, OU = peer, CN = peer0.validator.example.com
+    issuer=C = US, ST = California, L = San Francisco, O = validator.example.com, CN = ca.validator.example.com
+    notAfter=Sep 25 22:33:00 2036 GMT
+- orderer.example.com-cert.pem
+    subject=C = US, ST = California, L = San Francisco, OU = orderer, CN = orderer.example.com
+    issuer=C = US, ST = California, L = San Francisco, O = example.com, CN = ca.example.com
+    notAfter=Sep 25 22:33:00 2036 GMT
+
+=== config.yaml del MSP (clasificación NodeOU) ===
+NodeOUs:
+  Enable: true
+  ClientOUIdentifier:
+    Certificate: cacerts/ca.nuevohorizonte.example.com-cert.pem
+    OrganizationalUnitIdentifier: client
+  PeerOUIdentifier:
+    Certificate: cacerts/ca.nuevohorizonte.example.com-cert.pem
+    OrganizationalUnitIdentifier: peer
+  AdminOUIdentifier:
+    Certificate: cacerts/ca.nuevohorizonte.example.com-cert.pem
+    OrganizationalUnitIdentifier: admin
+  OrdererOUIdentifier:
+    Certificate: cacerts/ca.nuevohorizonte.example.com-cert.pem
+    OrganizationalUnitIdentifier: orderer
+
+=== Fabric CA: /cainfo ===
+- https://localhost:7054/cainfo
+    CAName: ca-nuevohorizonte | Version: v1.5.22 | CAChain (bytes b64): 1232
+- https://localhost:8054/cainfo
+    CAName: ca-validator | Version: v1.5.22 | CAChain (bytes b64): 1196

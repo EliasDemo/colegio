@@ -1,0 +1,153 @@
+# Configuración del canal academicchannel (Fabric 2.5, sin canal de sistema).
+# Genera el bloque génesis con:
+#   configtxgen -configPath configtx -profile AcademicChannelProfile -outputBlock channel-artifacts/academicchannel.block -channelID academicchannel
+
+Organizations:
+  - &OrdererOrg
+    Name: OrdererOrg
+    ID: OrdererMSP
+    MSPDir: ../organizations/ordererOrganizations/example.com/msp
+    Policies:
+      Readers:
+        Type: Signature
+        Rule: "OR('OrdererMSP.member')"
+      Writers:
+        Type: Signature
+        Rule: "OR('OrdererMSP.member')"
+      Admins:
+        Type: Signature
+        Rule: "OR('OrdererMSP.admin')"
+    OrdererEndpoints:
+      - orderer.example.com:7050
+
+  - &NuevoHorizonte
+    Name: NuevoHorizonteMSP
+    ID: NuevoHorizonteMSP
+    MSPDir: ../organizations/peerOrganizations/nuevohorizonte.example.com/msp
+    Policies:
+      Readers:
+        Type: Signature
+        Rule: "OR('NuevoHorizonteMSP.admin', 'NuevoHorizonteMSP.peer', 'NuevoHorizonteMSP.client')"
+      Writers:
+        Type: Signature
+        Rule: "OR('NuevoHorizonteMSP.admin', 'NuevoHorizonteMSP.client')"
+      Admins:
+        Type: Signature
+        Rule: "OR('NuevoHorizonteMSP.admin')"
+      Endorsement:
+        Type: Signature
+        Rule: "OR('NuevoHorizonteMSP.peer')"
+    # Anchor peer: permite que las organizaciones se descubran vía gossip (necesario para el Gateway).
+    AnchorPeers:
+      - Host: peer0.nuevohorizonte.example.com
+        Port: 7051
+
+  - &AcademicValidator
+    Name: AcademicValidatorMSP
+    ID: AcademicValidatorMSP
+    MSPDir: ../organizations/peerOrganizations/validator.example.com/msp
+    Policies:
+      Readers:
+        Type: Signature
+        Rule: "OR('AcademicValidatorMSP.admin', 'AcademicValidatorMSP.peer', 'AcademicValidatorMSP.client')"
+      Writers:
+        Type: Signature
+        Rule: "OR('AcademicValidatorMSP.admin', 'AcademicValidatorMSP.client')"
+      Admins:
+        Type: Signature
+        Rule: "OR('AcademicValidatorMSP.admin')"
+      Endorsement:
+        Type: Signature
+        Rule: "OR('AcademicValidatorMSP.peer')"
+    AnchorPeers:
+      - Host: peer0.validator.example.com
+        Port: 9051
+
+Capabilities:
+  Channel: &ChannelCapabilities
+    V2_0: true
+  Orderer: &OrdererCapabilities
+    V2_0: true
+  Application: &ApplicationCapabilities
+    V2_0: true
+
+Application: &ApplicationDefaults
+  Organizations:
+  Policies:
+    Readers:
+      Type: ImplicitMeta
+      Rule: "ANY Readers"
+    Writers:
+      Type: ImplicitMeta
+      Rule: "ANY Writers"
+    Admins:
+      Type: ImplicitMeta
+      Rule: "MAJORITY Admins"
+    LifecycleEndorsement:
+      Type: ImplicitMeta
+      Rule: "MAJORITY Endorsement"
+    # Política por defecto del chaincode: mayoría de 2 organizaciones = ambas deben endosar.
+    Endorsement:
+      Type: ImplicitMeta
+      Rule: "MAJORITY Endorsement"
+  Capabilities:
+    <<: *ApplicationCapabilities
+
+Orderer: &OrdererDefaults
+  OrdererType: etcdraft
+  Addresses:
+    - orderer.example.com:7050
+  EtcdRaft:
+    Consenters:
+      - Host: orderer.example.com
+        Port: 7050
+        ClientTLSCert: ../organizations/ordererOrganizations/example.com/orderers/orderer.example.com/tls/server.crt
+        ServerTLSCert: ../organizations/ordererOrganizations/example.com/orderers/orderer.example.com/tls/server.crt
+  BatchTimeout: 2s
+  BatchSize:
+    MaxMessageCount: 10
+    AbsoluteMaxBytes: 99 MB
+    PreferredMaxBytes: 512 KB
+  Organizations:
+  Policies:
+    Readers:
+      Type: ImplicitMeta
+      Rule: "ANY Readers"
+    Writers:
+      Type: ImplicitMeta
+      Rule: "ANY Writers"
+    Admins:
+      Type: ImplicitMeta
+      Rule: "MAJORITY Admins"
+    BlockValidation:
+      Type: ImplicitMeta
+      Rule: "ANY Writers"
+
+Channel: &ChannelDefaults
+  Policies:
+    Readers:
+      Type: ImplicitMeta
+      Rule: "ANY Readers"
+    Writers:
+      Type: ImplicitMeta
+      Rule: "ANY Writers"
+    Admins:
+      Type: ImplicitMeta
+      Rule: "MAJORITY Admins"
+  Capabilities:
+    <<: *ChannelCapabilities
+
+Profiles:
+  AcademicChannelProfile:
+    <<: *ChannelDefaults
+    Orderer:
+      <<: *OrdererDefaults
+      Organizations:
+        - *OrdererOrg
+      Capabilities: *OrdererCapabilities
+    Application:
+      <<: *ApplicationDefaults
+      Organizations:
+        - *NuevoHorizonte
+        - *AcademicValidator
+      Capabilities: *ApplicationCapabilities

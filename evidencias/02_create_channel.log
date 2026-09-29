@@ -1,0 +1,34 @@
+[INFO] Generando bloque génesis de academicchannel...
+2026-09-28 22:38:37.542 UTC 0001 INFO [common.tools.configtxgen] main -> Loading configuration
+2026-09-28 22:38:37.550 UTC 0002 INFO [common.tools.configtxgen.localconfig] completeInitialization -> orderer type: etcdraft
+2026-09-28 22:38:37.550 UTC 0003 INFO [common.tools.configtxgen.localconfig] completeInitialization -> Orderer.EtcdRaft.Options unset, setting to tick_interval:"500ms" election_tick:10 heartbeat_tick:1 max_inflight_blocks:5 snapshot_interval_size:16777216 
+2026-09-28 22:38:37.550 UTC 0004 INFO [common.tools.configtxgen.localconfig] Load -> Loaded configuration: /opt/network/configtx/configtx.yaml
+2026-09-28 22:38:37.634 UTC 0005 INFO [common.tools.configtxgen] doOutputBlock -> Generating genesis block
+2026-09-28 22:38:37.634 UTC 0006 INFO [common.tools.configtxgen] doOutputBlock -> Creating application channel genesis block
+2026-09-28 22:38:37.634 UTC 0007 INFO [common.tools.configtxgen] doOutputBlock -> Writing genesis block
+[INFO] Uniendo el orderer al canal...
+Status: 201
+{
+	"name": "academicchannel",
+	"url": "/participation/v1/channels/academicchannel",
+	"consensusRelation": "consenter",
+	"status": "active",
+	"height": 1
+}
+
+2026-09-28 22:38:38.650 UTC 0001 INFO [channelCmd] InitCmdFactory -> Endorser and orderer connections initialized
+2026-09-28 22:38:38.673 UTC 0002 INFO [channelCmd] executeJoin -> Successfully submitted proposal to join channel
+[OK] peer0.nuevohorizonte unido a academicchannel
+2026-09-28 22:38:39.310 UTC 0001 INFO [channelCmd] InitCmdFactory -> Endorser and orderer connections initialized
+2026-09-28 22:38:39.329 UTC 0002 INFO [channelCmd] executeJoin -> Successfully submitted proposal to join channel
+[OK] peer0.validator unido a academicchannel
+[INFO] Canales de cada peer:
+2026-09-28 22:38:39.580 UTC 0001 INFO [channelCmd] InitCmdFactory -> Endorser and orderer connections initialized
+Channels peers has joined: 
+academicchannel
+2026-09-28 22:38:39.875 UTC 0001 INFO [channelCmd] InitCmdFactory -> Endorser and orderer connections initialized
+Channels peers has joined: 
+academicchannel
+2026-09-28 22:38:40.267 UTC 0001 INFO [channelCmd] InitCmdFactory -> Endorser and orderer connections initialized
+Blockchain info: {"height":1,"currentBlockHash":"16Xehus21kvfoZSqT+qTWkr47LIyFXXzVlH6+l+1lDc="}
+[OK] Canal academicchannel creado con NuevoHorizonteMSP y AcademicValidatorMSP

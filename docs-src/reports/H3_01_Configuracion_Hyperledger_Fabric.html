@@ -1,0 +1,112 @@
+<!-- title: H3-01 · Configuración inicial de Hyperledger Fabric -->
+<!-- subtitle: Actividad 13 — Instalación de dependencias y despliegue de la red de desarrollo -->
+
+<h2>1. Objetivo</h2>
+<p>Instalar las dependencias y desplegar una red Hyperledger Fabric funcional y reproducible sobre la que el prototipo realice sus primeras operaciones: levantar la red, crear el canal, unir los peers, desplegar el chaincode, consultar su estado, detener la red y limpiar la infraestructura con comandos simples.</p>
+
+<h2>2. Tecnologías utilizadas</h2>
+<table>
+<thead><tr><th>Componente</th><th>Versión verificada</th><th>Función</th></tr></thead>
+<tbody>
+<tr><td>Hyperledger Fabric peer / orderer / tools</td><td>2.5.16 (imágenes <code>hyperledger/fabric-*:2.5</code>)</td><td>Nodos de la red y herramientas de administración</td></tr>
+<tr><td>Hyperledger Fabric CA</td><td>1.5.22</td><td>Autoridad de certificación por organización</td></tr>
+<tr><td>Docker Engine / Docker Compose</td><td>29.4.0 / 5.1.1</td><td>Ejecución de todos los nodos en contenedores</td></tr>
+<tr><td>Node.js (chaincode)</td><td>20.20.2 (imagen <code>node:20-alpine</code>)</td><td>Ejecución del chaincode como servicio</td></tr>
+<tr><td>fabric-contract-api / fabric-shim</td><td>2.5.8</td><td>Desarrollo del chaincode en TypeScript</td></tr>
+<tr><td>Bash (Git Bash en Windows)</td><td>Git 2.53</td><td>Scripts de administración</td></tr>
+</tbody></table>
+
+<h2>3. Arquitectura desplegada</h2>
+<p>Se optó por una red construida desde cero (no por la <em>test-network</em> de fabric-samples) para controlar los nombres de organizaciones, MSP, canal y chaincode exigidos por el proyecto. Se usa el modelo de Fabric 2.5 <strong>sin canal de sistema</strong>: el orderer se une al canal mediante la API de participación de canales (<code>osnadmin</code>). El chaincode se ejecuta como servicio externo (<em>Chaincode-as-a-Service</em>), de modo que el peer no necesita acceso al socket de Docker; esto hace la red portable entre Windows, Linux y macOS.</p>
+{{img:H3_02_Diagrama_Red_Fabric.png}}
+<div class="caption">Figura 1. Red desplegada (detalle en el informe H3-02).</div>
+
+<h2>4. Requisitos</h2>
+<ul>
+<li>Docker Desktop (Windows/macOS) o Docker Engine (Linux) <strong>en ejecución</strong>; ~4 GB libres para imágenes.</li>
+<li>Bash: en Windows, Git Bash. Los scripts exportan <code>MSYS_NO_PATHCONV=1</code> y convierten rutas con <code>pwd -W</code>.</li>
+<li>Puertos libres: 7050, 7053, 9443 (orderer); 7051, 9444, 9051, 9445 (peers); 7054, 8054 (CAs).</li>
+<li>No se requieren los binarios de Fabric en el host: <code>cryptogen</code>, <code>configtxgen</code>, <code>osnadmin</code> y <code>peer</code> se ejecutan dentro del contenedor <code>cli</code> (imagen <code>fabric-tools</code>).</li>
+</ul>
+
+<h2>5. Instalación</h2>
+<ol>
+<li>Instalar e iniciar Docker. Verificar con <code>docker info</code>.</li>
+<li>Descargar las imágenes (lo hace Compose automáticamente la primera vez): <code>docker pull hyperledger/fabric-peer:2.5 hyperledger/fabric-orderer:2.5 hyperledger/fabric-tools:2.5 hyperledger/fabric-ca:1.5 node:20-alpine</code>.</li>
+<li>Instalar las dependencias del chaincode: <code>cd chaincode/academic-traceability &amp;&amp; npm install</code>.</li>
+<li>Ejecutar los scripts de la sección 8.</li>
+</ol>
+
+<h2>6. Estructura</h2>
+<table><thead><tr><th>Ruta</th><th>Contenido</th></tr></thead><tbody>
+<tr><td><code>fabric-network/compose/compose-network.yaml</code></td><td>orderer, 2 peers, 2 CAs y contenedor <code>cli</code>; volúmenes con nombre para los ledgers</td></tr>
+<tr><td><code>fabric-network/compose/compose-chaincode.yaml</code></td><td>contenedor <code>academic-traceability-cc</code> (CCaaS)</td></tr>
+<tr><td><code>fabric-network/organizations/cryptogen/crypto-config.yaml</code></td><td>definición de identidades (MSP/TLS) de las 3 organizaciones</td></tr>
+<tr><td><code>fabric-network/configtx/configtx.yaml</code></td><td>organizaciones, políticas, consenso Raft y perfil <code>AcademicChannelProfile</code></td></tr>
+<tr><td><code>fabric-network/channel-artifacts/</code></td><td>bloque génesis, paquete del chaincode y <code>chaincode.env</code> (generados, no versionados)</td></tr>
+<tr><td><code>fabric-network/scripts/</code></td><td><code>network.sh</code>, <code>createChannel.sh</code>, <code>deployChaincode.sh</code>, <code>cleanNetwork.sh</code>, <code>env.sh</code></td></tr>
+</tbody></table>
+
+<h2>7. Configuración</h2>
+<h3>7.1 Peer (fragmento)</h3>
+<p>Cada peer habilita TLS, se anuncia por gossip con su nombre DNS interno, usa LevelDB con base de historial y deshabilita el acceso a Docker (<code>CORE_VM_ENDPOINT=</code>) porque el chaincode corre como servicio.</p>
+{{code:fabric-network/compose/compose-network.yaml|65-98}}
+<h3>7.2 Políticas del canal</h3>
+<p>La política de endorsement por defecto del chaincode es <code>MAJORITY Endorsement</code>: con dos organizaciones de aplicación, ambas deben endosar cada transacción. El ciclo de vida del chaincode (<code>LifecycleEndorsement</code>) también exige mayoría.</p>
+{{code:fabric-network/configtx/configtx.yaml|74-96}}
+<h3>7.3 Empaquetado del chaincode como servicio</h3>
+{{code:fabric-network/scripts/deployChaincode.sh|18-34}}
+
+<h2>8. Comandos</h2>
+<table><thead><tr><th>Comando</th><th>Acción</th></tr></thead><tbody>
+<tr><td><code>./scripts/network.sh up</code></td><td>genera identidades si faltan y levanta orderer, peers, CAs, cli (y el chaincode si ya fue desplegado)</td></tr>
+<tr><td><code>./scripts/createChannel.sh</code></td><td>genera el bloque génesis, une el orderer y los dos peers a <code>academicchannel</code> (idempotente)</td></tr>
+<tr><td><code>./scripts/deployChaincode.sh</code></td><td>build de imagen → package → install ×2 → approve ×2 → commit → contenedor → consulta de prueba</td></tr>
+<tr><td><code>./scripts/network.sh status</code></td><td>estado de los contenedores</td></tr>
+<tr><td><code>./scripts/network.sh down</code></td><td>detiene y elimina contenedores; <strong>conserva</strong> los ledgers</td></tr>
+<tr><td><code>./scripts/network.sh restart</code></td><td>reinicia sin borrar datos</td></tr>
+<tr><td><code>./scripts/cleanNetwork.sh --yes</code></td><td>borra ledgers, identidades, artefactos e imagen del chaincode</td></tr>
+</tbody></table>
+
+<h2>9. Explicación de cada servicio</h2>
+<table><thead><tr><th>Servicio</th><th>Rol</th></tr></thead><tbody>
+<tr><td><code>orderer.example.com</code></td><td>Servicio de ordenamiento (Raft, un nodo). Recibe transacciones ya endosadas, las ordena, forma bloques (máx. 10 tx o 2 s) y los distribuye. No ejecuta chaincode.</td></tr>
+<tr><td><code>peer0.nuevohorizonte.example.com</code></td><td>Peer de la I.E. Nuevo Horizonte. Endosa (simula el chaincode y firma), valida bloques y mantiene su copia del ledger. Expone el servicio <em>Gateway</em> que usa la aplicación.</td></tr>
+<tr><td><code>peer0.validator.example.com</code></td><td>Peer de la organización de validación. Segundo endosante requerido por la política y réplica independiente del ledger.</td></tr>
+<tr><td><code>ca.nuevohorizonte / ca.validator</code></td><td>Fabric CA de cada organización, operando con la CA raíz generada por cryptogen, para registrar nuevas identidades en fases posteriores (usuarios por rol).</td></tr>
+<tr><td><code>academic-traceability-cc</code></td><td>Proceso del chaincode (Node 20). Los peers se conectan a él en <code>:9999</code> para ejecutar las funciones del contrato.</td></tr>
+<tr><td><code>cli</code></td><td>Herramientas de administración: generación de identidades, bloque génesis, unión al canal y ciclo de vida del chaincode.</td></tr>
+</tbody></table>
+
+<h2>10. Verificación y evidencias</h2>
+<h3>10.1 Levantamiento de la red</h3>
+{{log:01_network_up.log|tail:9}}
+<h3>10.2 Creación del canal</h3>
+{{log:02_create_channel.log|grep:Status|"name"|"status"|"height"|unido|Channels|academicchannel$|Blockchain info|OK}}
+<h3>10.3 Despliegue del chaincode</h3>
+{{log:03_deploy_chaincode.log|grep:INFO|OK|committed with status|Approvals|Version: 1.0|true|false$}}
+<h3>10.4 Consulta del estado desde la aplicación</h3>
+{{log:04_check_infrastructure.log|grep:^\[|INFRA}}
+<p>La respuesta <code>false</code> de <code>academicEvidenceExists</code> para una evidencia inexistente confirma el recorrido completo: aplicación → Gateway → peer → chaincode → estado del ledger.</p>
+
+<h2>11. Errores frecuentes (observados durante la configuración)</h2>
+<table><thead><tr><th>Error</th><th>Causa</th><th>Solución aplicada</th></tr></thead><tbody>
+<tr><td><code>failed to connect to the docker API … dockerDesktopLinuxEngine</code></td><td>Docker Desktop no estaba en ejecución</td><td>Iniciar Docker Desktop; <code>require_docker</code> en <code>env.sh</code> lo detecta y lo informa</td></tr>
+<tr><td><code>short read … unexpected EOF</code> al descargar <code>mysql:8.4</code></td><td>Corte de red durante <code>docker pull</code></td><td>Reintentar la descarga</td></tr>
+<tr><td><code>open D:\d\colegio\…\compose-network.yaml: The system cannot find the path</code></td><td>Git Bash pasó a Docker una ruta POSIX (<code>/d/colegio</code>) con la conversión desactivada</td><td><code>env.sh</code> obtiene rutas Windows con <code>pwd -W</code> (y <code>pwd</code> en Linux/macOS)</td></tr>
+<tr><td>Aviso <code>Found orphan containers</code></td><td>Los dos archivos Compose compartían el nombre de proyecto</td><td>Proyecto propio <code>fabric-academic-chaincode</code> para el chaincode</td></tr>
+<tr><td><code>IDENTITY_INVALID</code> al conectar la aplicación</td><td>El certificado de cryptogen se llama <code>User1@…-cert.pem</code>, no <code>cert.pem</code></td><td><code>FABRIC_CERT_PATH</code> apunta al directorio <code>signcerts/</code>; el cliente toma el archivo que contiene</td></tr>
+<tr><td>Scripts <code>.sh</code> con <code>\r</code> tras clonar en Windows</td><td>Conversión CRLF de Git</td><td><code>.gitattributes</code> fuerza LF en <code>*.sh</code> y YAML</td></tr>
+</tbody></table>
+
+<h2>12. Criterios de aceptación</h2>
+<table><thead><tr><th>Criterio</th><th>Resultado</th><th>Evidencia</th></tr></thead><tbody>
+<tr><td>La red se levanta con un comando</td><td class="ok-tag">Cumplido</td><td>01_network_up.log</td></tr>
+<tr><td>Orderer y peers activos</td><td class="ok-tag">Cumplido</td><td>01_network_up.log, 14_reinicio_contenedores.log</td></tr>
+<tr><td>Canal <code>academicchannel</code> creado</td><td class="ok-tag">Cumplido</td><td>02_create_channel.log (Status 201, height 1)</td></tr>
+<tr><td>Peers unidos al canal</td><td class="ok-tag">Cumplido</td><td>02_create_channel.log (<code>Channels peers has joined: academicchannel</code> ×2)</td></tr>
+<tr><td>Chaincode desplegado</td><td class="ok-tag">Cumplido</td><td>03_deploy_chaincode.log (Version 1.0, Sequence 1, aprobaciones de ambas organizaciones)</td></tr>
+<tr><td>Consulta del estado</td><td class="ok-tag">Cumplido</td><td>04_check_infrastructure.log</td></tr>
+<tr><td>Detener y reanudar sin pérdida de datos</td><td class="ok-tag">Cumplido</td><td>14_reinicio_contenedores.log (altura 18 en ambos peers)</td></tr>
+<tr><td>Limpieza de la infraestructura</td><td class="pending-tag">Implementado, no ejecutado</td><td><code>cleanNetwork.sh</code> no se ejecutó para conservar el ledger con las evidencias de este informe</td></tr>
+</tbody></table>

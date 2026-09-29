@@ -1,0 +1,4 @@
+organizations/peerOrganizations/
+organizations/ordererOrganizations/
+channel-artifacts/*
+!channel-artifacts/.gitkeep

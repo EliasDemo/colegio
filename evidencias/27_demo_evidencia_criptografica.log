@@ -1,0 +1,32 @@
+
+
+
+------------------------------------
+DEMOSTRACIÓN DE EVIDENCIA CRIPTOGRÁFICA
+------------------------------------
+
+1) Forma canónica (UTF-8, orden fijo, sin espacios):
+
+{"canonicalVersion":"1","academicRecordId":"REG-000001","studentReference":"EST-PSE-001","enrollmentReference":"MAT-2026-0001","sectionReference":"2026-1A","subjectReference":"MAT","activityReference":"ACT-2026-001","periodReference":"2026-B2","teacherReference":"DOC-PSE-001","qualitativeGrade":"AD","numericScore":"19.50","observation":null,"recordedAt":"2026-06-10T20:20:00.000Z","version":1}
+
+   Longitud: 395 bytes
+
+2) Resúmenes de la misma cadena:
+
+   SHA-256 (sin clave)        : 7e592276882699d1811bc38dc6970688521f3ab7df0eb073f15c1d378ad71c63
+   HMAC-SHA-256 (HMAC_SECRET) : f5d60c6a21d19aa36947382e340943348b158da73b8d1e490f42196d31df9c10
+
+3) Determinismo: 1000 cálculos → 1 valor(es) distinto(s)
+   Mismo registro con propiedades en otro orden → misma evidencia
+
+4) Efecto avalancha: nota 19.50 → 19.51
+   270cc8d7ebebcf5106ae593bd09abc6901984074b951f255cb07a3dd4c540c89
+   Bits distintos: 135 de 256
+
+5) Verificación:
+   verifyEvidence(registro original, evidence)  → valid = true
+   verifyEvidence(registro alterado, evidence)  → valid = false
+
+6) Ataque de diccionario sobre 164 combinaciones de calificación y nota:
+   Contra SHA-256 sin clave      → NOTA DESCUBIERTA: AD / 19.50
+   Contra HMAC sin conocer la clave → no encontrada (la evidencia no revela la nota)

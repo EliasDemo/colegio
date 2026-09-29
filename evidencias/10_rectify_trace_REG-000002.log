@@ -1,0 +1,47 @@
+[INFO] Registro encontrado {"version":2}
+[INFO] Evidence generada {"evidenceId":"EVD-REG-000002-V2"}
+[INFO] Conectando a Fabric {"channel":"academicchannel","chaincode":"academic-traceability"}
+[INFO] Transacción enviada {"evidenceId":"EVD-REG-000002-V2"}
+[INFO] TX_ID obtenido {"txId":"0ee26a9e6731b1b754bf2f385cf17736615b4441ebe85572fd7be324fa273d04"}
+[INFO] Referencia persistida
+
+Registro: REG-000002 → versión 2
+Evidence: a56ef7ed2d4e2729830d27d0ee5fcac94d2b6fd08dfcf418cfeb96f3e582d9f6
+TX_ID: 0ee26a9e6731b1b754bf2f385cf17736615b4441ebe85572fd7be324fa273d04
+
+PROCESO COMPLETADO CORRECTAMENTE.
+RESULTADO:
+
+INTEGRO
+[INFO] Registro encontrado {"version":2}
+
+REGISTRO:
+REG-000002
+Estudiante: EST-PSE-002 · Actividad: ACT-2026-001 · Versión actual: 2
+
+EVENTOS (MySQL, hora de Lima):
+
+2026-09-28 17:40
+REGISTRO
+Version: 1 · Estado: CONFIRMADO · Actor: ADM-PSE-001 (ADMINISTRADOR)
+TX: 183d23f83b146cd9...
+
+2026-09-28 17:40
+RECTIFICACION
+Version: 2 · Estado: CONFIRMADO · Actor: ADM-PSE-001 (ADMINISTRADOR)
+TX: 0ee26a9e6731b1b7...
+
+2026-09-28 17:40
+VERIFICACION
+Version: 2 · Estado: INTEGRO · Actor: ADM-PSE-001 (ADMINISTRADOR)
+TX: 0ee26a9e6731b1b7...
+Detalle: Coincide con la versión 2 anclada
+
+EVIDENCIAS ON-CHAIN (Hyperledger Fabric):
+
+EVD-REG-000002-V1 · REGISTRO · v1 · 2026-09-28T22:40:08.844Z
+  evidence cf8a3b5ed42b62b4... · TX 183d23f83b146cd9... · MSP NuevoHorizonteMSP
+  vínculo MySQL: CONFIRMADO (bloque 5)
+EVD-REG-000002-V2 · RECTIFICACION · v2 · 2026-09-28T22:40:43.786Z
+  evidence a56ef7ed2d4e2729... · TX 0ee26a9e6731b1b7... · MSP NuevoHorizonteMSP
+  vínculo MySQL: CONFIRMADO (bloque 14)

@@ -1,0 +1,69 @@
+==================================================
+CASO 6: peer no disponible (se detiene peer0.nuevohorizonte)
+==================================================
+--- npm run record -- REG-000011
+[INFO] Conectando a Fabric {"channel":"academicchannel","chaincode":"academic-traceability"}
+[ERROR] Fallo al registrar en Fabric {"evidenceId":"EVD-REG-000011-V1","error":"14 UNAVAILABLE: No connection established. Last error: Error: connect ECONNREFUSED 127.0.0.1:7051. Resolution note: "}
+PROCESO NO COMPLETADO.
+[PEER_UNAVAILABLE] El peer no responde. Verifique que la red esté levantada (fabric-network/scripts/network.sh up).
+Detalle: 14 UNAVAILABLE: No connection established. Last error: Error: connect ECONNREFUSED 127.0.0.1:7051. Resolution note: 
+(código de salida: 1)
++-------------------+---------+-------+------------------------------------------------------------------------+
+| evidence_id       | status  | tx_id | error                                                                  |
++-------------------+---------+-------+------------------------------------------------------------------------+
+| EVD-REG-000011-V1 | FALLIDO | NULL  | 14 UNAVAILABLE: No connection established. Last error: Error: connect  |
++-------------------+---------+-------+------------------------------------------------------------------------+
+
+==================================================
+CASO 1: MySQL funciona pero Fabric no confirma (se detiene el orderer)
+==================================================
+--- npm run record -- REG-000011
+[INFO] Transacción enviada {"evidenceId":"EVD-REG-000011-V1"}
+[ERROR] Fallo al registrar en Fabric {"evidenceId":"EVD-REG-000011-V1","error":"14 UNAVAILABLE: no orderers could successfully process transaction | OrdererMSP@orderer.example.com:7050: rpc error: code = Unavailable desc = connection error: desc = \"transport: Error while dialing: dial tcp: lookup orderer.example.com on 127.0.0.11:53: no such host\""}
+PROCESO NO COMPLETADO.
+[PEER_UNAVAILABLE] El peer no responde. Verifique que la red esté levantada (fabric-network/scripts/network.sh up).
+Detalle: 14 UNAVAILABLE: no orderers could successfully process transaction | OrdererMSP@orderer.example.com:7050: rpc error: code = Unavailable desc = connection error: desc = "transport: Error while dialing: dial tcp: lookup orderer.example.com on 127.0.0.11:53: no such host"
+(código de salida: 1)
++-------------------+---------+-------+------------------------------------------------------------------------+
+| evidence_id       | status  | tx_id | error                                                                  |
++-------------------+---------+-------+------------------------------------------------------------------------+
+| EVD-REG-000011-V1 | FALLIDO | NULL  | 14 UNAVAILABLE: no orderers could successfully process transaction | O |
++-------------------+---------+-------+------------------------------------------------------------------------+
+
+--- Recuperación: se reintenta con la red restablecida
+--- npm run record -- REG-000011
+2b6b64aab478ccabc8e113b69151d9a263483b782c0a3009febca0a8ef5026cf
+Bloque:
+15
+Referencia blockchain guardada en MySQL (blockchain_evidence).
+PROCESO COMPLETADO CORRECTAMENTE.
+(código de salida: 0)
++-------------------+------------+------------------+--------------+
+| evidence_id       | status     | tx_id            | block_number |
++-------------------+------------+------------------+--------------+
+| EVD-REG-000011-V1 | CONFIRMADO | 2b6b64aab478ccab |           15 |
++-------------------+------------+------------------+--------------+
++------------+---------+------------+------------------------------------------------------------------------+
+| event_type | version | status     | detail                                                                 |
++------------+---------+------------+------------------------------------------------------------------------+
+| REGISTRO   |       1 | FALLIDO    | 9 FAILED_PRECONDITION: evaluate call to endorser returned error: error |
+| REGISTRO   |       1 | FALLIDO    | 9 FAILED_PRECONDITION: no peers available to evaluate chaincode chainc |
+| REGISTRO   |       1 | FALLIDO    | 14 UNAVAILABLE: failed to get config for channel [canalinexistente]: c |
+| REGISTRO   |       1 | FALLIDO    | 9 FAILED_PRECONDITION: evaluate call to endorser returned error: error |
+| REGISTRO   |       1 | FALLIDO    | 9 FAILED_PRECONDITION: no peers available to evaluate chaincode chainc |
+| REGISTRO   |       1 | FALLIDO    | 14 UNAVAILABLE: failed to get config for channel [canalinexistente]: c |
+| REGISTRO   |       1 | FALLIDO    | 14 UNAVAILABLE: No connection established. Last error: Error: connect  |
+| REGISTRO   |       1 | FALLIDO    | 14 UNAVAILABLE: no orderers could successfully process transaction | O |
+| REGISTRO   |       1 | CONFIRMADO | NULL                                                                   |
++------------+---------+------------+------------------------------------------------------------------------+
+
+==================================================
+CASO 1 (repetición tras añadir el código ORDERER_UNAVAILABLE)
+==================================================
+PROCESO NO COMPLETADO.
+[ORDERER_UNAVAILABLE] El servicio de ordenamiento no responde: la transacción fue endosada pero no se pudo confirmar.
+(código de salida: 1)
+--- Reintento con el orderer restablecido:
+95bdd7df2a21eda45b3d05a8b272e7c4967afe51fa951d93e47ea4e8235d25ca
+54c6ae620df1fe3cfe9bc0429991b02d404e407dd15a169c5bc1a26eff287365
+PROCESO COMPLETADO CORRECTAMENTE.

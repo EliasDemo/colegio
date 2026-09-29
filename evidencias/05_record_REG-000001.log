@@ -1,0 +1,45 @@
+
+> trazabilidad-academica-app@0.3.0 record
+> tsx --conditions=react-server scripts/registerAcademicRecord.ts REG-000001
+
+
+------------------------------------
+REGISTRO ACADÉMICO
+------------------------------------
+
+[INFO] Buscando registro REG-000001
+[INFO] Registro encontrado {"version":1}
+[INFO] Evidence generada {"evidenceId":"EVD-REG-000001-V1"}
+[INFO] Conectando a Fabric {"channel":"academicchannel","chaincode":"academic-traceability"}
+[INFO] Transacción enviada {"evidenceId":"EVD-REG-000001-V1"}
+[INFO] TX_ID obtenido {"txId":"ff57bd47a6589ed1f55e2193bf0be95762c9d5959e2e150105c74dc880aa96fb"}
+[INFO] Referencia persistida
+
+Registro: REG-000001
+
+Estudiante:
+EST-PSE-001
+
+Actividad:
+ACT-2026-001  (MAT, 2026-B2, 2026-1A)
+
+Versión:
+1  (REGISTRO)
+
+Evidence (HMAC-SHA-256):
+f5d60c6a21d19aa36947382e340943348b158da73b8d1e490f42196d31df9c10
+
+Evidence ID:
+EVD-REG-000001-V1
+
+Transacción confirmada en Hyperledger Fabric.
+
+TX_ID:
+ff57bd47a6589ed1f55e2193bf0be95762c9d5959e2e150105c74dc880aa96fb
+
+Bloque:
+4
+
+Referencia blockchain guardada en MySQL (blockchain_evidence).
+
+PROCESO COMPLETADO CORRECTAMENTE.

@@ -1,0 +1,91 @@
+
+
+  console.log
+    [INFO] Buscando registro REG-000020
+
+      at write (src/lib/logger/index.ts:32:16)
+
+  console.log
+    [INFO] Registro encontrado {"version":1}
+
+      at write (src/lib/logger/index.ts:32:16)
+
+  console.log
+    [INFO] Evidence generada {"evidenceId":"EVD-REG-000020-V1"}
+
+      at write (src/lib/logger/index.ts:32:16)
+
+  console.log
+    [INFO] Conectando a Fabric {"channel":"academicchannel","chaincode":"academic-traceability"}
+
+      at write (src/lib/logger/index.ts:32:16)
+
+  console.log
+    [INFO] Transacción enviada {"evidenceId":"EVD-REG-000020-V1"}
+
+      at write (src/lib/logger/index.ts:32:16)
+
+  console.log
+    [INFO] TX_ID obtenido {"txId":"970c748f8d93b1fbd5cad9f0683735927452a2601b537f31acf9dda7355de422"}
+
+      at write (src/lib/logger/index.ts:32:16)
+
+  console.log
+    [INFO] Referencia persistida
+
+      at write (src/lib/logger/index.ts:32:16)
+
+  console.log
+    [INFO] Buscando registro REG-000020
+
+      at write (src/lib/logger/index.ts:32:16)
+
+  console.log
+    [INFO] Registro encontrado {"version":1}
+
+      at write (src/lib/logger/index.ts:32:16)
+
+  console.log
+    [INFO] Consultando evidencia On-chain
+
+      at write (src/lib/logger/index.ts:32:16)
+
+  console.log
+    [INFO] Verificación completada {"status":"INTEGRO"}
+
+      at write (src/lib/logger/index.ts:32:16)
+
+  console.log
+    [INFO] Buscando registro REG-000020
+
+      at write (src/lib/logger/index.ts:32:16)
+
+  console.log
+    [INFO] Registro encontrado {"version":1}
+
+      at write (src/lib/logger/index.ts:32:16)
+
+PASS tests/integration/e2e.fabric-mysql.test.ts
+  Integración On-chain / Off-chain (infraestructura real)
+    √ registra (o reutiliza) la evidencia y guarda el TX_ID en MySQL (2235 ms)
+    √ verifica el registro como INTEGRO contra el ledger (37 ms)
+    √ el ledger no contiene datos personales (36 ms)
+
+PASS tests/integration/traceability.service.test.ts
+  TraceabilityService
+    √ registra la evidencia, guarda el TX_ID y crea el evento de trazabilidad (2 ms)
+    √ no envía datos personales al ledger (1 ms)
+    √ es idempotente: un segundo registro de la misma versión no crea otra transacción (1 ms)
+    √ verifica INTEGRO y detecta ALTERADO tras una modificación directa (2 ms)
+    √ informa NO_REGISTRADO cuando no hay evidencia anclada
+    √ caso 3: registro inexistente (1 ms)
+    √ caso 1: si Fabric falla, el intento queda FALLIDO en MySQL y puede reintentarse
+    √ caso 2: si falla la escritura del TX_ID, el reintento reconcilia sin duplicar la transacción (1 ms)
+    √ la rectificación crea una nueva versión On-chain y conserva la anterior (1 ms)
+    √ rechaza actores que no sean seudónimos (9 ms)
+
+Test Suites: 2 passed, 2 total
+Tests:       13 passed, 13 total
+Snapshots:   0 total
+Time:        2.98 s
+Ran all test suites matching /tests\\integration/i.

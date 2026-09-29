@@ -1,0 +1,54 @@
+=== Estado antes del reinicio ===
++------------+------------+
+| status     | evidencias |
++------------+------------+
+| CONFIRMADO |         14 |
++------------+------------+
+=== network.sh down (se eliminan contenedores, se conservan volúmenes) ===
+[INFO] Deteniendo la red (los volúmenes de ledger se conservan)...
+ Container academic-traceability-cc Removed 
+ Container peer0.validator.example.com Removed 
+ Container peer0.nuevohorizonte.example.com Removed 
+ Container orderer.example.com Removed 
+ Container cli Removed 
+ Container ca.nuevohorizonte.example.com Removed 
+ Container ca.validator.example.com Removed 
+ Network fabric_academic Removed 
+[OK] Red detenida. Para borrar todo use ./scripts/cleanNetwork.sh
+=== Reinicio de MySQL ===
+ Container mysql-trazabilidad Started 
+=== Contenedores Fabric tras el apagado ===
+0
+=== network.sh up ===
+ Container academic-traceability-cc Creating 
+ Container academic-traceability-cc Created 
+ Container academic-traceability-cc Starting 
+ Container academic-traceability-cc Started 
+[OK] Red Fabric en ejecución
+NAMES                              STATUS                  PORTS
+academic-traceability-cc           Up Less than a second   9999/tcp
+peer0.validator.example.com        Up 2 seconds            0.0.0.0:9051->9051/tcp, [::]:9051->9051/tcp, 0.0.0.0:9445->9445/tcp, [::]:9445->9445/tcp
+peer0.nuevohorizonte.example.com   Up 2 seconds            0.0.0.0:7051->7051/tcp, [::]:7051->7051/tcp, 0.0.0.0:9444->9444/tcp, [::]:9444->9444/tcp
+orderer.example.com                Up 2 seconds            0.0.0.0:7050->7050/tcp, [::]:7050->7050/tcp, 0.0.0.0:7053->7053/tcp, [::]:7053->7053/tcp, 0.0.0.0:9443->9443/tcp, [::]:9443->9443/tcp
+ca.nuevohorizonte.example.com      Up 2 seconds            0.0.0.0:7054->7054/tcp, [::]:7054->7054/tcp
+ca.validator.example.com           Up 2 seconds            0.0.0.0:8054->8054/tcp, [::]:8054->8054/tcp
+=== Altura del ledger en ambos peers tras el reinicio ===
+peer0.nuevohorizonte: Blockchain info: {"height":18,"currentBlockHash":"W3wJQgfdsP/7VIdEpJwPWMU5XarZRFrWBa3O2IYGv8c=","previousBlockHash":"w03TWVySK3UIEDRS7SwaVcfdoyUCTrhECOFNVIDRGvU="}
+peer0.validator: Blockchain info: {"height":18,"currentBlockHash":"W3wJQgfdsP/7VIdEpJwPWMU5XarZRFrWBa3O2IYGv8c=","previousBlockHash":"w03TWVySK3UIEDRS7SwaVcfdoyUCTrhECOFNVIDRGvU="}
+
+=== npm run check ===
+VERIFICACIÓN DE INFRAESTRUCTURA
+[OK]    Variable HMAC_SECRET: definida (64 caracteres)
+[OK]    Configuración Fabric: NuevoHorizonteMSP → localhost:7051 · academicchannel/academic-traceability
+[OK]    Conexión MySQL (Prisma): MySQL 8.4.11
+[OK]    Registros académicos: 120 resultados · 24 estudiantes · 15 actividades
+[OK]    Fabric Gateway → chaincode: academicEvidenceExists respondió (false)
+[OK]    Evidencias vinculadas en MySQL: 14 confirmadas · 0 pendientes/fallidas
+INFRAESTRUCTURA OPERATIVA.
+
+=== npm run verify -- REG-000001 ===
+INTEGRO
+=== npm run verify -- REG-000002 ===
+INTEGRO
+=== npm run verify -- REG-000013 ===
+INTEGRO

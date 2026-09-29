@@ -1,0 +1,27 @@
+SIMULACIÓN DE ALTERACIÓN (PT-13)
+------------------------------------
+
+Registro REG-000001 modificado directamente en MySQL (sin nueva versión):
+  antes:   AD / 19.50
+  después: AD / 20.00
+
+Ejecute ahora: npm run verify -- REG-000001
+[INFO] Registro encontrado {"version":1}
+[INFO] Consultando evidencia On-chain
+[INFO] Verificación completada {"status":"ALTERADO"}
+
+Registro:
+REG-000001  (versión Off-chain 1)
+
+Evidence blockchain (versión 1, TX ff57bd47a6589ed1...):
+f5d60c6a21d19aa36947382e340943348b158da73b8d1e490f42196d31df9c10
+
+Evidence calculada:
+c1335151b2099786e5e31d8a60cddd6e304af967d11c22e36d5dd47c97cf75d5
+
+Copia local del vínculo (MySQL) consistente con el ledger: SÍ
+
+RESULTADO:
+
+ALTERADO
+exit code verify: 3

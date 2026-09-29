@@ -1,0 +1,21 @@
+# Chaincode academic-traceability ejecutado como servicio externo (Chaincode-as-a-Service).
+# El peer se conecta a este contenedor; no necesita acceso al socket de Docker.
+# CHAINCODE_ID (package ID) lo escribe deployChaincode.sh en channel-artifacts/chaincode.env.
+
+name: fabric-academic-chaincode
+
+networks:
+  academic:
+    name: fabric_academic
+    external: true
+
+services:
+  academic-traceability-cc:
+    container_name: academic-traceability-cc
+    image: academic-traceability-ccaas:${CC_VERSION:-1.0}
+    networks: [academic]
+    restart: unless-stopped
+    env_file:
+      - ../channel-artifacts/chaincode.env
+    environment:
+      - CHAINCODE_SERVER_ADDRESS=0.0.0.0:9999

@@ -1,0 +1,50 @@
+
+
+
+------------------------------------
+TRAZABILIDAD DEL REGISTRO
+------------------------------------
+
+[INFO] Buscando registro REG-000001
+[INFO] Registro encontrado {"version":1}
+
+REGISTRO:
+REG-000001
+Estudiante: EST-PSE-001 · Actividad: ACT-2026-001 · Versión actual: 1
+
+EVENTOS (MySQL, hora de Lima):
+
+2026-09-28 17:39
+REGISTRO
+Version: 1 · Estado: CONFIRMADO · Actor: ADM-PSE-001 (ADMINISTRADOR)
+TX: ff57bd47a6589ed1...
+
+2026-09-28 17:39
+VERIFICACION
+Version: 1 · Estado: INTEGRO · Actor: ADM-PSE-001 (ADMINISTRADOR)
+TX: ff57bd47a6589ed1...
+Detalle: Coincide con la versión 1 anclada
+
+2026-09-28 17:39
+VERIFICACION
+Version: 1 · Estado: ALTERADO · Actor: ADM-PSE-001 (ADMINISTRADOR)
+TX: ff57bd47a6589ed1...
+Detalle: No coincide con la versión 1 anclada (versión local 1)
+
+2026-09-28 17:40
+VERIFICACION
+Version: 1 · Estado: INTEGRO · Actor: ADM-PSE-001 (ADMINISTRADOR)
+TX: ff57bd47a6589ed1...
+Detalle: Coincide con la versión 1 anclada
+
+2026-09-28 17:46
+VERIFICACION
+Version: 1 · Estado: INTEGRO · Actor: ADM-PSE-001 (ADMINISTRADOR)
+TX: ff57bd47a6589ed1...
+Detalle: Coincide con la versión 1 anclada
+
+EVIDENCIAS ON-CHAIN (Hyperledger Fabric):
+
+EVD-REG-000001-V1 · REGISTRO · v1 · 2026-09-28T22:39:42.299Z
+  evidence f5d60c6a21d19aa3... · TX ff57bd47a6589ed1... · MSP NuevoHorizonteMSP
+  vínculo MySQL: CONFIRMADO (bloque 4)

@@ -1,0 +1,226 @@
+<!-- title: H3-06 · Pruebas técnicas iniciales -->
+<!-- subtitle: Actividad 18 — Registrar, consultar y verificar un conjunto reducido de registros -->
+<h2>1. Alcance</h2>
+<p>Se ejecutaron 15 pruebas técnicas (PT-01 a PT-15) sobre la infraestructura real (MySQL 8.4 y Hyperledger Fabric 2.5 en Docker, Windows 11, Node.js 24), además de 60 pruebas automatizadas (49 unitarias de la aplicación, 3 de integración real y 8 del chaincode) y los 8 casos de fallo del informe H3-05. Se registraron y verificaron 18 registros. Los datos son de <strong>validación</strong> (ficticios, generados por el seed); el conjunto real autorizado de la institución se incorporará en el Hito 6.</p>
+<p>Cada resultado obtenido proviene de una ejecución real cuya salida de terminal se incluye tal cual, extraída de la carpeta <code>evidencias/</code>. No se incluyen capturas simuladas.</p>
+<h2>2. Resumen</h2>
+<table><thead><tr><th>ID</th><th>Prueba</th><th>Estado</th></tr></thead><tbody>
+<tr><td>PT-01</td><td>Conexión Next.js ↔ MySQL</td><td><span class="ok-tag">APROBADA</span></td></tr>
+<tr><td>PT-02</td><td>Consulta mediante Prisma</td><td><span class="ok-tag">APROBADA</span></td></tr>
+<tr><td>PT-03</td><td>Consulta de registro académico</td><td><span class="ok-tag">APROBADA</span></td></tr>
+<tr><td>PT-04</td><td>Canonicalización determinista</td><td><span class="ok-tag">APROBADA</span></td></tr>
+<tr><td>PT-05</td><td>Generación HMAC</td><td><span class="ok-tag">APROBADA</span></td></tr>
+<tr><td>PT-06</td><td>Verificación HMAC</td><td><span class="ok-tag">APROBADA</span></td></tr>
+<tr><td>PT-07</td><td>Conexión Fabric Gateway</td><td><span class="ok-tag">APROBADA</span></td></tr>
+<tr><td>PT-08</td><td>Registro On-chain</td><td><span class="ok-tag">APROBADA</span></td></tr>
+<tr><td>PT-09</td><td>Consulta On-chain</td><td><span class="ok-tag">APROBADA</span></td></tr>
+<tr><td>PT-10</td><td>Persistencia del TX_ID en MySQL</td><td><span class="ok-tag">APROBADA</span></td></tr>
+<tr><td>PT-11</td><td>Flujo completo On-chain / Off-chain</td><td><span class="ok-tag">APROBADA</span></td></tr>
+<tr><td>PT-12</td><td>Verificación de registro íntegro</td><td><span class="ok-tag">APROBADA</span></td></tr>
+<tr><td>PT-13</td><td>Detección de alteración Off-chain</td><td><span class="ok-tag">APROBADA</span></td></tr>
+<tr><td>PT-14</td><td>Consulta de trazabilidad</td><td><span class="ok-tag">APROBADA</span></td></tr>
+<tr><td>PT-15</td><td>Persistencia después de reiniciar contenedores</td><td><span class="ok-tag">APROBADA</span></td></tr>
+</tbody></table>
+<table><thead><tr><th>Suite automatizada</th><th>Resultado</th><th>Evidencia</th></tr></thead><tbody>
+<tr><td>Jest — aplicación (crypto, database, fabric, servicio)</td><td class='ok-tag'>49 aprobadas · 3 omitidas (integración)</td><td>16_jest_unit.log</td></tr>
+<tr><td>Jest — integración real (MySQL + Fabric)</td><td class='ok-tag'>13 aprobadas (3 E2E reales + 10 del servicio)</td><td>17_jest_integration.log</td></tr>
+<tr><td>Jest — chaincode</td><td class='ok-tag'>8 aprobadas</td><td>24_chaincode_tests.log</td></tr>
+<tr><td>TypeScript (tsc --noEmit) y next build</td><td class='ok-tag'>Sin errores</td><td>19_next_build.log</td></tr>
+</tbody></table>
+<h2>3. Casos de prueba</h2>
+<div class="tc"><h3>PT-01 · Conexión Next.js ↔ MySQL</h3><table><tbody>
+<tr><td>ID</td><td>PT-01</td></tr>
+<tr><td>Nombre</td><td>Conexión Next.js ↔ MySQL</td></tr>
+<tr><td>Objetivo</td><td>Comprobar que el servidor de Next.js se conecta a la base Off-chain.</td></tr>
+<tr><td>Precondiciones</td><td>Contenedor mysql-trazabilidad en estado healthy; .env configurado; npm run dev en ejecución.</td></tr>
+<tr><td>Datos de entrada</td><td><code>GET http://localhost:3000/api/health</code></td></tr>
+<tr><td>Procedimiento</td><td>1. Iniciar Next.js. 2. Consultar /api/health (el Route Handler ejecuta SELECT 1 vía Prisma).</td></tr>
+<tr><td>Resultado esperado</td><td>HTTP 200 con "database": "connected".</td></tr>
+<tr><td>Resultado obtenido</td><td>HTTP 200, {"status":"ok","database":"connected",…}.</td></tr>
+<tr><td>Estado</td><td><span class="ok-tag">APROBADA</span></td></tr>
+<tr><td>Evidencia</td><td>{{log:18_nextjs_health.log}}</td></tr>
+</tbody></table></div>
+<div class="tc"><h3>PT-02 · Consulta mediante Prisma</h3><table><tbody>
+<tr><td>ID</td><td>PT-02</td></tr>
+<tr><td>Nombre</td><td>Consulta mediante Prisma</td></tr>
+<tr><td>Objetivo</td><td>Verificar que Prisma lee el esquema migrado y los datos del seed.</td></tr>
+<tr><td>Precondiciones</td><td>Migración init_hito3 aplicada; npm run seed ejecutado.</td></tr>
+<tr><td>Datos de entrada</td><td><code>npm run check</code></td></tr>
+<tr><td>Procedimiento</td><td>1. Ejecutar npm run check (consulta VERSION() y cuenta resultados, estudiantes y actividades con Prisma).</td></tr>
+<tr><td>Resultado esperado</td><td>MySQL 8.x; 120 resultados, 24 estudiantes, 15 actividades.</td></tr>
+<tr><td>Resultado obtenido</td><td>MySQL 8.4.11; 120 resultados · 24 estudiantes · 15 actividades.</td></tr>
+<tr><td>Estado</td><td><span class="ok-tag">APROBADA</span></td></tr>
+<tr><td>Evidencia</td><td>{{log:04_check_infrastructure.log|grep:MySQL|Registros}}</td></tr>
+</tbody></table></div>
+<div class="tc"><h3>PT-03 · Consulta de registro académico</h3><table><tbody>
+<tr><td>ID</td><td>PT-03</td></tr>
+<tr><td>Nombre</td><td>Consulta de registro académico</td></tr>
+<tr><td>Objetivo</td><td>Recuperar un registro con todas sus relaciones y sin datos personales.</td></tr>
+<tr><td>Precondiciones</td><td>Seed cargado.</td></tr>
+<tr><td>Datos de entrada</td><td><code>REG-000001</code></td></tr>
+<tr><td>Procedimiento</td><td>1. AcademicRecordRepository.findByCode('REG-000001') (usado por npm run record/verify). 2. Consultar v_registro_academico.</td></tr>
+<tr><td>Resultado esperado</td><td>Registro encontrado con estudiante EST-PSE-001, actividad ACT-2026-001, área MAT, periodo 2026-B2.</td></tr>
+<tr><td>Resultado obtenido</td><td>Registro encontrado (versión 1): EST-PSE-001 · ACT-2026-001 (MAT, 2026-B2, 2026-1A) · AD / 19.50.</td></tr>
+<tr><td>Estado</td><td><span class="ok-tag">APROBADA</span></td></tr>
+<tr><td>Evidencia</td><td>{{log:05_record_REG-000001.log|lines:10-25}}{{log:25_consultas_offchain.log|lines:31-35}}</td></tr>
+</tbody></table></div>
+<div class="tc"><h3>PT-04 · Canonicalización determinista</h3><table><tbody>
+<tr><td>ID</td><td>PT-04</td></tr>
+<tr><td>Nombre</td><td>Canonicalización determinista</td></tr>
+<tr><td>Objetivo</td><td>Comprobar que la misma información produce siempre la misma cadena canónica.</td></tr>
+<tr><td>Precondiciones</td><td>Ninguna (prueba unitaria) y registro REG-000001 en MySQL (demostración).</td></tr>
+<tr><td>Datos de entrada</td><td>Registro de prueba y REG-000001; variantes con espacios, minúsculas, Unicode descompuesto, otro orden de propiedades y fecha con zona horaria.</td></tr>
+<tr><td>Procedimiento</td><td>1. npm test (tests/crypto/canonicalize.test.ts). 2. npm run demo:evidence -- REG-000001 (1000 repeticiones).</td></tr>
+<tr><td>Resultado esperado</td><td>Cadena idéntica en todos los casos; salida exacta esperada.</td></tr>
+<tr><td>Resultado obtenido</td><td>8 pruebas aprobadas; 1000 cálculos → 1 valor; el orden de propiedades no influye.</td></tr>
+<tr><td>Estado</td><td><span class="ok-tag">APROBADA</span></td></tr>
+<tr><td>Evidencia</td><td>{{log:16_jest_unit.log|grep:canonicalize|produce exactamente|determinista|orden|normaliza|formatea|null expl|rechaza registros}}{{log:27_demo_evidencia_criptografica.log|grep:Determinismo|otro orden}}</td></tr>
+</tbody></table></div>
+<div class="tc"><h3>PT-05 · Generación HMAC</h3><table><tbody>
+<tr><td>ID</td><td>PT-05</td></tr>
+<tr><td>Nombre</td><td>Generación HMAC</td></tr>
+<tr><td>Objetivo</td><td>Generar HMAC-SHA-256 con la clave de HMAC_SECRET.</td></tr>
+<tr><td>Precondiciones</td><td>HMAC_SECRET definido (64 hex).</td></tr>
+<tr><td>Datos de entrada</td><td>Registro de prueba y REG-000001.</td></tr>
+<tr><td>Procedimiento</td><td>1. npm test (tests/crypto/evidence.test.ts). 2. npm run demo:evidence -- REG-000001.</td></tr>
+<tr><td>Resultado esperado</td><td>64 caracteres hexadecimales; igual a un HMAC calculado de forma independiente; distinto ante cualquier cambio o con otra clave.</td></tr>
+<tr><td>Resultado obtenido</td><td>Pruebas aprobadas; REG-000001 → f5d60c6a…9c10; un cambio de 0,01 en la nota altera 135/256 bits.</td></tr>
+<tr><td>Estado</td><td><span class="ok-tag">APROBADA</span></td></tr>
+<tr><td>Evidencia</td><td>{{log:16_jest_unit.log|grep:generateEvidence|genera HMAC|independiente|es determinista|cambia ante|depende de la clave|claves cortas|HMAC_SECRET del entorno}}{{log:27_demo_evidencia_criptografica.log|grep:HMAC-SHA-256 \(|Bits}}</td></tr>
+</tbody></table></div>
+<div class="tc"><h3>PT-06 · Verificación HMAC</h3><table><tbody>
+<tr><td>ID</td><td>PT-06</td></tr>
+<tr><td>Nombre</td><td>Verificación HMAC</td></tr>
+<tr><td>Objetivo</td><td>Comprobar que verifyEvidence distingue un registro íntegro de uno modificado.</td></tr>
+<tr><td>Precondiciones</td><td>PT-05 aprobada.</td></tr>
+<tr><td>Datos de entrada</td><td>Registro original y registro con nota modificada.</td></tr>
+<tr><td>Procedimiento</td><td>1. npm test (describe verifyEvidence). 2. demo:evidence, paso 5.</td></tr>
+<tr><td>Resultado esperado</td><td>valid = true para el original; valid = false para el modificado y para formatos inválidos.</td></tr>
+<tr><td>Resultado obtenido</td><td>valid = true / valid = false, según lo esperado.</td></tr>
+<tr><td>Estado</td><td><span class="ok-tag">APROBADA</span></td></tr>
+<tr><td>Evidencia</td><td>{{log:16_jest_unit.log|grep:verifyEvidence|valida un registro|detecta un registro|acepta la evidencia}}{{log:27_demo_evidencia_criptografica.log|grep:verifyEvidence}}</td></tr>
+</tbody></table></div>
+<div class="tc"><h3>PT-07 · Conexión Fabric Gateway</h3><table><tbody>
+<tr><td>ID</td><td>PT-07</td></tr>
+<tr><td>Nombre</td><td>Conexión Fabric Gateway</td></tr>
+<tr><td>Objetivo</td><td>Comprobar que el servidor se conecta al peer y el chaincode responde.</td></tr>
+<tr><td>Precondiciones</td><td>Red Fabric levantada, canal creado y chaincode desplegado.</td></tr>
+<tr><td>Datos de entrada</td><td><code>academicEvidenceExists('EVD-REG-000000-V1')</code></td></tr>
+<tr><td>Procedimiento</td><td>1. npm run check. 2. GET /api/health (bloque fabric).</td></tr>
+<tr><td>Resultado esperado</td><td>Respuesta del chaincode (false) y fabric.status = connected.</td></tr>
+<tr><td>Resultado obtenido</td><td>academicEvidenceExists respondió (false); "fabric":{"status":"connected"}.</td></tr>
+<tr><td>Estado</td><td><span class="ok-tag">APROBADA</span></td></tr>
+<tr><td>Evidencia</td><td>{{log:04_check_infrastructure.log|grep:Fabric}}{{log:18_nextjs_health.log|grep:fabric}}</td></tr>
+</tbody></table></div>
+<div class="tc"><h3>PT-08 · Registro On-chain</h3><table><tbody>
+<tr><td>ID</td><td>PT-08</td></tr>
+<tr><td>Nombre</td><td>Registro On-chain</td></tr>
+<tr><td>Objetivo</td><td>Anclar la evidencia de un registro en el ledger.</td></tr>
+<tr><td>Precondiciones</td><td>PT-07 aprobada.</td></tr>
+<tr><td>Datos de entrada</td><td><code>npm run record -- REG-000001</code></td></tr>
+<tr><td>Procedimiento</td><td>1. Ejecutar el script de registro.</td></tr>
+<tr><td>Resultado esperado</td><td>Transacción confirmada con TX_ID y número de bloque.</td></tr>
+<tr><td>Resultado obtenido</td><td>TX_ID ff57bd47…96fb, bloque 4. Además se registraron REG-000002 a 017 y REG-000020.</td></tr>
+<tr><td>Estado</td><td><span class="ok-tag">APROBADA</span></td></tr>
+<tr><td>Evidencia</td><td>{{log:05_record_REG-000001.log|tail:32}}{{log:09_record_lote_REG-000002_010.log}}</td></tr>
+</tbody></table></div>
+<div class="tc"><h3>PT-09 · Consulta On-chain</h3><table><tbody>
+<tr><td>ID</td><td>PT-09</td></tr>
+<tr><td>Nombre</td><td>Consulta On-chain</td></tr>
+<tr><td>Objetivo</td><td>Leer la evidencia almacenada en el ledger.</td></tr>
+<tr><td>Precondiciones</td><td>PT-08 aprobada.</td></tr>
+<tr><td>Datos de entrada</td><td><code>readAcademicEvidence / getAcademicEvidenceHistory</code></td></tr>
+<tr><td>Procedimiento</td><td>1. Consulta directa con peer CLI (readAcademicEvidence). 2. npm run trace (getAcademicEvidenceHistory vía Gateway).</td></tr>
+<tr><td>Resultado esperado</td><td>JSON con evidencia, versión, actor seudónimo, MSP, timestamp y TX_ID; sin datos personales.</td></tr>
+<tr><td>Resultado obtenido</td><td>Evidencias devueltas por ambos métodos con todos los campos del modelo On-chain.</td></tr>
+<tr><td>Estado</td><td><span class="ok-tag">APROBADA</span></td></tr>
+<tr><td>Evidencia</td><td>{{log:13_caso_fallo_2_reconciliacion.log|grep:^\{}}{{log:15_trace_REG-000001.log|tail:4}}</td></tr>
+</tbody></table></div>
+<div class="tc"><h3>PT-10 · Persistencia del TX_ID en MySQL</h3><table><tbody>
+<tr><td>ID</td><td>PT-10</td></tr>
+<tr><td>Nombre</td><td>Persistencia del TX_ID en MySQL</td></tr>
+<tr><td>Objetivo</td><td>Comprobar que el vínculo queda guardado en blockchain_evidence.</td></tr>
+<tr><td>Precondiciones</td><td>PT-08 aprobada.</td></tr>
+<tr><td>Datos de entrada</td><td>Vista v_estado_vinculo</td></tr>
+<tr><td>Procedimiento</td><td>1. Consultar v_estado_vinculo tras los registros.</td></tr>
+<tr><td>Resultado esperado</td><td>Estado CONFIRMADO con tx_id y bloque para cada registro anclado.</td></tr>
+<tr><td>Resultado obtenido</td><td>Registros anclados en estado CONFIRMADO con su TX_ID y número de bloque (NULL solo en el vínculo reconciliado del caso 2).</td></tr>
+<tr><td>Estado</td><td><span class="ok-tag">APROBADA</span></td></tr>
+<tr><td>Evidencia</td><td>{{log:21_respaldo_recuperacion.log|grep:^\| (registro|REG)}}</td></tr>
+</tbody></table></div>
+<div class="tc"><h3>PT-11 · Flujo completo On-chain / Off-chain</h3><table><tbody>
+<tr><td>ID</td><td>PT-11</td></tr>
+<tr><td>Nombre</td><td>Flujo completo On-chain / Off-chain</td></tr>
+<tr><td>Objetivo</td><td>Ejecutar el flujo MySQL → HMAC → Fabric → TX_ID → MySQL → verificación contra infraestructura real.</td></tr>
+<tr><td>Precondiciones</td><td>MySQL y Fabric en ejecución.</td></tr>
+<tr><td>Datos de entrada</td><td><code>REG-000020 (prueba de integración automatizada)</code></td></tr>
+<tr><td>Procedimiento</td><td>1. npm run test:integration (tests/integration/e2e.fabric-mysql.test.ts).</td></tr>
+<tr><td>Resultado esperado</td><td>Registro con TX_ID guardado en MySQL, verificación INTEGRO, ledger sin datos personales.</td></tr>
+<tr><td>Resultado obtenido</td><td>3/3 pruebas de integración real aprobadas.</td></tr>
+<tr><td>Estado</td><td><span class="ok-tag">APROBADA</span></td></tr>
+<tr><td>Evidencia</td><td>{{log:17_jest_integration.log|grep:Integración|registra \(o|verifica el registro|el ledger no|Tests:}}</td></tr>
+</tbody></table></div>
+<div class="tc"><h3>PT-12 · Verificación de registro íntegro</h3><table><tbody>
+<tr><td>ID</td><td>PT-12</td></tr>
+<tr><td>Nombre</td><td>Verificación de registro íntegro</td></tr>
+<tr><td>Objetivo</td><td>Confirmar que un registro sin cambios coincide con la blockchain.</td></tr>
+<tr><td>Precondiciones</td><td>REG-000001 registrado (PT-08).</td></tr>
+<tr><td>Datos de entrada</td><td><code>npm run verify -- REG-000001</code></td></tr>
+<tr><td>Procedimiento</td><td>1. Ejecutar la verificación.</td></tr>
+<tr><td>Resultado esperado</td><td>Evidencia del ledger = evidencia calculada; RESULTADO: INTEGRO.</td></tr>
+<tr><td>Resultado obtenido</td><td>f5d60c6a… en ambos lados; RESULTADO: INTEGRO; copia local consistente: SÍ.</td></tr>
+<tr><td>Estado</td><td><span class="ok-tag">APROBADA</span></td></tr>
+<tr><td>Evidencia</td><td>{{log:06_verify_integro_REG-000001.log|tail:14}}</td></tr>
+</tbody></table></div>
+<div class="tc"><h3>PT-13 · Detección de alteración Off-chain</h3><table><tbody>
+<tr><td>ID</td><td>PT-13</td></tr>
+<tr><td>Nombre</td><td>Detección de alteración Off-chain</td></tr>
+<tr><td>Objetivo</td><td>Comprobar que una modificación posterior del registro académico es detectada.</td></tr>
+<tr><td>Precondiciones</td><td>REG-000001 registrado en Fabric.</td></tr>
+<tr><td>Datos de entrada</td><td>Nota 19.50 → 20.00 modificada directamente en MySQL (npm run tamper).</td></tr>
+<tr><td>Procedimiento</td><td>1. Verificar el registro original. 2. Modificar temporalmente su resultado en MySQL. 3. npm run verify -- REG-000001. 4. Consultar la evidencia On-chain. 5. Comparar. 6. Restaurar y verificar de nuevo.</td></tr>
+<tr><td>Resultado esperado</td><td>RESULTADO: ALTERADO; tras restaurar, INTEGRO.</td></tr>
+<tr><td>Resultado obtenido</td><td>ALTERADO (código de salida 3); tras restaurar, INTEGRO. También se detectó en REG-000003 (caso 4).</td></tr>
+<tr><td>Estado</td><td><span class="ok-tag">APROBADA</span></td></tr>
+<tr><td>Evidencia</td><td>{{log:07_tamper_verify_alterado_REG-000001.log}}{{log:08_restore_verify_REG-000001.log}}</td></tr>
+</tbody></table></div>
+<div class="tc"><h3>PT-14 · Consulta de trazabilidad</h3><table><tbody>
+<tr><td>ID</td><td>PT-14</td></tr>
+<tr><td>Nombre</td><td>Consulta de trazabilidad</td></tr>
+<tr><td>Objetivo</td><td>Mostrar la historia de un registro sin exponer datos personales.</td></tr>
+<tr><td>Precondiciones</td><td>REG-000002 registrado y rectificado.</td></tr>
+<tr><td>Datos de entrada</td><td><code>npm run trace -- REG-000002</code></td></tr>
+<tr><td>Procedimiento</td><td>1. npm run rectify -- REG-000002 A 16.00 "…". 2. npm run trace -- REG-000002.</td></tr>
+<tr><td>Resultado esperado</td><td>Eventos REGISTRO v1, RECTIFICACION v2, VERIFICACION; dos versiones On-chain vinculadas.</td></tr>
+<tr><td>Resultado obtenido</td><td>Eventos y versiones v1 (bloque 5) y v2 (bloque 14) mostrados; solo referencias seudónimas.</td></tr>
+<tr><td>Estado</td><td><span class="ok-tag">APROBADA</span></td></tr>
+<tr><td>Evidencia</td><td>{{log:10_rectify_trace_REG-000002.log|tail:33}}</td></tr>
+</tbody></table></div>
+<div class="tc"><h3>PT-15 · Persistencia después de reiniciar contenedores</h3><table><tbody>
+<tr><td>ID</td><td>PT-15</td></tr>
+<tr><td>Nombre</td><td>Persistencia después de reiniciar contenedores</td></tr>
+<tr><td>Objetivo</td><td>Comprobar que ledger y base de datos sobreviven a la recreación de contenedores.</td></tr>
+<tr><td>Precondiciones</td><td>Evidencias registradas.</td></tr>
+<tr><td>Datos de entrada</td><td>network.sh down + reinicio de MySQL + network.sh up</td></tr>
+<tr><td>Procedimiento</td><td>1. Contar evidencias. 2. Eliminar los contenedores de Fabric (volúmenes conservados) y reiniciar MySQL. 3. Levantar la red. 4. Comparar la altura del ledger en ambos peers. 5. npm run check y verify.</td></tr>
+<tr><td>Resultado esperado</td><td>Misma altura y hash en ambos peers; 14 vínculos confirmados; verificaciones INTEGRO.</td></tr>
+<tr><td>Resultado obtenido</td><td>Altura 18 y hash idéntico en ambos peers; 14 confirmadas; REG-000001, 002 y 013 INTEGRO.</td></tr>
+<tr><td>Estado</td><td><span class="ok-tag">APROBADA</span></td></tr>
+<tr><td>Evidencia</td><td>{{log:14_reinicio_contenedores.log|grep:===|CONFIRMADO|Removed|Blockchain info|OK\]|INTEGRO|OPERATIVA}}</td></tr>
+</tbody></table></div>
+<h2 class="pb">4. Pruebas unitarias y de integración (Jest)</h2>
+{{log:16_jest_unit.log|grep:PASS|√|Tests:|Suites:}}
+{{log:17_jest_integration.log|grep:PASS|√|Tests:|Suites:}}
+{{log:24_chaincode_tests.log|grep:PASS|√|Tests:}}
+<h2>5. Fallos encontrados durante las pruebas</h2>
+<p>Según el procedimiento acordado, se documentan las pruebas que fallaron, su causa y la corrección. Todas se corrigieron y volvieron a ejecutarse.</p>
+<table><thead><tr><th>Prueba</th><th>Error</th><th>Causa probable</th><th>Corrección</th></tr></thead><tbody>
+<tr><td>Conexión Fabric (PT-07, primera ejecución)</td><td>IDENTITY_INVALID</td><td>FABRIC_CERT_PATH apuntaba a signcerts/cert.pem, pero cryptogen nombra el archivo User1@…-cert.pem.</td><td>La ruta apunta al directorio signcerts/; el cliente lee el archivo que contiene. PT-07 aprobada tras la corrección.</td></tr>
+<tr><td>Casos de fallo 7, 8 y 1</td><td>Clasificados como UNKNOWN y PEER_UNAVAILABLE</td><td>Los patrones de error no contemplaban los mensajes reales de Fabric 2.5.</td><td>Se añadieron patrones y los códigos ORDERER_UNAVAILABLE y ENDORSEMENT_FAILED, con pruebas unitarias basadas en los mensajes reales; los casos se repitieron.</td></tr>
+<tr><td>Suite Jest (primera ejecución)</td><td>SyntaxError: Cannot use import statement outside a module (@noble/curves)</td><td>Una dependencia de fabric-gateway se publica solo como ESM.</td><td>jest.config.js transforma @noble/* con ts-jest.</td></tr>
+<tr><td>PT-11 (primera ejecución)</td><td>Authentication failed … credentials for root</td><td>setupEnv.ts fijaba DATABASE_URL y HMAC_SECRET de prueba antes de cargar .env.</td><td>En modo integración se carga .env primero. 3/3 aprobadas.</td></tr>
+<tr><td>npm run check con la base eliminada</td><td>El error de Prisma se mostraba como EVIDENCE_NOT_FOUND</td><td>Se aplicaba la clasificación de Fabric a todos los errores y el patrón «does not exist» era demasiado amplio.</td><td>Solo se clasifican FabricError y se muestra la causa de Prisma; patrón restringido.</td></tr>
+<tr><td>Verificación de privacidad On-chain (primera ejecución)</td><td>Resultado «0 coincidencias» NO válido</td><td>docker cp falló por la ruta /tmp de Windows y el buscador no leyó ningún término.</td><td>Se repitió pasando los términos por stdin; se registra que se leyeron los 82 términos y se añadió un control positivo.</td></tr>
+</tbody></table>
+<h2>6. Conclusión</h2>
+<p>Las 15 pruebas técnicas se aprobaron. La cadena completa MySQL → canonicalización → HMAC-SHA-256 → Fabric Gateway → endoso de ambas organizaciones → ledger → TX_ID → MySQL funciona, y la verificación posterior distingue los registros íntegros de los alterados. El criterio del hito, <strong>«Blockchain y almacenamiento Off-chain operan de forma integrada»</strong>, se considera cumplido.</p>

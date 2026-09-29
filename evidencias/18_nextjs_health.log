@@ -1,0 +1,7 @@
+$ curl http://localhost:3000/
+HTTP 200
+<h1 style="margin:8px 0 4px;font-size:30px">Prototipo de trazabilidad académica</h1><h2 style="margin:0;font-size:20px;font-weight:500;color:#34495e">I.E. Nuevo Horizonte</h2>
+
+$ curl http://localhost:3000/api/health
+{"status":"ok","database":"connected","fabric":{"status":"connected","channel":"academicchannel","chaincode":"academic-traceability"},"timestamp":"2026-09-28T22:49:37.366Z"}
+HTTP 200

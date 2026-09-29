@@ -1,0 +1,15 @@
+=== Verificación de privacidad On-chain ===
+Bloques del canal academicchannel descargados en el contenedor cli: 20
+Términos personales buscados (nombres, apellidos y documentos de estudiantes y docentes): 82
+Términos leídos por el buscador: 82
+Coincidencias en el ledger: 0
+Control positivo (el método detecta lo que sí está On-chain):
+  REG-000001 -> presente en 1 bloque(s)
+  EVD-REG-000001-V1 -> presente en 1 bloque(s)
+  ADM-PSE-001 -> presente en 16 bloque(s)
+  f5d60c6a21d19aa36947382e340943348b158da73b8d1e490f42196d31df9c10 -> presente en 1 bloque(s)
+Referencias que no se envían al ledger (solo forman parte de la entrada del HMAC):
+  EST-PSE-001 -> presente en 0 bloque(s)
+  MAT-2026-0001 -> presente en 0 bloque(s)
+  ACT-2026-001 -> presente en 0 bloque(s)
+  19.50 -> presente en 0 bloque(s)

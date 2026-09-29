@@ -1,0 +1,16 @@
+PASS test/academicTraceabilityContract.test.ts
+  AcademicTraceabilityContract
+    √ registra una evidencia y la marca como existente (2 ms)
+    √ lee la evidencia registrada
+    √ rechaza registrar dos veces la misma evidencia (inmutabilidad) (5 ms)
+    √ falla al leer una evidencia inexistente
+    √ rechaza datos que no sean referencias seudónimas (1 ms)
+    √ exige versiones consecutivas y conserva el historial (6 ms)
+    √ valida la coherencia entre evidenceId, versión y tipo de evento
+    √ no almacena campos personales en el estado
+
+Test Suites: 1 passed, 1 total
+Tests:       8 passed, 8 total
+Snapshots:   0 total
+Time:        1.063 s, estimated 9 s
+Ran all test suites.

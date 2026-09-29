@@ -1,0 +1,32 @@
+{
+  "name": "academic-traceability",
+  "version": "1.0.0",
+  "description": "Chaincode de evidencias académicas - prototipo de trazabilidad microcurricular (I.E. Nuevo Horizonte)",
+  "main": "dist/index.js",
+  "typings": "dist/index.d.ts",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "build": "tsc",
+    "test": "jest",
+    "start": "fabric-chaincode-node start",
+    "start:server": "fabric-chaincode-node server --chaincode-address=$CHAINCODE_SERVER_ADDRESS --chaincode-id=$CHAINCODE_ID"
+  },
+  "dependencies": {
+    "fabric-contract-api": "~2.5.8",
+    "fabric-shim": "~2.5.8"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.14",
+    "@types/node": "^20.17.0",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.4.4",
+    "typescript": "^5.9.2"
+  },
+  "jest": {
+    "preset": "ts-jest",
+    "testEnvironment": "node",
+    "roots": ["<rootDir>/test"]
+  }
+}

@@ -1,0 +1,23 @@
+# dependencias
+node_modules/
+
+# build
+.next/
+out/
+*.tsbuildinfo
+
+# secretos y entorno
+.env
+.env.local
+.env.*.local
+
+# material criptográfico (nunca versionar)
+*.pem
+*_sk
+keystore/
+
+# logs
+*.log
+
+# respaldos de la simulación de alteración (PT-13)
+.tamper/
