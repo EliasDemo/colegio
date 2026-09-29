@@ -2,70 +2,88 @@
 <!-- subtitle: Criterio del hito: «Blockchain y almacenamiento Off-chain operan de forma integrada» -->
 <!-- output: H3_07_Matriz_Cumplimiento_Hito3.pdf -->
 
-<div class="box ok"><strong>Dictamen:</strong> las seis actividades del Hito 3 (13 a 18) se completaron y se verificaron con ejecuciones reales. 25 de los 26 criterios de aceptación se cumplen con evidencia; el criterio restante (reproducibilidad desde una instalación limpia en otro equipo) queda implementado y documentado, pendiente de que otro integrante lo ejecute.</div>
+<div class="box ok"><strong>Dictamen:</strong> las seis actividades del Hito 3 (13 a 18) se completaron sobre el modelo, el dataset y el flujo definidos en el Hito 2, y se verificaron con ejecuciones reales tras una instalación desde cero. Se cumplen los 26 criterios de aceptación del hito. Queda pendiente que el equipo del Hito 2 confirme un hallazgo en su dataset (REG-0011).</div>
 
 <h2>1. Matriz por actividad</h2>
-<table style="font-size:8.4pt">
-<thead><tr><th style="width:13%">Actividad</th><th style="width:18%">Objetivo</th><th style="width:22%">Artefacto</th><th style="width:18%">Criterio de aceptación</th><th style="width:21%">Resultado</th><th style="width:8%">Estado</th></tr></thead>
+<table style="font-size:8.3pt">
+<thead><tr><th style="width:13%">Actividad</th><th style="width:17%">Objetivo</th><th style="width:22%">Artefacto</th><th style="width:18%">Criterio de aceptación</th><th style="width:22%">Resultado</th><th style="width:8%">Estado</th></tr></thead>
 <tbody>
-<tr><td><strong>13.</strong> Configuración inicial de Hyperledger Fabric</td><td>Desplegar una red de desarrollo funcional y reproducible</td><td><code>fabric-network/</code> (compose, configtx, cryptogen, scripts up/canal/deploy/limpieza) · H3_01 (PDF)</td><td>Red ejecutándose; canal creado; chaincode desplegado; comandos simples</td><td>Fabric 2.5.16 en Docker; canal con altura inicial 1; chaincode 1.0/secuencia 1 confirmado; red reanudada sin pérdida de datos</td><td class="ok-tag">Cumplido</td></tr>
-<tr><td><strong>14.</strong> Organizaciones y nodos</td><td>Estructura mínima de organizaciones, peers, identidades y canal</td><td><code>crypto-config.yaml</code>, <code>configtx.yaml</code>, H3_02 (PDF), H3_02_Diagrama_Red_Fabric.png</td><td>OrdererOrg + 2 organizaciones con peer y CA; ambas en el canal; endorsement de ambas</td><td>OrdererMSP, NuevoHorizonteMSP y AcademicValidatorMSP; CAs v1.5.22 activas; roles NodeOU; endoso de 2 de 2 probado con el validador caído</td><td class="ok-tag">Cumplido</td></tr>
-<tr><td><strong>15.</strong> Almacenamiento Off-chain</td><td>Base de datos con los registros académicos detallados</td><td><code>database/</code> (schema, seed, views, backup/restore), <code>prisma/schema.prisma</code>, H3_03 (PDF)</td><td>MySQL operativo; Prisma migra y siembra; SQL y Prisma coherentes; volumen mínimo de datos</td><td>MySQL 8.4.11; 18 tablas, 22 FK; 24 estudiantes, 5 docentes, 10 áreas, 3 secciones, 2 periodos, 15 actividades, 120 resultados; HMAC idéntico desde SQL puro; respaldo y recuperación probados</td><td class="ok-tag">Cumplido</td></tr>
-<tr><td><strong>16.</strong> Evidencia criptográfica</td><td>Generar y verificar la evidencia de cada registro</td><td><code>src/lib/crypto/</code> (canonicalize, generateEvidence, verifyEvidence), H3_04 (PDF)</td><td>Canonicalización determinista; HMAC-SHA-256 con <code>HMAC_SECRET</code>; verificación correcta</td><td>1000 cálculos → 1 valor; avalancha de 135/256 bits; íntegro/alterado distinguidos; se demuestra que SHA-256 sin clave revelaría la nota</td><td class="ok-tag">Cumplido</td></tr>
-<tr><td><strong>17.</strong> Vinculación On-chain / Off-chain</td><td>Relacionar los registros de MySQL con la evidencia en Fabric</td><td>Chaincode <code>academic-traceability</code>, <code>src/lib/fabric/</code>, <code>traceability.service.ts</code>, repositorios, scripts record/verify/trace, H3_05 (PDF) y diagramas</td><td>Primer registro vinculado; TX_ID en MySQL; fallos manejados</td><td>REG-000001 → TX_ID ff57bd47… (bloque 4); 18 registros y 19 evidencias vinculados; 8 casos de fallo con recuperación (reconciliación sin duplicados)</td><td class="ok-tag">Cumplido</td></tr>
-<tr><td><strong>18.</strong> Pruebas técnicas iniciales</td><td>Registrar, consultar y verificar un conjunto reducido de registros</td><td><code>tests/</code>, <code>evidencias/</code>, H3_06 (PDF)</td><td>PT-01 a PT-15 ejecutadas y documentadas</td><td>15/15 aprobadas; Jest: 49 unitarias, 13 de integración (3 reales), 8 del chaincode; 6 fallos encontrados y corregidos</td><td class="ok-tag">Cumplido</td></tr>
+<tr><td><strong>13.</strong> Configuración inicial de Hyperledger Fabric</td><td>Red de desarrollo funcional y reproducible</td><td><code>fabric-network/</code> · H3_01</td><td>Red ejecutándose; canal y chaincode desplegados; comandos simples</td><td>Fabric 2.5.16; instalación desde cero (limpieza → up → canal → deploy) sin intervención manual; red reanudada sin pérdida de datos</td><td class="ok-tag">Cumplido</td></tr>
+<tr><td><strong>14.</strong> Organizaciones y nodos</td><td>Organizaciones, peers, identidades y canal</td><td><code>crypto-config.yaml</code>, <code>configtx.yaml</code> · H3_02 · diagrama de red</td><td>Topología de H2-05 §4; endorsement de ambas organizaciones</td><td>OrdererMSP, NuevoHorizonteMSP, AcademicValidatorMSP; CAs activas; roles NodeOU; endoso 2 de 2 probado</td><td class="ok-tag">Cumplido</td></tr>
+<tr><td><strong>15.</strong> Almacenamiento Off-chain</td><td>Base con los registros académicos detallados</td><td><code>database/</code>, <code>prisma/schema.prisma</code> · H3_03</td><td>Modelo del Hito 2 implementado; dataset cargado; SQL y Prisma coherentes</td><td>19 tablas y 123/123 columnas de H2_04 + 4 extensiones; 77 registros H2 + 70 de complemento; sin identidades (RNF-07); respaldo y recuperación probados</td><td class="ok-tag">Cumplido</td></tr>
+<tr><td><strong>16.</strong> Evidencia criptográfica</td><td>Generar y verificar el compromiso de cada registro</td><td><code>src/lib/crypto/</code> · H3_04</td><td>HMAC-SHA-256 sobre payload canónico (H2-03 §4); determinista</td><td>Payload canónico v2; 1000 cálculos → 1 valor; avalancha 130/256 bits; 77/77 compromisos coinciden con el ledger</td><td class="ok-tag">Cumplido</td></tr>
+<tr><td><strong>17.</strong> Vinculación On-chain / Off-chain</td><td>Implementar el flujo H2-06</td><td>Chaincode, <code>src/lib/fabric/</code>, <code>traceability.service.ts</code>, scripts · H3_05 · diagramas</td><td>Primer registro vinculado; TX_ID en MySQL; reintentos sin duplicados</td><td>REG-0001 → evento UUID → TX 342dd8cc… (bloque 4); 77/77 del dataset anclados; rectificación encadenada; 8 casos de fallo + 2 adicionales</td><td class="ok-tag">Cumplido</td></tr>
+<tr><td><strong>18.</strong> Pruebas técnicas iniciales</td><td>Registrar, consultar y verificar registros preparados</td><td><code>tests/</code>, <code>evidencias/</code> · H3_06</td><td>PT-01 a PT-15 con los registros del Hito 2</td><td>15/15 aprobadas; 77/77 INTEGRO; Jest 51 + 16 + 9; 9 fallos/hallazgos documentados y corregidos</td><td class="ok-tag">Cumplido</td></tr>
 </tbody></table>
 
 <h2>2. Criterios de aceptación del hito</h2>
-<table style="font-size:8.6pt">
-<thead><tr><th style="width:4%">#</th><th style="width:40%">Criterio</th><th style="width:12%">Estado</th><th>Evidencia</th></tr></thead>
+<table style="font-size:8.4pt">
+<thead><tr><th style="width:4%">#</th><th style="width:38%">Criterio</th><th style="width:10%">Estado</th><th>Evidencia</th></tr></thead>
 <tbody>
 <tr><td>1</td><td>Next.js inicia correctamente</td><td class="ok-tag">Cumplido</td><td>18_nextjs_health.log (HTTP 200) · 19_next_build.log</td></tr>
 <tr><td>2</td><td>MySQL inicia correctamente</td><td class="ok-tag">Cumplido</td><td>healthcheck healthy · 04_check_infrastructure.log</td></tr>
-<tr><td>3</td><td>Prisma puede conectarse</td><td class="ok-tag">Cumplido</td><td>04_check_infrastructure.log (MySQL 8.4.11)</td></tr>
-<tr><td>4</td><td>Las migraciones se ejecutan</td><td class="ok-tag">Cumplido</td><td>migración <code>20260928223657_init_hito3</code>; aplicada también en base nueva (20_…)</td></tr>
-<tr><td>5</td><td>El seed funciona</td><td class="ok-tag">Cumplido</td><td>24/5/10/3/2/15/120 filas (25_consultas_offchain.log)</td></tr>
-<tr><td>6</td><td>Existen registros académicos</td><td class="ok-tag">Cumplido</td><td>120 resultados REG-000001…REG-000120</td></tr>
-<tr><td>7</td><td>Hyperledger Fabric inicia</td><td class="ok-tag">Cumplido</td><td>01_network_up.log</td></tr>
-<tr><td>8</td><td>Los peers están activos</td><td class="ok-tag">Cumplido</td><td>01_…, 14_reinicio_contenedores.log</td></tr>
-<tr><td>9</td><td>El orderer está activo</td><td class="ok-tag">Cumplido</td><td>01_…, 02_create_channel.log (status active)</td></tr>
+<tr><td>3</td><td>Prisma puede conectarse</td><td class="ok-tag">Cumplido</td><td>04_… (base nuevo_horizonte_trazabilidad)</td></tr>
+<tr><td>4</td><td>Las migraciones se ejecutan</td><td class="ok-tag">Cumplido</td><td>migración <code>modelo_hito2</code>; aplicada también en bases nuevas (20_…)</td></tr>
+<tr><td>5</td><td>El seed funciona</td><td class="ok-tag">Cumplido</td><td>147 resultados (77 H2 + 70 complemento) · 25_consultas_offchain.log</td></tr>
+<tr><td>6</td><td>Existen registros académicos</td><td class="ok-tag">Cumplido</td><td>REG-0001…REG-0080 (77) y REG-V001…V070</td></tr>
+<tr><td>7</td><td>Hyperledger Fabric inicia</td><td class="ok-tag">Cumplido</td><td>00_clean_network.log · 01_network_up.log</td></tr>
+<tr><td>8</td><td>Los peers están activos</td><td class="ok-tag">Cumplido</td><td>01_… · 14_reinicio_contenedores.log</td></tr>
+<tr><td>9</td><td>El orderer está activo</td><td class="ok-tag">Cumplido</td><td>01_… · 02_create_channel.log</td></tr>
 <tr><td>10</td><td>El canal <code>academicchannel</code> existe</td><td class="ok-tag">Cumplido</td><td>02_create_channel.log</td></tr>
-<tr><td>11</td><td>Los peers están unidos al canal</td><td class="ok-tag">Cumplido</td><td>02_create_channel.log (ambos peers)</td></tr>
-<tr><td>12</td><td>El chaincode <code>academic-traceability</code> está desplegado</td><td class="ok-tag">Cumplido</td><td>03_deploy_chaincode.log (Version 1.0, Sequence 1)</td></tr>
-<tr><td>13</td><td>Fabric Gateway conecta correctamente</td><td class="ok-tag">Cumplido</td><td>04_check_infrastructure.log</td></tr>
-<tr><td>14</td><td>Next.js Server puede comunicarse con Fabric</td><td class="ok-tag">Cumplido</td><td>18_nextjs_health.log (<code>"fabric":{"status":"connected"}</code>)</td></tr>
-<tr><td>15</td><td>Es posible registrar evidencia</td><td class="ok-tag">Cumplido</td><td>05_record_REG-000001.log, 09_…</td></tr>
-<tr><td>16</td><td>Es posible consultar evidencia</td><td class="ok-tag">Cumplido</td><td>15_trace_REG-000001.log, 13_… (peer CLI)</td></tr>
-<tr><td>17</td><td>La canonicalización es determinista</td><td class="ok-tag">Cumplido</td><td>16_jest_unit.log, 27_demo_evidencia_criptografica.log, 20_… (misma evidencia desde SQL puro)</td></tr>
-<tr><td>18</td><td>HMAC-SHA-256 funciona</td><td class="ok-tag">Cumplido</td><td>16_…, 27_…</td></tr>
-<tr><td>19</td><td>Un registro Off-chain puede asociarse a una evidencia On-chain</td><td class="ok-tag">Cumplido</td><td>05_…, 10_… (v1 y v2), 21_… (v_estado_vinculo)</td></tr>
-<tr><td>20</td><td>El TX_ID se almacena en MySQL</td><td class="ok-tag">Cumplido</td><td>21_respaldo_recuperacion.log (tx_id y bloque)</td></tr>
-<tr><td>21</td><td><code>npm run verify</code> identifica un registro íntegro</td><td class="ok-tag">Cumplido</td><td>06_verify_integro_REG-000001.log</td></tr>
-<tr><td>22</td><td><code>npm run verify</code> detecta una modificación</td><td class="ok-tag">Cumplido</td><td>07_tamper_verify_alterado_REG-000001.log (código de salida 3)</td></tr>
-<tr><td>23</td><td>Los datos personales no aparecen On-chain</td><td class="ok-tag">Cumplido</td><td>22_privacidad_onchain.log (82 términos, 0 coincidencias en 20 bloques)</td></tr>
-<tr><td>24</td><td>Los tests pasan correctamente</td><td class="ok-tag">Cumplido</td><td>16_…, 17_…, 24_chaincode_tests.log</td></tr>
-<tr><td>25</td><td>Los scripts son reproducibles</td><td class="ok-tag">Cumplido</td><td>scripts idempotentes (canal, deploy, record); reinicio y re-ejecución verificados (14_…); base recreada solo con SQL (20_…)</td></tr>
-<tr><td>26</td><td>Los README permiten instalar el proyecto desde cero</td><td class="pending-tag">Implementado · pendiente de validación cruzada</td><td>README principal (16 pasos) y README por módulo. Falta que otro integrante lo ejecute en un equipo limpio (incluido <code>cleanNetwork.sh</code>)</td></tr>
+<tr><td>11</td><td>Los peers están unidos al canal</td><td class="ok-tag">Cumplido</td><td>02_…</td></tr>
+<tr><td>12</td><td>El chaincode <code>academic-traceability</code> está desplegado</td><td class="ok-tag">Cumplido</td><td>03_deploy_chaincode.log</td></tr>
+<tr><td>13</td><td>Fabric Gateway conecta correctamente</td><td class="ok-tag">Cumplido</td><td>04_…</td></tr>
+<tr><td>14</td><td>Next.js Server puede comunicarse con Fabric</td><td class="ok-tag">Cumplido</td><td>18_… (<code>"fabric":{"status":"connected"}</code>)</td></tr>
+<tr><td>15</td><td>Es posible registrar evidencia</td><td class="ok-tag">Cumplido</td><td>05_… · 09_record_dataset_H2.log (77/77)</td></tr>
+<tr><td>16</td><td>Es posible consultar evidencia</td><td class="ok-tag">Cumplido</td><td>15_trace_REG-0001.log · 13_… (peer CLI)</td></tr>
+<tr><td>17</td><td>La canonicalización es determinista</td><td class="ok-tag">Cumplido</td><td>16_… · 27_… · 20_… (mismo compromiso desde SQL puro)</td></tr>
+<tr><td>18</td><td>HMAC-SHA-256 funciona</td><td class="ok-tag">Cumplido</td><td>16_… · 27_…</td></tr>
+<tr><td>19</td><td>Un registro Off-chain puede asociarse a una evidencia On-chain</td><td class="ok-tag">Cumplido</td><td>05_… · 10_… (versiones 1 y 2 encadenadas)</td></tr>
+<tr><td>20</td><td>El TX_ID se almacena en MySQL</td><td class="ok-tag">Cumplido</td><td>25_… (<code>vw_trazabilidad_resultado</code> del Hito 2)</td></tr>
+<tr><td>21</td><td><code>npm run verify</code> identifica un registro íntegro</td><td class="ok-tag">Cumplido</td><td>06_… · 28_verify_dataset_H2.log (77 INTEGRO)</td></tr>
+<tr><td>22</td><td><code>npm run verify</code> detecta una modificación</td><td class="ok-tag">Cumplido</td><td>07_… (código de salida 3)</td></tr>
+<tr><td>23</td><td>Los datos personales no aparecen On-chain</td><td class="ok-tag">Cumplido</td><td>22_privacidad_onchain.log (65 términos, 0 coincidencias en 180 bloques)</td></tr>
+<tr><td>24</td><td>Los tests pasan correctamente</td><td class="ok-tag">Cumplido</td><td>16_… · 17_… · 24_…</td></tr>
+<tr><td>25</td><td>Los scripts son reproducibles</td><td class="ok-tag">Cumplido</td><td>Instalación desde cero (00-03); reintentos idempotentes; base recreada solo con SQL (20_…)</td></tr>
+<tr><td>26</td><td>Los README permiten instalar el proyecto desde cero</td><td class="ok-tag">Cumplido</td><td>La instalación limpia de esta versión siguió los comandos del README (red, canal, chaincode, migración, seed). Se recomienda que otro integrante lo repita en su equipo</td></tr>
 </tbody></table>
 
-<h2>3. Entregables</h2>
-<table style="font-size:8.6pt"><thead><tr><th>Entregable</th><th>Ubicación</th></tr></thead><tbody>
-<tr><td>Código Next.js (App Router, servicios, repositorios, cliente Fabric, criptografía, scripts, pruebas)</td><td><code>app-next/</code></td></tr>
-<tr><td>Configuración de Hyperledger Fabric</td><td><code>fabric-network/</code></td></tr>
-<tr><td>Chaincode TypeScript</td><td><code>chaincode/academic-traceability/</code></td></tr>
+<h2>3. Trazabilidad con los Hitos 1 y 2</h2>
+<h3>3.1 Decisiones de diseño del Hito 2 implementadas</h3>
+<table style="font-size:8.4pt"><thead><tr><th>Documento del Hito 2</th><th>Decisión</th><th>Implementación en el Hito 3</th></tr></thead><tbody>
+<tr><td>H2-01 / H2-02 Depuración y seudonimización</td><td>77 registros válidos con tokens HMAC</td><td>Cargados íntegramente (seed); anclados y verificados 77/77</td></tr>
+<tr><td>H2-03 Matriz On/Off-chain</td><td>Payload: eventId, objectType, objectRef, eventType, version, commitment, previousCommitment, actorRole, timestamp</td><td>Modelo On-chain del chaincode; el contrato rechaza cualquier otro dato</td></tr>
+<tr><td>H2-03 §4 Decisión criptográfica</td><td>HMAC-SHA-256 sobre representación canónica; clave en el middleware</td><td><code>lib/crypto</code>, payload canónico v2, <code>HMAC_SECRET</code></td></tr>
+<tr><td>H2-04 Modelo de datos</td><td>19 tablas, base <code>nuevo_horizonte_trazabilidad</code></td><td>123/123 columnas + 4 extensiones justificadas (H3-03)</td></tr>
+<tr><td>H2-05 Arquitectura</td><td>API/middleware, servicio de trazabilidad, servicio criptográfico, Fabric Gateway, 2 organizaciones</td><td>Next.js (servicios + repositorios), red de 2 organizaciones + orderer</td></tr>
+<tr><td>H2-06 Flujo de trazabilidad</td><td>Evento PENDIENTE → chaincode → tx_id → CONFIRMADO; rectificación con compromiso anterior; manejo de fallos</td><td><code>traceability.service.ts</code>; casos de fallo probados (H3-05)</td></tr>
+</tbody></table>
+<h3>3.2 Requisitos del Hito 1 atendidos en el Hito 3</h3>
+<table style="font-size:8.4pt"><thead><tr><th>Requisito</th><th>Estado en el Hito 3</th></tr></thead><tbody>
+<tr><td>RF-11 Detalle solo Off-chain · RF-13 Evidencia determinista · RF-14 Evidencia en Fabric · RF-15 TX_ID asociado</td><td class="ok-tag">Implementados y probados</td></tr>
+<tr><td>RF-12 Versión del registro · RF-16 Nuevo evento en rectificación · RF-27 Rectificación con motivo</td><td class="ok-tag">Implementados (vía script; interfaz en el Hito 5)</td></tr>
+<tr><td>RF-17 Consulta por identificador · RF-19/20/21/22 Verificación con resultado explícito · RF-23/24 Línea de tiempo</td><td class="ok-tag">Implementados (scripts verify/trace)</td></tr>
+<tr><td>RF-34 Estado de conectividad</td><td class="ok-tag">Implementado (<code>/api/health</code>, <code>npm run check</code>)</td></tr>
+<tr><td>RNF-05/06/07 Privacidad · RNF-13 Detección · RNF-14 Disponibilidad · RNF-19 Reproducibilidad · RNF-21 Serialización determinista · RNF-22 Vinculación unívoca · RNF-23 Respaldo</td><td class="ok-tag">Cumplidos y evidenciados</td></tr>
+<tr><td>RF-01…04 Autenticación y roles · RF-28…30 Revocación · RF-09/10 Carga por lote · RNF-20 API REST</td><td class="pending-tag">Hitos 4-5 (la estructura de usuarios/roles y el tipo REVOCACION ya están en el modelo y el chaincode)</td></tr>
+</tbody></table>
+
+<h2>4. Entregables</h2>
+<table style="font-size:8.4pt"><thead><tr><th>Entregable</th><th>Ubicación</th></tr></thead><tbody>
+<tr><td>Hitos 1 y 2 (referencia)</td><td><code>hito1/</code>, <code>hito2/</code></td></tr>
+<tr><td>Código Next.js, pruebas y scripts</td><td><code>app-next/</code></td></tr>
+<tr><td>Configuración de Hyperledger Fabric y chaincode</td><td><code>fabric-network/</code>, <code>chaincode/academic-traceability/</code></td></tr>
 <tr><td>SQL (schema, seed, views) y respaldo</td><td><code>database/</code></td></tr>
-<tr><td>Diagramas</td><td><code>diagramas/</code> (red Fabric, secuencia de integración, arquitectura implementada)</td></tr>
-<tr><td>Informes H3_01 a H3_06</td><td><code>informes/</code></td></tr>
-<tr><td>Evidencias de ejecución (27 logs)</td><td><code>evidencias/</code></td></tr>
-<tr><td>Fuentes y generador de informes y diagramas</td><td><code>docs-src/</code> (<code>node docs-src/build.mjs</code>)</td></tr>
-<tr><td>README</td><td><code>README.md</code> + README por módulo</td></tr>
+<tr><td>Diagramas · Informes H3_01-H3_06 · Evidencias (30 logs)</td><td><code>diagramas/</code> · <code>informes/</code> · <code>evidencias/</code></td></tr>
+<tr><td>Generadores de informes, diagramas, comparación de modelos y ZIP</td><td><code>docs-src/</code></td></tr>
 </tbody></table>
 
-<h2>4. Observaciones y pendientes para el Hito 4</h2>
+<h2>5. Observaciones y pendientes para el Hito 4</h2>
 <ul>
-<li><strong>Modelo del Hito 2:</strong> no estaba disponible en el entorno de trabajo; el modelo se construyó a partir de las entidades del enunciado. Conciliarlo con el ER del Hito 2.</li>
-<li><strong>Datos:</strong> de validación (ficticios). La carga del conjunto real autorizado corresponde al Hito 6.</li>
-<li><strong>Configuración de desarrollo:</strong> contraseña por defecto de las CAs, conexión peer → chaincode sin TLS dentro de la red Docker y un único orderer (sin tolerancia a fallos).</li>
-<li><strong>Clave HMAC:</strong> definir la custodia y el procedimiento de rotación antes de trabajar con datos reales.</li>
-<li><strong>Hito 4:</strong> API REST, revocación/supresión sobre la copia de investigación (sin alterar el historial On-chain), identidades Fabric por rol mediante las CAs y pruebas unitarias de esas funciones.</li>
+<li><strong>Hallazgo REG-0011:</strong> confirmar con el equipo del Hito 2 el área correcta (se cargó en CTA; H2_01 lo normalizó a MAT).</li>
+<li><strong>Catálogo <code>tipo_actividad</code>:</strong> se añadió TRABAJO, usado por el dataset y ausente en H2_04.</li>
+<li><strong>Datos:</strong> el complemento sintético (REG-V…) se retirará o se sustituirá al cargar el conjunto real autorizado (Hito 6).</li>
+<li><strong>Configuración de desarrollo:</strong> contraseña por defecto de las CAs, peer → chaincode sin TLS dentro de la red Docker y un solo orderer.</li>
+<li><strong>Clave HMAC:</strong> definir custodia y rotación antes de trabajar con datos reales.</li>
+<li><strong>Hito 4:</strong> API REST, revocación/supresión (evento REVOCACION ya soportado por el chaincode), autenticación y RBAC, carga por lote y pruebas unitarias de esas funciones.</li>
 </ul>

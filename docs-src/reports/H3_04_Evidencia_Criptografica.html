@@ -1,88 +1,98 @@
 <!-- title: H3-04 · Generación de evidencia criptográfica -->
-<!-- subtitle: Actividad 16 — Mecanismo de generación y verificación de la evidencia de cada registro académico -->
+<!-- subtitle: Actividad 16 — Compromiso HMAC-SHA-256 sobre el payload canónico definido en el Hito 2 -->
 
 <h2>1. Propósito</h2>
-<p>La evidencia criptográfica es el puente entre ambos mundos: un valor corto, calculado a partir del registro académico almacenado en MySQL, que se ancla en Hyperledger Fabric. Si alguien modifica el registro después de anclarlo, al recalcular la evidencia el valor ya no coincide con el del ledger y la alteración queda al descubierto. El módulo está en <code>app-next/src/lib/crypto/</code> y usa exclusivamente <code>node:crypto</code>.</p>
+<p>El compromiso criptográfico es el puente entre ambos mundos: un valor corto calculado a partir del registro académico almacenado en MySQL que se ancla en Hyperledger Fabric. Si alguien modifica el registro después de anclarlo, al recalcular el compromiso el valor ya no coincide con el del ledger y la alteración queda al descubierto (RNF-13). El módulo está en <code>app-next/src/lib/crypto/</code> y usa exclusivamente <code>node:crypto</code>.</p>
+<p>La técnica viene fijada por el Hito 2: <em>«calcular un HMAC-SHA-256 sobre una representación canónica del registro. La clave secreta permanece en el middleware y nunca se escribe en el ledger»</em> (H2-03 §4). También lo exigen los requisitos RF-13 y RNF-21 (serialización determinista) y la regla RN-04 (mismo conjunto y orden de campos para un mismo estado).</p>
 
 <h2>2. SHA-256</h2>
-<p>SHA-256 es una función hash criptográfica de la familia SHA-2 (FIPS 180-4). Transforma una entrada de cualquier tamaño en 256 bits (64 caracteres hexadecimales) con tres propiedades: es <strong>determinista</strong>, es <strong>resistente a preimagen</strong> (no se puede obtener la entrada a partir del resumen) y es <strong>resistente a colisiones</strong> (es inviable hallar dos entradas con el mismo resumen). Además presenta <em>efecto avalancha</em>: un cambio mínimo en la entrada cambia aproximadamente la mitad de los bits de la salida.</p>
+<p>SHA-256 es una función hash criptográfica de la familia SHA-2 (FIPS 180-4). Transforma una entrada de cualquier tamaño en 256 bits (64 caracteres hexadecimales) con tres propiedades: es <strong>determinista</strong>, <strong>resistente a preimagen</strong> (no se puede obtener la entrada a partir del resumen) y <strong>resistente a colisiones</strong>. Además presenta <em>efecto avalancha</em>: un cambio mínimo en la entrada altera aproximadamente la mitad de los bits de la salida.</p>
 
 <h2>3. HMAC</h2>
-<p>HMAC (RFC 2104) es un código de autenticación de mensajes construido sobre una función hash y una <strong>clave secreta</strong>: <code>HMAC(K, m) = H((K ⊕ opad) ‖ H((K ⊕ ipad) ‖ m))</code>. Con <code>H = SHA-256</code> se obtiene HMAC-SHA-256, también de 256 bits. Solo quien conoce la clave puede calcular o verificar el valor.</p>
+<p>HMAC (RFC 2104) es un código de autenticación de mensajes que combina una función hash con una <strong>clave secreta</strong>: <code>HMAC(K, m) = H((K ⊕ opad) ‖ H((K ⊕ ipad) ‖ m))</code>. Con <code>H = SHA-256</code> se obtiene HMAC-SHA-256, de 256 bits. Solo quien conoce la clave puede calcular o verificar el valor.</p>
 
 <h2>4. Diferencia y razón de elegir HMAC</h2>
 <table><thead><tr><th>Aspecto</th><th>SHA-256</th><th>HMAC-SHA-256</th></tr></thead><tbody>
 <tr><td>Clave</td><td>No usa</td><td>Usa <code>HMAC_SECRET</code> (256 bits aleatorios)</td></tr>
-<tr><td>Quién puede calcularlo</td><td>Cualquiera</td><td>Solo quien tiene la clave</td></tr>
+<tr><td>Quién puede calcularlo</td><td>Cualquiera</td><td>Solo el middleware que custodia la clave</td></tr>
 <tr><td>Garantía</td><td>Integridad</td><td>Integridad y autenticidad del origen</td></tr>
 <tr><td>Riesgo con datos de dominio pequeño</td><td><strong>Alto:</strong> se puede adivinar la entrada probando todas las opciones</td><td>Nulo sin la clave</td></tr>
 </tbody></table>
-<p>El factor decisivo es la <strong>privacidad</strong>. Un registro académico tiene pocas combinaciones posibles: las referencias (REG, EST-PSE, ACT…) siguen un formato conocido y la nota solo puede tomar unos pocos valores (0 a 20 y AD/A/B/C). El ledger es visible para todos los miembros del canal, así que con un SHA-256 simple cualquiera de ellos podría probar todas las notas hasta dar con el hash publicado y así <em>descubrir la nota</em>, lo que convertiría la evidencia en una fuga de datos. Con HMAC esto no es posible sin la clave. La sección 8 lo demuestra sobre un registro real.</p>
+<p>El motivo decisivo es la <strong>privacidad</strong>, como advierte H2-03: con un hash directo, <em>«la evidencia On-chain equivaldría a aplicar un hash sobre datos potencialmente identificables»</em>. En el dataset del Hito 2 las notas son enteros de 0 a 20: con un SHA-256 simple, cualquier miembro del canal podría probar los 21 valores posibles hasta dar con el hash publicado y así <em>descubrir la nota</em>. La sección 8 lo demuestra sobre REG-0001.</p>
 
-<h2>5. Canonicalización</h2>
-<p>El HMAC opera sobre bytes; para que <em>la misma información produzca siempre exactamente los mismos bytes</em> se define una forma canónica (<code>canonicalizeAcademicRecord()</code>, versión <code>1</code>). No se usa <code>JSON.stringify()</code> directamente sobre el objeto, porque su salida depende del orden en que se crearon las propiedades.</p>
-<table><thead><tr><th>Regla</th><th>Definición</th></tr></thead><tbody>
-<tr><td>Orden de campos</td><td>Fijo: canonicalVersion, academicRecordId, studentReference, enrollmentReference, sectionReference, subjectReference, activityReference, periodReference, teacherReference, qualitativeGrade, numericScore, observation, recordedAt, version</td></tr>
-<tr><td>Codificación</td><td>UTF-8; textos normalizados a Unicode NFC (una “ñ” compuesta o descompuesta produce los mismos bytes)</td></tr>
-<tr><td>Espacios</td><td>Se recortan al inicio y al final y los espacios internos se colapsan a uno; JSON compacto, sin espacios entre elementos</td></tr>
-<tr><td>Mayúsculas</td><td>Los códigos técnicos se convierten a MAYÚSCULAS; la observación conserva su texto</td></tr>
-<tr><td>Números</td><td><code>numericScore</code> como cadena con exactamente 2 decimales (<code>"19.50"</code>): evita que 19.5 y 19.50 difieran y los errores de coma flotante</td></tr>
-<tr><td>Fechas</td><td>ISO 8601 en UTC con milisegundos (<code>2026-06-10T20:20:00.000Z</code>); las fechas con zona horaria se convierten a UTC</td></tr>
-<tr><td>null</td><td>Explícito: el campo nunca se omite; una observación vacía equivale a <code>null</code></td></tr>
-<tr><td>Validación previa</td><td>Esquema Zod <code>AcademicRecordSchema</code>: si un campo no es una referencia seudónima válida, se rechaza antes de calcular</td></tr>
-<tr><td>Versión del formato</td><td><code>canonicalVersion</code> se incluye en la entrada: un cambio futuro de reglas no se confunde con el formato actual</td></tr>
+<h2>5. Canonicalización (payload canónico v2)</h2>
+<p><code>canonicalizeAcademicRecord()</code> construye el «payload estable» del paso 4 del flujo H2-06. No se usa <code>JSON.stringify()</code> sobre el objeto, porque su salida depende del orden en que se crearon las propiedades.</p>
+<table><thead><tr><th>Campo (en este orden)</th><th>Origen en el modelo del Hito 2</th></tr></thead><tbody>
+<tr><td><code>canonicalVersion</code></td><td>Constante <code>"2"</code> (versión de las reglas)</td></tr>
+<tr><td><code>objectType</code> · <code>objectRef</code></td><td><code>"RESULTADO"</code> · <code>resultado_academico.codigo</code> (REG-0001)</td></tr>
+<tr><td><code>studentToken</code></td><td><code>estudiante.token_estudiante</code> (vía matrícula)</td></tr>
+<tr><td><code>periodCode</code> · <code>gradeNumber</code> · <code>sectionCode</code></td><td><code>periodo_academico.codigo</code> · <code>grado.numero</code> · <code>seccion.codigo</code></td></tr>
+<tr><td><code>areaCode</code></td><td><code>area_curricular.codigo</code> (vía asignación docente)</td></tr>
+<tr><td><code>activityCode</code> · <code>activityType</code> · <code>activityDate</code> · <code>maxScore</code></td><td><code>actividad_academica</code> y <code>tipo_actividad</code></td></tr>
+<tr><td><code>score</code> · <code>status</code></td><td><code>puntaje_obtenido</code> · <code>estado</code> (VIGENTE/RECTIFICADO/REVOCADO)</td></tr>
+<tr><td><code>registeredBy</code> · <code>registeredAt</code></td><td><code>usuario.username</code> de <code>registrado_por</code> · <code>registrado_en</code></td></tr>
+<tr><td><code>version</code></td><td><code>version_actual</code></td></tr>
 </tbody></table>
-<p>La entrada contiene <strong>solo referencias seudónimas</strong> y el resultado; nunca nombres ni documentos. La <code>version</code> del registro forma parte de la entrada: cambiar la versión sin una rectificación anclada también se detecta.</p>
-{{code:app-next/src/lib/crypto/canonicalize.ts|86-95}}
+<table><thead><tr><th>Regla</th><th>Definición</th></tr></thead><tbody>
+<tr><td>Codificación</td><td>UTF-8; textos normalizados a Unicode NFC</td></tr>
+<tr><td>Espacios</td><td>Se recortan y se colapsan; JSON compacto sin espacios</td></tr>
+<tr><td>Mayúsculas</td><td>Códigos y tokens en MAYÚSCULAS; <code>registeredBy</code> conserva su forma</td></tr>
+<tr><td>Números</td><td>Puntajes como cadena con 2 decimales (<code>"19.00"</code>); enteros sin comillas</td></tr>
+<tr><td>Fechas</td><td>Fechas de calendario <code>YYYY-MM-DD</code>; marcas de tiempo ISO 8601 UTC con milisegundos</td></tr>
+<tr><td>null</td><td>Explícito; ningún campo se omite</td></tr>
+<tr><td>Validación previa</td><td>Esquema Zod <code>AcademicRecordSchema</code>: tokens <code>STU-</code>/<code>DOC-</code> de 16 caracteres, puntaje entre 0 y el máximo; ningún dato se envía a Fabric sin validar</td></tr>
+</tbody></table>
+<p>La <code>version</code> y el <code>status</code> forman parte de la entrada, así que cambiar la versión o el estado sin una rectificación anclada también se detecta.</p>
+{{code:app-next/src/lib/crypto/canonicalize.ts|95-104}}
 
 <h2>6. Algoritmo</h2>
 <pre style="font-family:Consolas,monospace;font-size:8.6pt;background:#f3f6f9;border:1px solid #d5dde6;padding:10px;border-radius:6px">generateEvidence(record):
-  1. input     ← proyección del registro a referencias seudónimas (AcademicRecordService)
-  2. validado  ← AcademicRecordSchema.parse(input)                   // Zod
+  1. input     ← proyección del resultado al payload canónico (AcademicRecordService)
+  2. validado  ← AcademicRecordSchema.parse(input)                    // Zod
   3. canónico  ← JSON con orden fijo y normalización (sección 5)
-  4. evidence  ← HMAC-SHA-256(clave = process.env.HMAC_SECRET, mensaje = UTF-8(canónico)) en hexadecimal
-  5. devolver { evidence, algorithm: "HMAC-SHA-256", canonicalVersion: "1" }
+  4. compromiso ← HMAC-SHA-256(clave = process.env.HMAC_SECRET, mensaje = UTF-8(canónico)) en hexadecimal
+  5. devolver { evidence: compromiso, algorithm: "HMAC-SHA-256", canonicalVersion: "2" }
 
-verifyEvidence(record, evidenceReferencia):
-  1. calculada ← generateEvidence(record).evidence
-  2. valid     ← timingSafeEqual(hex(evidenceReferencia), hex(calculada))   // tiempo constante
-  3. devolver { valid, computedEvidence: calculada }
+verifyEvidence(record, compromisoReferencia):
+  1. calculado ← generateEvidence(record).evidence
+  2. valid     ← timingSafeEqual(hex(referencia), hex(calculado))    // tiempo constante
 
-evidenceId = "EVD-" + código + "-V" + versión        (p. ej. EVD-REG-000001-V1)</pre>
-{{code:app-next/src/lib/crypto/generateEvidence.ts|14-36}}
+Encadenamiento (H2-03 «compromiso anterior»): la versión n se ancla con previousCommitment = compromiso(n-1).</pre>
+{{code:app-next/src/lib/crypto/generateEvidence.ts|15-32}}
 {{code:app-next/src/lib/crypto/verifyEvidence.ts|10-26}}
 
 <h2>7. Seguridad</h2>
 <ul>
-<li><strong>Gestión de la clave:</strong> <code>HMAC_SECRET</code> se lee de la variable de entorno y se valida (mínimo 32 caracteres; se usan 64 hexadecimales = 256 bits generados con <code>crypto.randomBytes</code>). Nunca se escribe en el código, en el repositorio (<code>.env</code> está en <code>.gitignore</code>) ni en los logs (el logger redacta los campos cuyo nombre contiene <em>secret</em> o <em>key</em>).</li>
-<li><strong>Custodia:</strong> quien verifica necesita la clave. Todo el equipo debe usar la misma; si se pierde, las evidencias existentes ya no pueden verificarse. Para producción se recomienda guardarla en un gestor de secretos y definir un procedimiento de rotación (nueva versión canónica y re-anclaje).</li>
-<li><strong>Comparación en tiempo constante</strong> (<code>timingSafeEqual</code>): evita filtrar por tiempos de respuesta cuántos caracteres coinciden.</li>
-<li><strong>Privacidad On-chain:</strong> el ledger solo recibe el HMAC; ni la nota ni el seudónimo del estudiante viajan a Fabric (ver H3-05, verificación de los 20 bloques).</li>
-<li><strong>Límite conocido:</strong> HMAC prueba que los datos no cambiaron desde que se anclaron; no prueba que fueran correctos al registrarse. Eso depende de los controles de acceso (Hito 5).</li>
+<li><strong>Gestión de la clave:</strong> <code>HMAC_SECRET</code> se lee de la variable de entorno y se valida (mínimo 32 caracteres; se usan 64 hexadecimales = 256 bits generados con <code>crypto.randomBytes</code>). Nunca se escribe en el código, en el repositorio ni en los logs.</li>
+<li><strong>Clave independiente de la tokenización:</strong> los tokens del Hito 2 también son HMAC truncados, pero con otra clave que no forma parte del prototipo. Conocer <code>HMAC_SECRET</code> no permite revertir tokens.</li>
+<li><strong>Custodia:</strong> quien verifica necesita la clave; todo el equipo debe usar la misma. Si se pierde, las evidencias existentes ya no pueden verificarse. Para producción: gestor de secretos y procedimiento de rotación (nueva <code>canonicalVersion</code> y re-anclaje).</li>
+<li><strong>Comparación en tiempo constante</strong> (<code>timingSafeEqual</code>).</li>
+<li><strong>Límite conocido:</strong> el HMAC prueba que los datos no cambiaron desde que se anclaron, no que fueran correctos al registrarse. Eso depende del control de acceso (Hito 5).</li>
 </ul>
 
-<h2>8. Ejemplo y resultados sobre un registro real</h2>
-<p>Ejecución de <code>npm run demo:evidence -- REG-000001</code> sobre el registro almacenado en MySQL. La evidencia HMAC coincide con la anclada en Fabric (<code>f5d60c6a…</code>, bloque 4).</p>
+<h2>8. Ejemplo y resultados sobre un registro real del Hito 2</h2>
+<p>Ejecución de <code>npm run demo:evidence -- REG-0001</code>. El compromiso HMAC coincide con el anclado en Fabric (<code>e68d43b5…</code>, bloque 4).</p>
 {{log:27_demo_evidencia_criptografica.log}}
 <ul>
-<li><strong>Determinismo:</strong> 1000 cálculos dan un único valor, y el orden de las propiedades de entrada no influye.</li>
-<li><strong>Avalancha:</strong> cambiar la nota en 0,01 modifica 135 de 256 bits (≈ 53 %).</li>
-<li><strong>Privacidad:</strong> con SHA-256 sin clave la nota se deduce en como máximo 164 intentos; con HMAC no puede deducirse sin la clave.</li>
+<li><strong>Determinismo:</strong> 1000 cálculos dan un único valor; el orden de las propiedades no influye.</li>
+<li><strong>Avalancha:</strong> cambiar el puntaje en 0,01 altera 130 de 256 bits (≈ 51 %).</li>
+<li><strong>Privacidad:</strong> con SHA-256 sin clave, la nota (20.00) se descubre en como máximo 21 intentos; con HMAC no puede deducirse sin la clave.</li>
 </ul>
 
 <h2>9. Verificación contra la blockchain</h2>
-<p>Registro íntegro y registro alterado directamente en MySQL (sin pasar por la aplicación):</p>
-{{log:06_verify_integro_REG-000001.log|tail:13}}
-{{log:07_tamper_verify_alterado_REG-000001.log}}
+{{log:06_verify_integro_REG-0001.log|tail:15}}
+{{log:07_tamper_verify_alterado_REG-0001.log}}
+<p>Aplicado a todo el dataset del Hito 2, los 77 compromisos calculados coinciden con los anclados:</p>
+{{log:28_verify_dataset_H2.log|tail:3}}
 
 <h2>10. Pruebas unitarias del módulo</h2>
-{{log:16_jest_unit.log|grep:canonicalize|generateEvidence|verifyEvidence|√.*(determinista|canónica|orden|normaliza|formatea|null|rechaza|HMAC|clave|modific|íntegro|mayúsculas|evidenceId|entorno)}}
+{{log:16_jest_unit.log|grep:canonicalize|generateEvidence|verifyEvidence|√.*(canónica|determinista|orden|normaliza|formatea|null|rechaza registros|HMAC|clave|modificación|íntegro|modificado|mayúsculas|entorno)}}
 
 <h2>11. Criterios de aceptación</h2>
 <table><thead><tr><th>Criterio</th><th>Resultado</th></tr></thead><tbody>
-<tr><td>La canonicalización es determinista</td><td class="ok-tag">Cumplido (pruebas + 1000 repeticiones)</td></tr>
-<tr><td>HMAC-SHA-256 funciona con la clave de <code>process.env.HMAC_SECRET</code></td><td class="ok-tag">Cumplido</td></tr>
+<tr><td>Canonicalización determinista (RNF-21, RN-04)</td><td class="ok-tag">Cumplido (pruebas + 1000 repeticiones + coherencia SQL/Prisma)</td></tr>
+<tr><td>HMAC-SHA-256 con la clave de <code>process.env.HMAC_SECRET</code> (H2-03 §4)</td><td class="ok-tag">Cumplido</td></tr>
 <tr><td>El secreto no aparece en el código ni en los logs</td><td class="ok-tag">Cumplido</td></tr>
-<tr><td><code>verifyEvidence</code> identifica registros íntegros y alterados</td><td class="ok-tag">Cumplido</td></tr>
-<tr><td>La evidencia calculada coincide con la anclada en Fabric</td><td class="ok-tag">Cumplido (REG-000001: f5d60c6a…)</td></tr>
+<tr><td><code>verifyEvidence</code> distingue registros íntegros y alterados</td><td class="ok-tag">Cumplido</td></tr>
+<tr><td>Los compromisos calculados coinciden con los anclados</td><td class="ok-tag">Cumplido (77/77 del dataset del Hito 2)</td></tr>
 </tbody></table>

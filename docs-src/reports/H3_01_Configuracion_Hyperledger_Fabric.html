@@ -17,7 +17,7 @@
 </tbody></table>
 
 <h2>3. Arquitectura desplegada</h2>
-<p>Se optó por una red construida desde cero (no por la <em>test-network</em> de fabric-samples) para controlar los nombres de organizaciones, MSP, canal y chaincode exigidos por el proyecto. Se usa el modelo de Fabric 2.5 <strong>sin canal de sistema</strong>: el orderer se une al canal mediante la API de participación de canales (<code>osnadmin</code>). El chaincode se ejecuta como servicio externo (<em>Chaincode-as-a-Service</em>), de modo que el peer no necesita acceso al socket de Docker; esto hace la red portable entre Windows, Linux y macOS.</p>
+<p>La topología sigue la decisión del Hito 2 (H2-05 §4): <em>dos organizaciones lógicas, una que representa al colegio y otra al entorno de investigación, cada una con al menos un peer en un canal académico compartido y un servicio de ordenamiento</em>. Se optó por una red construida desde cero (no por la <em>test-network</em> de fabric-samples) para controlar los nombres de organizaciones, MSP, canal y chaincode exigidos por el proyecto. Se usa el modelo de Fabric 2.5 <strong>sin canal de sistema</strong>: el orderer se une al canal mediante la API de participación de canales (<code>osnadmin</code>). El chaincode se ejecuta como servicio externo (<em>Chaincode-as-a-Service</em>), de modo que el peer no necesita acceso al socket de Docker; esto hace la red portable entre Windows, Linux y macOS.</p>
 {{img:H3_02_Diagrama_Red_Fabric.png}}
 <div class="caption">Figura 1. Red desplegada (detalle en el informe H3-02).</div>
 
@@ -79,6 +79,8 @@
 </tbody></table>
 
 <h2>10. Verificación y evidencias</h2>
+<h3>10.0 Limpieza total previa (instalación desde cero)</h3>
+{{log:00_clean_network.log|grep:Removed|OK|INFO}}
 <h3>10.1 Levantamiento de la red</h3>
 {{log:01_network_up.log|tail:9}}
 <h3>10.2 Creación del canal</h3>
@@ -108,5 +110,5 @@
 <tr><td>Chaincode desplegado</td><td class="ok-tag">Cumplido</td><td>03_deploy_chaincode.log (Version 1.0, Sequence 1, aprobaciones de ambas organizaciones)</td></tr>
 <tr><td>Consulta del estado</td><td class="ok-tag">Cumplido</td><td>04_check_infrastructure.log</td></tr>
 <tr><td>Detener y reanudar sin pérdida de datos</td><td class="ok-tag">Cumplido</td><td>14_reinicio_contenedores.log (altura 18 en ambos peers)</td></tr>
-<tr><td>Limpieza de la infraestructura</td><td class="pending-tag">Implementado, no ejecutado</td><td><code>cleanNetwork.sh</code> no se ejecutó para conservar el ledger con las evidencias de este informe</td></tr>
+<tr><td>Limpieza de la infraestructura y reinstalación desde cero</td><td class="ok-tag">Cumplido</td><td>00_clean_network.log: al alinear el prototipo con el Hito 2 se borró la red completa (contenedores, volúmenes, identidades) y se recreó con los scripts 01-03</td></tr>
 </tbody></table>

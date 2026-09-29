@@ -2,7 +2,7 @@
 <!-- subtitle: Actividad 14 — Estructura mínima de organizaciones, peers, identidades y canal -->
 
 <h2>1. Resumen</h2>
-<p>La red permisionada del prototipo está formada por tres organizaciones: una de ordenamiento y dos de aplicación. La <strong>I.E. Nuevo Horizonte</strong> opera el nodo que usa la aplicación; la <strong>AcademicValidatorOrg</strong> es una organización neutral de validación del prototipo (no representa a ninguna entidad pública) cuyo papel es custodiar una réplica independiente del ledger y co-firmar cada evidencia. Ambas participan en el canal <code>academicchannel</code>, donde se despliega el chaincode <code>academic-traceability</code>.</p>
+<p>La red permisionada del prototipo está formada por tres organizaciones: una de ordenamiento y dos de aplicación. La <strong>I.E. Nuevo Horizonte</strong> opera el nodo que usa la aplicación; la <strong>AcademicValidatorOrg</strong> corresponde a la segunda organización lógica del Hito 2 (H2-05 §4, "entorno de investigación"); es neutral, no representa a ninguna entidad pública, y su papel es custodiar una réplica independiente del ledger y co-firmar cada evidencia. Ambas participan en el canal <code>academicchannel</code>, donde se despliega el chaincode <code>academic-traceability</code>.</p>
 {{img:H3_02_Diagrama_Red_Fabric.png}}
 <div class="caption">Figura 1. H3_02_Diagrama_Red_Fabric.png — organizaciones, nodos, canal y flujo transaccional.</div>
 
@@ -37,11 +37,11 @@
 <tr><td>Admin@nuevohorizonte / Admin@validator</td><td>admin</td><td>unir peers al canal; instalar, aprobar y confirmar el chaincode</td></tr>
 <tr><td>User1@nuevohorizonte</td><td>client</td><td>identidad con la que Next.js firma las transacciones de la aplicación</td></tr>
 </tbody></table>
-<p>Nota: la identidad de Fabric (User1) es la de la <em>aplicación</em>; el actor académico (p. ej. <code>ADM-PSE-001</code>) se registra dentro de la evidencia como referencia seudónima. La emisión de identidades Fabric por usuario queda para el hito de autenticación.</p>
+<p>Nota: la identidad de Fabric (User1) es la de la <em>aplicación</em>. Siguiendo la matriz H2-03, en el ledger solo se registra el <strong>rol técnico</strong> del actor (<code>actorRole</code>: ADMIN, DOCENTE, AUDITOR); el usuario concreto queda Off-chain en <code>evento_trazabilidad.actor_usuario_id</code> y se correlaciona por el <code>eventId</code>. La emisión de identidades Fabric por usuario queda para el hito de autenticación.</p>
 
 <h2>3. Flujo transaccional</h2>
 <ol>
-<li>La aplicación construye la propuesta <code>createAcademicEvidence(...)</code> y la firma con User1@NuevoHorizonteMSP.</li>
+<li>La aplicación construye la propuesta <code>createAcademicEvidence(eventId, objectType, objectRef, eventType, version, commitment, previousCommitment, actorRole)</code> y la firma con User1@NuevoHorizonteMSP.</li>
 <li>El Gateway de peer0.nuevohorizonte consulta el plan de endoso (descubrimiento) y envía la propuesta a peer0.nuevohorizonte y peer0.validator.</li>
 <li>Cada peer ejecuta el chaincode (contenedor <code>academic-traceability-cc</code>), valida las entradas y devuelve su endoso firmado.</li>
 <li>El Gateway ensambla la transacción con ambos endosos y la envía al orderer.</li>
@@ -57,7 +57,7 @@
 {{log:02_create_channel.log|grep:unido|Channels|^academicchannel$}}
 {{log:03_deploy_chaincode.log|grep:MSP|committed with status}}
 <h3>4.3 La política de endorsement exige a ambas organizaciones</h3>
-<p>Se detuvo <code>peer0.validator</code> y se intentó registrar una evidencia. Sin el endoso de AcademicValidatorOrg la transacción no se confirma; al restablecer el peer, el reintento se completa. (La primera ejecución se clasificó como <code>PEER_UNAVAILABLE</code>; se añadió el código específico <code>ENDORSEMENT_FAILED</code> y se repitió la prueba.)</p>
+<p>Se detuvo <code>peer0.validator</code> y se intentó registrar el evento de REG-V004. Sin el endoso de AcademicValidatorOrg la transacción no se confirma (<code>ENDORSEMENT_FAILED</code>) y el evento queda en ERROR; al restablecer el peer, el reintento con el <strong>mismo UUID</strong> se completa.</p>
 {{log:23_endorsement_dos_organizaciones.log}}
 <h3>4.4 Réplica idéntica del ledger en las dos organizaciones</h3>
 {{log:14_reinicio_contenedores.log|grep:Blockchain info}}

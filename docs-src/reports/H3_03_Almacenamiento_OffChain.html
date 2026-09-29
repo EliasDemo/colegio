@@ -1,105 +1,93 @@
 <!-- title: H3-03 · Almacenamiento Off-chain (MySQL 8) -->
-<!-- subtitle: Actividad 15 — Base de datos donde permanecen los registros académicos detallados -->
+<!-- subtitle: Actividad 15 — Implementación del modelo de datos del Hito 2 y carga del dataset seudonimizado -->
 
 <h2>1. Función de MySQL en la arquitectura híbrida</h2>
-<p>MySQL es la <strong>fuente de verdad operativa</strong> del prototipo: guarda toda la información académica detallada y los datos necesarios para operar el sistema. Hyperledger Fabric no almacena esos datos; solo guarda una huella criptográfica (HMAC) de cada versión de un registro. MySQL también conserva el <strong>vínculo</strong> con la blockchain (evidenceId, TX_ID, número de bloque) y la bitácora de trazabilidad. Esta separación permite consultar y corregir datos con las capacidades de una base relacional, y a la vez demostrar su integridad contra un ledger inmutable y replicado.</p>
+<p>MySQL es la <strong>fuente de verdad operativa</strong> del prototipo (H2-05): guarda los registros académicos detallados, su historial y las referencias a las transacciones del ledger. Hyperledger Fabric no almacena esos datos; solo guarda el compromiso criptográfico (HMAC) de cada versión y los metadatos no identificables definidos en la matriz H2-03. MySQL también actúa como cola de eventos destinados a blockchain (<code>evento_trazabilidad</code>) y como índice local de las transacciones confirmadas (<code>evidencia_blockchain</code>).</p>
 <table><thead><tr><th>Elemento</th><th>Detalle</th></tr></thead><tbody>
 <tr><td>Motor</td><td>MySQL 8.4.11 LTS en Docker (<code>database/docker-compose.yml</code>), InnoDB, <code>utf8mb4</code>, zona horaria UTC</td></tr>
-<tr><td>Base</td><td><code>trazabilidad_academica</code> · volumen persistente <code>mysql_data</code> · puerto 3306 · healthcheck</td></tr>
-<tr><td>Acceso</td><td>Prisma ORM 6.19 (<code>app-next/prisma/schema.prisma</code>) mediante el patrón Repository</td></tr>
-<tr><td>Scripts SQL</td><td><code>schema.sql</code> (18 tablas), <code>seed.sql</code> (378 filas), <code>views.sql</code> (5 vistas), <code>backup.sh</code>, <code>restore.sh</code></td></tr>
-</tbody></table>
-<div class="box warn">Los artefactos del Hito 2 (SQL y diagrama ER) no estaban disponibles en el entorno de trabajo del Hito 3. El modelo se implementó a partir de las 17 entidades que exige el enunciado (más <code>student_identity</code> para la seudonimización). Conviene conciliarlo con el modelo del Hito 2 al inicio del Hito 4.</div>
-
-<h2>2. Tablas</h2>
-<table><thead><tr><th>Tabla</th><th>Entidad</th><th>Contenido</th></tr></thead><tbody>
-<tr><td>institution</td><td>Institution</td><td>I.E. Nuevo Horizonte (Juliaca, Puno)</td></tr>
-<tr><td>academic_period</td><td>AcademicPeriod</td><td>Bimestres (2026-B2, 2026-B3)</td></tr>
-<tr><td>grade · section</td><td>Grade · Section</td><td>Grados 1.º-5.º de secundaria; secciones 2026-1A, 1B, 2A</td></tr>
-<tr><td>student</td><td>Student</td><td>Código seudónimo (EST-PSE-xxx) y estado; <strong>sin datos personales</strong></td></tr>
-<tr><td>student_identity</td><td>(seudonimización)</td><td>Nombres, apellidos, documento y fecha de nacimiento, 1:1 con student</td></tr>
-<tr><td>teacher</td><td>Teacher</td><td>Código seudónimo DOC-PSE-xxx, nombres y especialidad</td></tr>
-<tr><td>enrollment</td><td>Enrollment</td><td>Matrícula del estudiante en una sección por año (MAT-2026-xxxx)</td></tr>
-<tr><td>subject</td><td>Subject</td><td>10 áreas curriculares del CNEB</td></tr>
-<tr><td>teaching_assignment</td><td>TeachingAssignment</td><td>Docente × área × sección × año</td></tr>
-<tr><td>academic_activity</td><td>AcademicActivity</td><td>Evaluaciones (ACT-2026-xxx): tipo, competencia, fecha, periodo</td></tr>
-<tr><td>academic_result</td><td>AcademicResult</td><td><strong>Registro académico microcurricular</strong> (REG-xxxxxx): calificación AD/A/B/C, nota 0-20, versión</td></tr>
-<tr><td>academic_result_history</td><td>AcademicResultHistory</td><td>Versiones anteriores guardadas antes de cada rectificación</td></tr>
-<tr><td>attendance</td><td>Attendance</td><td>Asistencia diaria por matrícula</td></tr>
-<tr><td>role · app_user</td><td>Role · User</td><td>Roles (ADMINISTRADOR, DOCENTE, AUDITOR) y usuarios con actor seudónimo</td></tr>
-<tr><td>blockchain_evidence</td><td>BlockchainEvidence</td><td>Vínculo On-chain: evidenceId, HMAC, TX_ID, bloque, estado</td></tr>
-<tr><td>traceability_event</td><td>TraceabilityEvent</td><td>Bitácora: REGISTRO, VERIFICACION, RECTIFICACION con su estado</td></tr>
+<tr><td>Base</td><td><code>nuevo_horizonte_trazabilidad</code> (mismo nombre que en H2_04) · volumen persistente <code>mysql_data</code></td></tr>
+<tr><td>Modelo</td><td><code>hito2/H2_04_Modelo_Datos_OffChain.sql</code> implementado en <code>app-next/prisma/schema.prisma</code> y <code>database/schema.sql</code></td></tr>
+<tr><td>Datos</td><td>Dataset depurado y seudonimizado del Hito 2 (<code>H2_02</code>) + complemento sintético de validación</td></tr>
 </tbody></table>
 
-<h2>3. Relaciones, PK, FK, restricciones e índices</h2>
-<pre style="font-family:Consolas,monospace;font-size:8.3pt;background:#f3f6f9;border:1px solid #d5dde6;padding:10px;border-radius:6px">institution ─┬─ academic_period ──────────────────────────┐
-             ├─ grade ── section ─┬─ enrollment ─┬─ academic_result ─┬─ academic_result_history
-             ├─ teacher ──────────┤              │                   ├─ blockchain_evidence
-             └─ student ─┬────────┘              └─ attendance       └─ traceability_event
-                         └─ student_identity (1:1)
-subject ── teaching_assignment (teacher × subject × section) ── academic_activity ── academic_result
-role ── app_user ── (opcional) teacher</pre>
+<h2>2. Fidelidad al modelo del Hito 2</h2>
+<p>El modelo se implementó tabla por tabla y columna por columna a partir del SQL del Hito 2. Los nombres de tablas, columnas, restricciones (<code>uq_*</code>, <code>fk_*</code>) e índices (<code>idx_*</code>) son los mismos. La comparación automática (<code>docs-src/compare_models.py</code>) confirma que las 19 tablas y las 123 columnas de H2_04 existen en el esquema implementado:</p>
+{{log:29_comparacion_modelo_H2_H3.log}}
+<h3>2.1 Extensiones justificadas</h3>
+<table><thead><tr><th>Id</th><th>Cambio</th><th>Justificación</th></tr></thead><tbody>
+<tr><td>E1</td><td><code>resultado_academico.codigo</code> VARCHAR(20) UNIQUE</td><td>Referencia técnica estable (el <code>registro_id</code> del dataset, p. ej. REG-0001) usada como <code>objeto_ref</code>. H2_04 usaba <code>'RES-' + resultado_id</code>, pero un identificador autoincremental cambia entre instalaciones y rompería la correspondencia con el ledger al restaurar o recargar la base.</td></tr>
+<tr><td>E2</td><td><code>evento_trazabilidad.resultado_verificacion</code> ENUM</td><td>El Hito 1 exige mostrar un resultado explícito: íntegro, no coincidente o no verificable (RF-22). H2_04 no tenía dónde guardarlo.</td></tr>
+<tr><td>E3</td><td><code>evento_trazabilidad.error_detalle</code> VARCHAR(500)</td><td>Diagnóstico de los eventos en ERROR (RNF-14, H2-06 §7 "registrar el error").</td></tr>
+<tr><td>E4</td><td>Catálogo <code>tipo_actividad</code> + <code>TRABAJO</code></td><td>El dataset H2_02 usa el tipo TRABAJO (17 registros), ausente en el catálogo de H2_04.</td></tr>
+</tbody></table>
+<p>Diferencias menores documentadas: Prisma genera las FK con <code>ON UPDATE CASCADE</code> (las PK nunca se actualizan, por lo que es equivalente al comportamiento por defecto de H2_04) y <code>usuario.docente_id</code> con <code>ON DELETE SET NULL</code>. Los valores por defecto de <code>evidencia_blockchain</code> usan los nombres exigidos por el Hito 3 (<code>academicchannel</code>, <code>academic-traceability</code>) en lugar de <code>academico-channel</code> / <code>trazabilidad-cc</code>.</p>
+
+<h2>3. Tablas, claves, restricciones e índices</h2>
+{{log:25_consultas_offchain.log|lines:1-24}}
 <ul>
-<li><strong>Claves primarias:</strong> 18, todas <code>INT AUTO_INCREMENT</code>, salvo <code>student_identity</code>, cuya PK es la FK <code>student_id</code> (relación 1:1).</li>
-<li><strong>Claves foráneas:</strong> 22. Por defecto <code>ON DELETE RESTRICT</code> (no se puede borrar un estudiante con matrículas ni un registro con evidencias); <code>student_identity</code> usa <code>CASCADE</code> y <code>app_user.teacher_id</code> usa <code>SET NULL</code>.</li>
-<li><strong>Unicidad (25 índices únicos):</strong> códigos de negocio (<code>academic_result.code</code>, <code>student.pseudonym_code</code>, <code>blockchain_evidence.evidence_id</code>, <code>tx_id</code>…), un resultado por matrícula y actividad (<code>enrollment_id, activity_id</code>), una matrícula por estudiante y año, una evidencia por resultado y versión (<code>result_id, version</code>).</li>
-<li><strong>Índices de consulta (8):</strong> por actividad, sección, periodo, docente, estado de la evidencia y <code>(result_id, occurred_at)</code> para la trazabilidad.</li>
-<li><strong>Dominios cerrados:</strong> <code>ENUM</code> para calificación (AD/A/B/C), tipo de actividad, asistencia, tipo y estado de evento; <code>DECIMAL(4,2)</code> para la nota; <code>DATETIME(3)</code> para las marcas de tiempo que se firman.</li>
+<li><strong>Claves primarias (19):</strong> <code>BIGINT UNSIGNED AUTO_INCREMENT</code> (como en H2_04); <code>usuario_rol</code> usa PK compuesta y <code>evento_trazabilidad</code> un <code>CHAR(36)</code> con el UUID del evento.</li>
+<li><strong>Claves foráneas (27):</strong> integridad referencial completa entre institución, periodos, áreas, grados, secciones, matrículas, asignaciones, actividades, resultados, historial, asistencia, usuarios y eventos.</li>
+<li><strong>Unicidad (19 índices únicos):</strong> <code>uq_matricula</code> (estudiante × periodo), <code>uq_asignacion</code> (docente × área × sección × periodo), <code>uq_actividad</code>, <code>uq_resultado</code> (matrícula × actividad), <code>uq_historial_version</code>, tokens y <code>tx_id</code>.</li>
+<li><strong>Índices de consulta:</strong> <code>idx_resultado_actividad</code>, <code>idx_resultado_matricula</code>, <code>idx_actividad_fecha</code>, <code>idx_historial_fecha</code>, <code>idx_asistencia_fecha</code>, <code>idx_evt_objeto</code>, <code>idx_evt_fecha</code>.</li>
+<li><strong>Dominios cerrados:</strong> ENUM con los mismos valores de H2_04 (estados de resultado VIGENTE/RECTIFICADO/REVOCADO, tipos de evento CREACION…REVOCACION, estado de evento PENDIENTE/CONFIRMADO/ERROR, validación VALIDA/INVALIDA/PENDIENTE).</li>
 </ul>
-{{code:database/schema.sql|160-178}}
+{{code:database/schema.sql|190-208}}
+{{code:database/schema.sql|243-273}}
 
 <h2>4. Datos personales, datos académicos y seudonimización</h2>
+<p>Se aplica la regla del Hito 2 (H2_04 y H2-05): <em>la correspondencia entre token e identidad real <strong>no</strong> se almacena en la base de investigación; permanece bajo custodia institucional separada</em> (RNF-07, nivel crítico).</p>
 <table><thead><tr><th>Categoría</th><th>Dónde está</th><th>¿Sale de MySQL?</th></tr></thead><tbody>
-<tr><td>Datos personales del estudiante (nombres, apellidos, documento, nacimiento)</td><td><code>student_identity</code></td><td>Nunca</td></tr>
-<tr><td>Datos personales del docente</td><td><code>teacher.first_names/last_names</code></td><td>Nunca</td></tr>
-<tr><td>Datos académicos (notas, calificaciones, observaciones, asistencia)</td><td><code>academic_result</code>, <code>attendance</code></td><td>Nunca en claro; solo como entrada del HMAC</td></tr>
-<tr><td>Referencias seudónimas (EST-PSE, DOC-PSE, MAT, ACT, REG)</td><td>tablas operativas</td><td>Solo REG-xxxxxx y el actor (ADM/DOC-PSE) llegan a Fabric</td></tr>
+<tr><td>Identidad real de estudiantes y docentes</td><td><strong>No está en el prototipo</strong> (custodia institucional)</td><td>—</td></tr>
+<tr><td>Tokens seudónimos (<code>STU-…</code>, <code>DOC-…</code>: HMAC-SHA-256 truncado, H2_02)</td><td><code>estudiante</code>, <code>docente</code>, <code>usuario.username</code></td><td>No; solo forman parte de la entrada del HMAC</td></tr>
+<tr><td>Datos académicos (puntajes, actividades, asistencia, motivos)</td><td><code>resultado_academico</code>, <code>historial_resultado</code>, <code>asistencia</code></td><td>No</td></tr>
+<tr><td>Referencia técnica, versión, compromiso, rol</td><td><code>evento_trazabilidad</code></td><td>Sí: es el payload On-chain de H2-03</td></tr>
 </tbody></table>
-<p>El repositorio que carga un registro para firmarlo (<code>ACADEMIC_RECORD_INCLUDE</code>) no incluye <code>student_identity</code>, y ninguna de las vistas la expone. Los datos del seed son <strong>ficticios</strong>: los documentos usan el tipo <code>COD-VAL</code> (<code>VAL-0001</code>…) para que no puedan confundirse con un DNI real, y no se presentan como información oficial de la institución.</p>
+<div class="box">Corrección respecto de la primera versión del Hito 3: esa versión, construida sin acceso a los documentos del Hito 2, guardaba nombres ficticios en una tabla <code>student_identity</code>. Al incorporar el Hito 2 se eliminó para cumplir RNF-07.</div>
 
-<h2>5. Datos de validación (seed)</h2>
-<p>Generados de forma determinista por <code>prisma/seed.ts</code> (PRNG con semilla fija), con apellidos de la región (Mamani, Quispe, Condori, Apaza, Huanca, Coaquira, Choque, Yucra, Cutipa, Ccama, Sucari, Chambi) y actividades contextualizadas (p. ej. <em>“Proyecto: calidad del agua del río Coata”</em>, <em>“Trabajo grupal: economía de la feria de Juliaca”</em>).</p>
-{{log:25_consultas_offchain.log|lines:25-30}}
-<table><thead><tr><th>Requisito mínimo</th><th>Cargado</th></tr></thead><tbody>
-<tr><td>20 estudiantes</td><td class="ok-tag">24</td></tr><tr><td>5 docentes</td><td class="ok-tag">5</td></tr>
-<tr><td>8 asignaturas</td><td class="ok-tag">10</td></tr><tr><td>3 grados/secciones</td><td class="ok-tag">3 secciones (1.º A, 1.º B, 2.º A)</td></tr>
-<tr><td>2 periodos académicos</td><td class="ok-tag">2</td></tr><tr><td>15 actividades/evaluaciones</td><td class="ok-tag">15</td></tr>
-<tr><td>100 a 200 resultados académicos</td><td class="ok-tag">120</td></tr>
+<h2>5. Datos cargados</h2>
+<h3>5.1 Dataset del Hito 2 (principal)</h3>
+<p>Los 77 registros de <code>hito2/H2_02_Seudonimizacion_Dataset.xlsx</code>, depurados en H2_01 (82 recibidos, 5 excluidos, 7 corregidos), se convirtieron a <code>app-next/prisma/data/h2_02_dataset_seudonimizado.json</code> (fechas seriales de Excel → ISO 8601) y se cargan con <code>npm run seed</code>: 20 estudiantes, 4 docentes, 4 áreas (MAT, COM, CTA, CCSS), 3.º A y 3.º B, periodo 2026-B3, 4 evaluaciones por sección (8 actividades) y notas sobre 20. Cada resultado genera su fila <code>historial_resultado</code> de tipo CREACION.</p>
+<h3>5.2 Hallazgo en el dataset del Hito 2</h3>
+<div class="box warn"><strong>REG-0011.</strong> H2_01 registra la incidencia «Nombre/código de área no canónico → normalizado a Matemática (MAT)». Sin embargo, la evaluación del registro es <code>EV-CTA-301</code> («Informe de laboratorio», tipo INFORME), su docente es el de Ciencia y Tecnología y el estudiante ya tiene su resultado de Matemática en REG-0009. En el modelo relacional el área se deriva de la actividad, así que el registro se cargó en la actividad <code>EV-CTA-301</code> (área CTA). El seed detecta y reporta este caso automáticamente. <strong>Requiere confirmación del equipo del Hito 2.</strong></div>
+<h3>5.3 Complemento de validación (sintético)</h3>
+<p>Para alcanzar los volúmenes mínimos exigidos por el Hito 3 sin inventar notas para los estudiantes reales del dataset, se añadió un conjunto sintético claramente identificable: sección 3.º C, 10 estudiantes <code>STU-VAL…</code>, 1 docente <code>DOC-VAL…</code>, 4 áreas adicionales (ING, EPT, DPCC, AYC), 7 actividades en los periodos 2026-B2 y 2026-B3, 70 resultados <code>REG-V001…</code> y 50 registros de asistencia (el dataset del Hito 2 no incluye asistencia).</p>
+{{log:25_consultas_offchain.log|lines:25-32}}
+<table><thead><tr><th>Mínimo del Hito 3</th><th>Cargado</th><th>Del dataset H2</th></tr></thead><tbody>
+<tr><td>20 estudiantes</td><td class="ok-tag">30</td><td>20</td></tr>
+<tr><td>5 docentes</td><td class="ok-tag">5</td><td>4</td></tr>
+<tr><td>8 asignaturas</td><td class="ok-tag">8</td><td>4</td></tr>
+<tr><td>3 grados/secciones</td><td class="ok-tag">3 (3.º A, B, C)</td><td>2</td></tr>
+<tr><td>2 periodos</td><td class="ok-tag">2</td><td>1</td></tr>
+<tr><td>15 actividades/evaluaciones</td><td class="ok-tag">15</td><td>8</td></tr>
+<tr><td>100 a 200 resultados</td><td class="ok-tag">147</td><td>77</td></tr>
 </tbody></table>
 
 <h2>6. Consultas básicas</h2>
-{{log:25_consultas_offchain.log|lines:31-60}}
-{{log:25_consultas_offchain.log|lines:61-80}}
+<p>Además de <code>vw_trazabilidad_resultado</code> (del Hito 2, adaptada a E1), <code>views.sql</code> define <code>vw_registro_academico</code>, <code>vw_estado_vinculo</code>, <code>vw_pendientes_anclaje</code> (cola de reintentos), <code>vw_verificaciones</code> y <code>vw_resumen_seccion_periodo</code>.</p>
+{{log:25_consultas_offchain.log|lines:33-100}}
 
 <h2>7. Interacción con Prisma</h2>
-<p><code>schema.prisma</code> es la fuente de verdad del modelo. <code>prisma migrate</code> genera la migración SQL y <code>database/schema.sql</code> se deriva de ella, por lo que ambos son idénticos. El cliente Prisma se instancia una sola vez (<code>lib/db/prisma.ts</code>, marcado <code>server-only</code>) y solo los repositorios lo usan:</p>
-<pre style="font-family:Consolas,monospace;font-size:8.5pt;background:#f3f6f9;border:1px solid #d5dde6;padding:8px;border-radius:6px">TraceabilityService → AcademicRecordRepository.findByCode()        → prisma.academicResult.findUnique({ include })
-                    → BlockchainEvidenceRepository.savePending()    → prisma.blockchainEvidence.upsert()
-                    → BlockchainEvidenceRepository.markConfirmed()  → prisma.blockchainEvidence.update()
-                    → TraceabilityEventRepository.create()          → prisma.traceabilityEvent.create()
-                    → AcademicRecordRepository.rectify()            → prisma.$transaction(historial + versión+1)</pre>
-{{code:app-next/src/repositories/academicRecord.repository.ts|8-22}}
-
+<p><code>schema.prisma</code> reproduce H2_04 con <code>@@map</code>/<code>@map</code> a los nombres originales; <code>prisma migrate</code> genera la migración y <code>database/schema.sql</code> se deriva de ella. Solo los repositorios usan Prisma:</p>
+<pre style="font-family:Consolas,monospace;font-size:8.3pt;background:#f3f6f9;border:1px solid #d5dde6;padding:8px;border-radius:6px">TraceabilityService → AcademicRecordRepository.findByCode()         → resultado_academico + relaciones
+                    → UsuarioRepository.findActor()                → usuario + usuario_rol + rol
+                    → TraceabilityEventRepository.createPending()  → evento_trazabilidad (PENDIENTE, UUID)
+                    → BlockchainEvidenceRepository.recordConfirmation() → $transaction(evidencia_blockchain + evento CONFIRMADO)
+                    → AcademicRecordRepository.rectify()           → $transaction(historial_resultado + version_actual+1)</pre>
+<p>Nota operativa: Prisma impide ejecutar <code>migrate reset</code> desde un agente automatizado (protección contra borrados). La migración del nuevo modelo se aplicó sobre la base nueva <code>nuevo_horizonte_trazabilidad</code>, sin borrar la base de la versión anterior.</p>
 <h3>7.1 Coherencia entre los scripts SQL y Prisma</h3>
-<p>Se creó una base nueva usando <strong>solo</strong> <code>schema.sql</code>, <code>seed.sql</code> y <code>views.sql</code> (sin Prisma) y se verificó REG-000001 contra el ledger. El HMAC calculado sobre esa base es idéntico al anclado en Fabric: el esquema y los datos SQL son exactamente equivalentes a los de Prisma.</p>
+<p>Una base cargada solo con <code>schema.sql</code>, <code>seed.sql</code> y <code>views.sql</code> produce exactamente los mismos compromisos que los anclados en Fabric:</p>
 {{log:20_coherencia_sql_prisma.log}}
 
 <h2>8. Respaldo y recuperación</h2>
-<ul>
-<li><strong>Respaldo:</strong> <code>database/backup.sh</code> ejecuta <code>mysqldump --single-transaction --routines --triggers</code> (copia consistente sin bloquear InnoDB) hacia <code>database/backups/</code>.</li>
-<li><strong>Recuperación:</strong> <code>database/restore.sh &lt;archivo&gt;</code>. Después se ejecuta <code>npm run verify</code>: la blockchain permite comprobar que los datos restaurados son los originales.</li>
-<li><strong>Persistencia:</strong> volumen Docker <code>mysql_data</code>; los datos sobreviven a reinicios del contenedor (PT-15).</li>
-</ul>
-<p>Prueba realizada: respaldo → <code>DROP DATABASE</code> (pérdida total) → restauración → verificación.</p>
+<p><code>backup.sh</code> ejecuta <code>mysqldump --single-transaction --routines --triggers</code>; <code>restore.sh</code> recupera el archivo. Prueba realizada: respaldo → <code>DROP DATABASE</code> → restauración → verificación contra el ledger.</p>
 {{log:21_respaldo_recuperacion.log}}
-<div class="box">Durante esta prueba se detectó un defecto en <code>npm run check</code> (el error de Prisma “database does not exist” se clasificaba como error de Fabric). Se corrigió y la salida posterior a la corrección se incluye al final del log.</div>
 
 <h2>9. Criterios de aceptación</h2>
 <table><thead><tr><th>Criterio</th><th>Resultado</th></tr></thead><tbody>
-<tr><td>MySQL inicia correctamente</td><td class="ok-tag">Cumplido (healthcheck <code>healthy</code>, MySQL 8.4.11)</td></tr>
-<tr><td>Prisma se conecta y las migraciones se ejecutan</td><td class="ok-tag">Cumplido (migración <code>init_hito3</code>)</td></tr>
-<tr><td>El seed funciona y existen registros académicos</td><td class="ok-tag">Cumplido (120 resultados)</td></tr>
-<tr><td>Claves y relaciones válidas</td><td class="ok-tag">Cumplido (22 FK, carga SQL sin errores)</td></tr>
-<tr><td>SQL y Prisma coherentes</td><td class="ok-tag">Cumplido (HMAC idéntico)</td></tr>
-<tr><td>Respaldo y recuperación</td><td class="ok-tag">Cumplido</td></tr>
+<tr><td>Modelo del Hito 2 implementado</td><td class="ok-tag">Cumplido (19 tablas, 123/123 columnas, 4 extensiones justificadas)</td></tr>
+<tr><td>MySQL inicia; Prisma se conecta; migraciones y seed funcionan</td><td class="ok-tag">Cumplido</td></tr>
+<tr><td>Dataset del Hito 2 cargado</td><td class="ok-tag">Cumplido (77/77; hallazgo REG-0011 reportado)</td></tr>
+<tr><td>Sin identidades reales en la base del prototipo (RNF-07)</td><td class="ok-tag">Cumplido</td></tr>
+<tr><td>SQL y Prisma coherentes</td><td class="ok-tag">Cumplido (compromisos idénticos)</td></tr>
+<tr><td>Respaldo y recuperación probados (RNF-23)</td><td class="ok-tag">Cumplido</td></tr>
 </tbody></table>

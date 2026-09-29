@@ -1,37 +1,37 @@
 <!-- title: H3-05 · Vinculación On-chain / Off-chain -->
-<!-- subtitle: Actividad 17 — Relación de los registros de MySQL con la evidencia mínima registrada en Hyperledger Fabric -->
+<!-- subtitle: Actividad 17 — Implementación del flujo de trazabilidad del Hito 2 (H2-06) -->
 
 <h2>1. Propósito</h2>
-<p>Vincular cada versión de un registro académico almacenado en MySQL con una evidencia inmutable en Hyperledger Fabric, de forma que: (a) toda evidencia anclada se pueda relacionar con su registro (por <code>REG-xxxxxx</code> y el <strong>TX_ID</strong>); (b) cualquier modificación posterior del registro se detecte comparándolo con el ledger; y (c) un fallo en cualquiera de los dos sistemas no deje el vínculo en un estado inconsistente ni irrecuperable.</p>
-<div class="box ok"><strong>Resultado:</strong> primer registro vinculado correctamente — <code>REG-000001</code> → <code>EVD-REG-000001-V1</code> → TX_ID <code>ff57bd47a6589ed1f55e2193bf0be95762c9d5959e2e150105c74dc880aa96fb</code> (bloque 4). En total se vincularon 18 registros durante las pruebas, incluida una rectificación (versión 2).</div>
+<p>Implementar la especificación funcional del Hito 2 (H2-06, «el flujo que el Hito 3 debe implementar y demostrar mediante el primer registro vinculado correctamente»): relacionar cada versión de un resultado académico de MySQL con un evento inmutable en Hyperledger Fabric, de forma que (a) cada evento On-chain se correlacione con su registro Off-chain mediante referencias técnicas (RNF-22), (b) cualquier modificación no acompañada de una nueva versión se detecte (RNF-13), y (c) un fallo en cualquiera de los dos sistemas no produzca pérdidas silenciosas ni duplicados (RNF-14).</p>
+<div class="box ok"><strong>Resultado:</strong> primer registro del dataset del Hito 2 vinculado correctamente — <code>REG-0001</code> → evento <code>0b30977e-b5dc-41e5-96e7-4610bafc85dd</code> → TX_ID <code>342dd8cca7ca8f6d72c7a4184fb90d98f3f83ba0723f91f15249a75fc94906e7</code> (bloque 4). A continuación se anclaron y verificaron los <strong>77 registros</strong> del dataset (77/77 ÍNTEGROS), además de registros del complemento y una rectificación encadenada.</div>
 
 <h2>2. Arquitectura</h2>
 {{img:H3_Arquitectura_Implementada.png}}
-<div class="caption">Figura 1. H3_Arquitectura_Implementada.png</div>
-<p>La vinculación la orquesta <code>TraceabilityService</code> (servidor Next.js). El servicio lee MySQL mediante repositorios Prisma, calcula la evidencia con <code>lib/crypto</code> y se comunica con el peer mediante <code>lib/fabric</code> (Fabric Gateway, gRPC con TLS, identidad <code>User1@NuevoHorizonteMSP</code>). El chaincode no se ejecuta en Next.js: es un paquete independiente desplegado en la red.</p>
+<div class="caption">Figura 1. H3_Arquitectura_Implementada.png — implementación de los componentes de H2-05.</div>
 
 <h2>3. Relación MySQL ↔ Fabric</h2>
-<table><thead><tr><th>MySQL (Off-chain)</th><th>Clave de enlace</th><th>Fabric (On-chain)</th></tr></thead><tbody>
-<tr><td><code>academic_result.code</code> = REG-000001</td><td>recordReference</td><td><code>AcademicEvidence.recordReference</code></td></tr>
-<tr><td><code>academic_result.version</code></td><td>version</td><td><code>AcademicEvidence.version</code> y clave <code>EVD-REG-000001-V1</code></td></tr>
-<tr><td><code>blockchain_evidence.evidence_hash</code></td><td>HMAC</td><td><code>AcademicEvidence.evidence</code></td></tr>
-<tr><td><code>blockchain_evidence.tx_id</code>, <code>block_number</code></td><td><strong>TX_ID</strong></td><td>transacción que creó la evidencia (<code>AcademicEvidence.txId</code>)</td></tr>
-<tr><td><code>traceability_event</code></td><td>evidenceId + TX_ID</td><td>historial por registro (<code>getAcademicEvidenceHistory</code>)</td></tr>
+<table><thead><tr><th>MySQL (Off-chain, H2_04)</th><th>Clave de enlace</th><th>Fabric (On-chain, H2-03)</th></tr></thead><tbody>
+<tr><td><code>evento_trazabilidad.evento_id</code> (UUID)</td><td><strong>eventId</strong></td><td>clave del estado del evento</td></tr>
+<tr><td><code>objeto_tipo</code> · <code>objeto_ref</code> (= <code>resultado_academico.codigo</code>)</td><td>objectType · objectRef</td><td>índices <code>object~ref~version</code> y <code>object~ref~event</code></td></tr>
+<tr><td><code>evento_tipo</code> · <code>version</code></td><td>eventType · version</td><td>idem</td></tr>
+<tr><td><code>compromiso_hmac</code> · <code>compromiso_anterior</code></td><td>commitment · previousCommitment</td><td>idem (encadenamiento validado por el chaincode)</td></tr>
+<tr><td><code>actor_rol_codigo</code> (el usuario queda Off-chain)</td><td>actorRole</td><td>idem</td></tr>
+<tr><td><code>evidencia_blockchain.tx_id</code>, <code>block_number</code>, <code>committed_at</code></td><td><strong>TX_ID</strong></td><td>transacción que registró el evento</td></tr>
 </tbody></table>
-<p>El <strong>TX_ID</strong> es el identificador único de la transacción de Fabric (SHA-256 del nonce y el creador). Permite ubicar la transacción y su bloque en el ledger de cualquier peer del canal. Se guarda en MySQL solo cuando el Gateway informa que el commit fue <code>VALID</code>; además el chaincode lo escribe dentro de la propia evidencia, lo que permite reconstruir el vínculo desde el ledger (sección 7).</p>
+<p>El <strong>TX_ID</strong> identifica la transacción de Fabric y permite ubicarla en el ledger de cualquier peer del canal. Se guarda en <code>evidencia_blockchain</code> solo cuando el Gateway informa que el commit fue <code>VALID</code> (RN-15). El chaincode también lo escribe dentro del propio evento, lo que permite reconstruir el vínculo desde el ledger (sección 7).</p>
 
-<h2>4. Algoritmo de registro (<code>registerAcademicRecordEvidence</code>)</h2>
+<h2>4. Algoritmo de registro (H2-06 §3, pasos 4-9)</h2>
 <ol>
-<li>Validar el código (Zod) y el actor seudónimo.</li>
-<li>Buscar el registro en MySQL mediante el repositorio, con sus relaciones (matrícula, sección, actividad, periodo, área, docente); si no existe → <code>RecordNotFoundError</code>.</li>
-<li>Canonicalizar y calcular el HMAC-SHA-256; construir <code>evidenceId = EVD-REG-xxxxxx-V{versión}</code>; tipo de evento REGISTRO (v1) o RECTIFICACION (v&gt;1).</li>
-<li>Si esa versión ya está CONFIRMADA en MySQL: si el HMAC coincide, devolver el vínculo existente (<strong>idempotencia</strong>); si no, <code>EvidenceConflictError</code> (el registro cambió sin rectificación).</li>
-<li>Guardar la evidencia como <strong>PENDIENTE</strong> en <code>blockchain_evidence</code> (intención registrada antes de tocar Fabric).</li>
-<li>Consultar <code>academicEvidenceExists</code>: si ya existe en el ledger (intento anterior interrumpido), leerla, comprobar que el HMAC coincide y <strong>reconciliar</strong> con su TX_ID.</li>
-<li>En otro caso, enviar <code>createAcademicEvidence</code> (endoso de ambas organizaciones → orderer → commit) y esperar el estado del commit.</li>
-<li>Si Fabric falla: marcar FALLIDO + evento FALLIDO y propagar el error clasificado.</li>
-<li>Con el commit VALID: guardar TX_ID y número de bloque (CONFIRMADO) y crear el evento de trazabilidad.</li>
-<li>Si esta última escritura falla: <code>EvidenceLinkError</code> con el TX_ID (la evidencia ya está en el ledger; se reconcilia al reintentar).</li>
+<li>Resolver el actor (<code>usuario</code> activo + rol) y cargar el resultado con sus relaciones; si no existe → <code>RecordNotFoundError</code>.</li>
+<li>Payload canónico v2 → HMAC-SHA-256 (<code>compromiso_hmac</code>). Tipo de evento: CREACION si <code>version_actual</code> = 1; RECTIFICACION (o REVOCACION) si es mayor.</li>
+<li>Si esa versión ya tiene un evento CONFIRMADO: si el compromiso coincide, se devuelve el vínculo existente (<strong>reintento idempotente</strong>); si no, <code>EvidenceConflictError</code> (cambio sin nueva versión).</li>
+<li>Para versiones &gt; 1: <code>compromiso_anterior</code> = compromiso de la versión anterior CONFIRMADA.</li>
+<li>Crear el evento <strong>PENDIENTE</strong> con un UUID nuevo o, si existe uno PENDIENTE/ERROR para esa versión, <strong>reutilizar su UUID</strong>.</li>
+<li>«Consultar por eventId antes de reenviar» (H2-06 §7): si <code>academicEvidenceExists(eventId)</code> es verdadero, se lee el evento, se compara el compromiso y se <strong>reconcilia</strong> su TX_ID.</li>
+<li>Si no, <code>createAcademicEvidence</code>: endoso de ambas organizaciones → orderer → commit; el chaincode valida las reglas y el encadenamiento.</li>
+<li>Fallo de Fabric: evento → <strong>ERROR</strong> con <code>error_detalle</code>; el dato académico no se pierde.</li>
+<li>Commit VALID: en una transacción MySQL se inserta <code>evidencia_blockchain</code> (TX_ID, bloque, VALIDA) y el evento pasa a <strong>CONFIRMADO</strong>.</li>
+<li>Si esa transacción falla: <code>EvidenceLinkError</code> con el TX_ID; el evento sigue PENDIENTE y el reintento lo reconcilia (paso 6).</li>
 </ol>
 
 <h2>5. Secuencia</h2>
@@ -39,55 +39,60 @@
 <div class="caption">Figura 2. H3_05_Secuencia_Integracion.png — registro (pasos 1-19) y verificación (pasos 20-28).</div>
 
 <h2>6. Código relevante</h2>
-{{code:app-next/src/services/traceability.service.ts|110-190}}
-{{code:app-next/src/lib/fabric/submitTransaction.ts|8-39}}
-{{code:chaincode/academic-traceability/src/academicTraceabilityContract.ts|110-138}}
+{{code:app-next/src/services/traceability.service.ts|174-240}}
+{{code:chaincode/academic-traceability/src/academicTraceabilityContract.ts|115-131}}
 
 <h2>7. Atomicidad lógica, manejo de errores y recuperación</h2>
-<p>MySQL y Fabric no comparten una transacción distribuida (no existe un <em>two-phase commit</em> entre ambos). En su lugar se aplica una <strong>atomicidad lógica</strong> con tres mecanismos:</p>
+<p>MySQL y Fabric no comparten una transacción distribuida. La atomicidad lógica se obtiene con cuatro mecanismos del diseño del Hito 2:</p>
 <ul>
-<li><strong>Registro de intención:</strong> la fila PENDIENTE se escribe antes de contactar a Fabric; cualquier interrupción deja rastro en <code>blockchain_evidence</code> y en la vista <code>v_pendientes_anclaje</code>.</li>
-<li><strong>Clave determinista e inmutable On-chain:</strong> <code>EVD-REG-xxxxxx-Vn</code> se deriva del registro; el chaincode rechaza duplicados, así que un reintento nunca crea dos evidencias para la misma versión.</li>
-<li><strong>Reconciliación:</strong> al reintentar, si la evidencia ya existe en el ledger con el mismo HMAC, se recupera su TX_ID y se completa el vínculo sin nueva transacción.</li>
+<li><strong>Cola de eventos:</strong> el evento PENDIENTE se escribe antes de contactar a Fabric; <code>vw_pendientes_anclaje</code> lista lo que falta anclar.</li>
+<li><strong>Identidad estable del evento:</strong> el mismo UUID se usa en todos los reintentos y es la clave On-chain; el chaincode rechaza un <code>eventId</code> repetido y una segunda versión igual, así que nunca hay duplicados (H2-06 criterio «los reintentos no crean eventos duplicados»).</li>
+<li><strong>Confirmación atómica Off-chain:</strong> vínculo y estado CONFIRMADO se escriben en una sola transacción MySQL; no puede quedar un evento CONFIRMADO sin TX_ID.</li>
+<li><strong>Encadenamiento:</strong> cada versión On-chain referencia el compromiso de la anterior; la verificación comprueba que la cadena esté íntegra.</li>
 </ul>
-<p>El resultado es un sistema <em>eventualmente consistente</em>: tras cualquier fallo, volver a ejecutar <code>npm run record</code> lleva ambos sistemas al mismo estado final.</p>
-
 <h3>7.1 Posibles fallos y comportamiento verificado</h3>
-<table><thead><tr><th>Caso</th><th>Comportamiento esperado</th><th>Resultado obtenido</th></tr></thead><tbody>
-<tr><td>1. MySQL funciona, Fabric no confirma (orderer caído)</td><td>No se guarda TX_ID; vínculo FALLIDO; reintento posible</td><td class="ok-tag"><code>ORDERER_UNAVAILABLE</code>; FALLIDO; reintento confirmado</td></tr>
-<tr><td>2. Fabric registra, falla la escritura del TX_ID en MySQL</td><td>Error con TX_ID; reintento reconcilia sin duplicar</td><td class="ok-tag"><code>EvidenceLinkError</code>; PENDIENTE → reconciliado</td></tr>
+<table><thead><tr><th>Caso</th><th>Comportamiento esperado (H2-06 §7)</th><th>Resultado obtenido</th></tr></thead><tbody>
+<tr><td>1. MySQL funciona, Fabric no confirma (orderer caído)</td><td>Evento pendiente/error, reintento sin duplicar</td><td class="ok-tag"><code>ORDERER_UNAVAILABLE</code>; ERROR; reintento con el mismo UUID confirmado</td></tr>
+<tr><td>2. Fabric registra, falla la escritura del TX_ID</td><td>Consultar por eventId antes de reenviar</td><td class="ok-tag"><code>EvidenceLinkError</code>; PENDIENTE → reconciliado sin reenviar</td></tr>
 <tr><td>3. Registro inexistente</td><td>Error sin contactar a Fabric</td><td class="ok-tag"><code>RecordNotFoundError</code></td></tr>
-<tr><td>4. Evidencia no coincide</td><td>ALTERADO al verificar; no se re-ancla</td><td class="ok-tag">ALTERADO (código 3); <code>EvidenceConflictError</code></td></tr>
-<tr><td>5. Certificado inválido</td><td>Fabric rechaza la identidad</td><td class="ok-tag"><code>IDENTITY_INVALID</code> (<em>creator org unknown</em>)</td></tr>
-<tr><td>6. Peer no disponible</td><td>Error de conexión; FALLIDO</td><td class="ok-tag"><code>PEER_UNAVAILABLE</code> (ECONNREFUSED)</td></tr>
-<tr><td>7. Chaincode no desplegado</td><td>Error específico</td><td class="ok-tag"><code>CHAINCODE_NOT_DEPLOYED</code></td></tr>
-<tr><td>8. Canal incorrecto</td><td>Error específico</td><td class="ok-tag"><code>CHANNEL_NOT_FOUND</code></td></tr>
-<tr><td>Adicional: organización validadora caída</td><td>Sin los endosos requeridos no se confirma</td><td class="ok-tag"><code>ENDORSEMENT_FAILED</code></td></tr>
+<tr><td>4. Compromiso no coincide</td><td>Cambio sin nueva versión → alerta</td><td class="ok-tag">verify ALTERADO (código 3); record <code>EvidenceConflictError</code></td></tr>
+<tr><td>5. Certificado inválido</td><td>Transacción inválida, no se marca confirmada</td><td class="ok-tag"><code>IDENTITY_INVALID</code>; evento en ERROR</td></tr>
+<tr><td>6. Peer no disponible</td><td>Blockchain no disponible → pendiente, reintento</td><td class="ok-tag"><code>PEER_UNAVAILABLE</code>; evento en ERROR</td></tr>
+<tr><td>7. Chaincode no desplegado</td><td>Error identificable</td><td class="ok-tag"><code>CHAINCODE_NOT_DEPLOYED</code></td></tr>
+<tr><td>8. Canal incorrecto</td><td>Error identificable</td><td class="ok-tag"><code>CHANNEL_NOT_FOUND</code></td></tr>
+<tr><td>Adicional: organización validadora caída</td><td>Sin endosos suficientes no se confirma</td><td class="ok-tag"><code>ENDORSEMENT_FAILED</code></td></tr>
+<tr><td>Adicional: actor inexistente (RF-03)</td><td>Denegación sin ejecutar la operación</td><td class="ok-tag"><code>ActorNotFoundError</code></td></tr>
 </tbody></table>
-<div class="box">Las primeras ejecuciones de los casos 7, 8 y 1 revelaron clasificaciones incorrectas (<code>UNKNOWN</code>, <code>PEER_UNAVAILABLE</code>). Se ajustó <code>lib/fabric/errors.ts</code> con los mensajes reales de Fabric 2.5, se añadieron pruebas unitarias con esos mensajes y se repitieron los casos; los logs conservan ambas ejecuciones.</div>
-
-<h3>7.2 Evidencias de los casos 3, 4, 5, 7 y 8</h3>
-{{log:11_casos_fallo_3_4_5_7_8.log|grep:^CASO|Error|^\[[A-Z_]+\]|RESULTADO|^ALTERADO|salida}}
+<p>En las pruebas 5, 7, 8, 6, 1 y la recuperación, el registro REG-V002 se intentó <strong>seis veces con el mismo evento</strong> <code>1886ac25-…</code>: cinco fallaron (evento en ERROR) y la sexta lo confirmó. Resultado: un único evento y una única transacción.</p>
+<h3>7.2 Evidencias de los casos 3, 4, 5, 7, 8 y control de actor</h3>
+{{log:11_casos_fallo_3_4_5_7_8.log|grep:^CASO|^ACTOR|Error:|^\[[A-Z_]+\] |^ALTERADO|salida|reintento}}
 <h3>7.3 Evidencias de los casos 6 y 1 (con recuperación)</h3>
 {{log:12_casos_fallo_6_1.log}}
 <h3>7.4 Evidencia del caso 2 (fallo real inyectado con un trigger de MySQL)</h3>
 {{log:13_caso_fallo_2_reconciliacion.log}}
 
 <h2>8. Verificación</h2>
-<p><code>verifyAcademicRecord</code> recalcula el HMAC del estado actual en MySQL y lo compara con la <strong>última versión anclada en el ledger</strong> (no con la copia local, que también podría haberse alterado). Además informa si la copia local del vínculo coincide con el ledger.</p>
-{{log:05_record_REG-000001.log|tail:30}}
-{{log:08_restore_verify_REG-000001.log}}
-<h3>8.1 Rectificación y trazabilidad</h3>
-<p>Una rectificación autorizada guarda la versión anterior en <code>academic_result_history</code>, incrementa la versión y ancla una <strong>nueva</strong> evidencia; la anterior permanece intacta en el ledger.</p>
-{{log:10_rectify_trace_REG-000002.log|tail:33}}
-<h3>8.2 Datos personales ausentes del ledger</h3>
+<p><code>verifyAcademicRecord</code> recalcula el HMAC de la versión vigente en MySQL, lo compara con la <strong>última versión anclada en el ledger</strong> (no con la copia local, que también podría haberse alterado) y comprueba la cadena de compromisos. El resultado se registra como evento <code>VERIFICACION</code>, con <code>resultado_verificacion</code> en MySQL, y se ancla en Fabric (H2-03 lista VERIFICACION entre los eventos On-chain).</p>
+{{log:05_record_REG-0001.log|tail:32}}
+{{log:08_restore_verify_REG-0001.log}}
+<h3>8.1 Dataset completo del Hito 2</h3>
+{{log:09_record_dataset_H2.log|tail:4}}
+{{log:28_verify_dataset_H2.log|tail:3}}
+<h3>8.2 Rectificación encadenada y trazabilidad</h3>
+<p>Una rectificación autorizada escribe <code>historial_resultado</code> (puntaje anterior y nuevo, motivo), incrementa la versión, marca el resultado RECTIFICADO y ancla un evento RECTIFICACION cuyo <code>previousCommitment</code> es el compromiso de la versión 1. La versión anterior permanece intacta en el ledger.</p>
+{{log:10_rectify_trace_REG-V001.log|lines:1-4}}
+{{log:10_rectify_trace_REG-V001.log|grep:^Registro: REG|^Evento RECT|^Compromiso|^TX_ID|^\| +[12] }}
+{{log:10_rectify_trace_REG-V001.log|tail:14}}
+<h3>8.3 Privacidad del ledger</h3>
 {{log:22_privacidad_onchain.log}}
+<p>Los identificadores técnicos (<code>eventId</code>) aparecen también en bloques posteriores porque las transacciones VERIFICACION y RECTIFICACION <em>leen</em> la versión anterior y Fabric registra esas lecturas.</p>
 
 <h2>9. Criterios de aceptación</h2>
 <table><thead><tr><th>Criterio</th><th>Resultado</th></tr></thead><tbody>
-<tr><td>Un registro Off-chain se asocia a una evidencia On-chain</td><td class="ok-tag">Cumplido</td></tr>
-<tr><td>El TX_ID se almacena en MySQL</td><td class="ok-tag">Cumplido (<code>blockchain_evidence.tx_id</code>)</td></tr>
-<tr><td>Registro, consulta y verificación desde scripts reproducibles</td><td class="ok-tag">Cumplido (<code>record</code>, <code>verify</code>, <code>trace</code>)</td></tr>
-<tr><td>Fallos manejados sin inconsistencias permanentes</td><td class="ok-tag">Cumplido (8 casos + endorsement)</td></tr>
-<tr><td>Ningún dato personal On-chain</td><td class="ok-tag">Cumplido (0 coincidencias en 20 bloques)</td></tr>
+<tr><td>Primer registro vinculado correctamente (H2-06)</td><td class="ok-tag">Cumplido (REG-0001, bloque 4)</td></tr>
+<tr><td>Todo alta o cambio produce versión y evento; la secuencia es reconstruible</td><td class="ok-tag">Cumplido (CREACION, RECTIFICACION encadenada, VERIFICACION)</td></tr>
+<tr><td>El TX_ID se almacena en MySQL (RN-15)</td><td class="ok-tag">Cumplido (<code>evidencia_blockchain</code>)</td></tr>
+<tr><td>Los reintentos no crean eventos duplicados</td><td class="ok-tag">Cumplido (mismo UUID; reconciliación)</td></tr>
+<tr><td>Se detectan modificaciones no acompañadas de nueva evidencia</td><td class="ok-tag">Cumplido (ALTERADO)</td></tr>
+<tr><td>Sin PII ni datos académicos On-chain (RNF-05, CA-05)</td><td class="ok-tag">Cumplido (0 coincidencias en 180 bloques)</td></tr>
 </tbody></table>

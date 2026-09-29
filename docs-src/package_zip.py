@@ -15,7 +15,7 @@ OUT = ROOT.parent / "Hito3_Entregables_Grupo7.zip"
 
 SKIP_DIRS = {"node_modules", ".next", ".git", ".tamper", "dist", "out"}
 SKIP_PATHS = ("fabric-network/organizations/peerOrganizations", "fabric-network/organizations/ordererOrganizations")
-SKIP_FILES = (".env", "*.tsbuildinfo", "*_sk", "chaincode.env", "*.block", "*.tar.gz")
+SKIP_FILES = (".env", "*.tsbuildinfo", "*_sk", "chaincode.env", "*.block", "*.tar.gz", "~$*")
 
 count = 0
 with zipfile.ZipFile(OUT, "w", zipfile.ZIP_DEFLATED) as archive:
