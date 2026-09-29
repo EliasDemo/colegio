@@ -1,16 +1,17 @@
 PASS test/academicTraceabilityContract.test.ts
-  AcademicTraceabilityContract
-    √ registra una evidencia y la marca como existente (2 ms)
-    √ lee la evidencia registrada
-    √ rechaza registrar dos veces la misma evidencia (inmutabilidad) (5 ms)
-    √ falla al leer una evidencia inexistente
-    √ rechaza datos que no sean referencias seudónimas (1 ms)
-    √ exige versiones consecutivas y conserva el historial (6 ms)
-    √ valida la coherencia entre evidenceId, versión y tipo de evento
-    √ no almacena campos personales en el estado
+  AcademicTraceabilityContract (payload del Hito 2)
+    √ registra un evento CREACION con los campos de H2-03 (2 ms)
+    √ es idempotente por eventId: no registra dos veces el mismo evento (7 ms)
+    √ no permite dos eventos para la misma versión del dato
+    √ encadena las rectificaciones con el compromiso anterior (1 ms)
+    √ valida las reglas de CREACION
+    √ registra verificaciones sin crear versiones y solo sobre objetos anclados (7 ms)
+    √ lee un evento y falla si no existe (1 ms)
+    √ rechaza valores que no sean referencias técnicas (sin PII On-chain) (3 ms)
+    √ almacena solo los campos del modelo On-chain
 
 Test Suites: 1 passed, 1 total
-Tests:       8 passed, 8 total
+Tests:       9 passed, 9 total
 Snapshots:   0 total
-Time:        1.063 s, estimated 9 s
+Time:        0.958 s, estimated 7 s
 Ran all test suites.

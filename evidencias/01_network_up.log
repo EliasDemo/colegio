@@ -1,47 +1,47 @@
 [INFO] Generando identidades (MSP y TLS) con cryptogen...
  Network fabric_academic Creating 
  Network fabric_academic Created 
- Container fabric-academic-cli-run-e0c2d319dfbe Creating 
- Container fabric-academic-cli-run-e0c2d319dfbe Created 
+ Container fabric-academic-cli-run-8f97ded31967 Creating 
+ Container fabric-academic-cli-run-8f97ded31967 Created 
 nuevohorizonte.example.com
 validator.example.com
 [OK] Identidades generadas en fabric-network/organizations
 [INFO] Levantando orderer, peers, CAs y cli...
- Volume fabric-academic_peer0.validator.example.com Creating 
- Volume fabric-academic_peer0.validator.example.com Created 
  Volume fabric-academic_orderer.example.com Creating 
  Volume fabric-academic_orderer.example.com Created 
  Volume fabric-academic_peer0.nuevohorizonte.example.com Creating 
  Volume fabric-academic_peer0.nuevohorizonte.example.com Created 
- Container ca.validator.example.com Creating 
- Container cli Creating 
- Container orderer.example.com Creating 
+ Volume fabric-academic_peer0.validator.example.com Creating 
+ Volume fabric-academic_peer0.validator.example.com Created 
  Container ca.nuevohorizonte.example.com Creating 
- Container cli Created 
+ Container orderer.example.com Creating 
+ Container cli Creating 
+ Container ca.validator.example.com Creating 
  Container ca.validator.example.com Created 
  Container ca.nuevohorizonte.example.com Created 
  Container orderer.example.com Created 
- Container peer0.nuevohorizonte.example.com Creating 
  Container peer0.validator.example.com Creating 
- Container peer0.validator.example.com Created 
+ Container peer0.nuevohorizonte.example.com Creating 
+ Container cli Created 
  Container peer0.nuevohorizonte.example.com Created 
+ Container peer0.validator.example.com Created 
  Container orderer.example.com Starting 
+ Container cli Starting 
  Container ca.nuevohorizonte.example.com Starting 
  Container ca.validator.example.com Starting 
- Container cli Starting 
- Container cli Started 
- Container ca.validator.example.com Started 
- Container orderer.example.com Started 
- Container peer0.nuevohorizonte.example.com Starting 
- Container peer0.validator.example.com Starting 
  Container ca.nuevohorizonte.example.com Started 
- Container peer0.nuevohorizonte.example.com Started 
+ Container orderer.example.com Started 
+ Container peer0.validator.example.com Starting 
+ Container peer0.nuevohorizonte.example.com Starting 
+ Container ca.validator.example.com Started 
+ Container cli Started 
  Container peer0.validator.example.com Started 
+ Container peer0.nuevohorizonte.example.com Started 
 [OK] Red Fabric en ejecución
 NAMES                              STATUS        PORTS
-peer0.nuevohorizonte.example.com   Up 1 second   0.0.0.0:7051->7051/tcp, [::]:7051->7051/tcp, 0.0.0.0:9444->9444/tcp, [::]:9444->9444/tcp
 peer0.validator.example.com        Up 1 second   0.0.0.0:9051->9051/tcp, [::]:9051->9051/tcp, 0.0.0.0:9445->9445/tcp, [::]:9445->9445/tcp
-ca.validator.example.com           Up 1 second   0.0.0.0:8054->8054/tcp, [::]:8054->8054/tcp
+peer0.nuevohorizonte.example.com   Up 1 second   0.0.0.0:7051->7051/tcp, [::]:7051->7051/tcp, 0.0.0.0:9444->9444/tcp, [::]:9444->9444/tcp
 cli                                Up 1 second   
+ca.validator.example.com           Up 1 second   0.0.0.0:8054->8054/tcp, [::]:8054->8054/tcp
 ca.nuevohorizonte.example.com      Up 1 second   0.0.0.0:7054->7054/tcp, [::]:7054->7054/tcp
 orderer.example.com                Up 1 second   0.0.0.0:7050->7050/tcp, [::]:7050->7050/tcp, 0.0.0.0:7053->7053/tcp, [::]:7053->7053/tcp, 0.0.0.0:9443->9443/tcp, [::]:9443->9443/tcp

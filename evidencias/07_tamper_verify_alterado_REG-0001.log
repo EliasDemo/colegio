@@ -1,0 +1,25 @@
+------------------------------------
+
+Registro REG-0001 modificado directamente en MySQL (sin historial ni nueva versión):
+  antes:   20.00
+  después: 19.00
+
+Ejecute ahora: npm run verify -- REG-0001
+
+Registro:
+REG-0001  (versión Off-chain 1, estado VIGENTE)
+
+Compromiso en blockchain (v1 CREACION, TX 342dd8cca7ca8f6d...):
+e68d43b57c32539240eefff1a57523a16d91d46f45292c6a5764865428999b36
+
+Compromiso calculado:
+10acbd987507720699e251c4aed3df5ea2102cfa934534795e96fc6ab6e4138a
+
+Cadena de compromisos entre versiones íntegra: SÍ
+Copia local del vínculo (MySQL) consistente con el ledger: SÍ
+Verificación registrada On-chain: evento 8c4ec983-de2b-43e2-a722-def8ca3cb7d3 · TX 8c0697fa1d8aae02...
+
+RESULTADO:
+
+ALTERADO
+(código de salida de verify: 3)

@@ -9,8 +9,8 @@ const CASES: Array<[string, string]> = [
   ['9 FAILED_PRECONDITION: evaluate call to endorser returned error: error validating proposal: access denied: channel [academicchannel] creator org unknown, creator is malformed', 'IDENTITY_INVALID'],
   ['9 FAILED_PRECONDITION: no peers available to evaluate chaincode chaincode-inexistente in channel academicchannel', 'CHAINCODE_NOT_DEPLOYED'],
   ['14 UNAVAILABLE: failed to get config for channel [canalinexistente]: could not get last config for channel canalinexistente', 'CHANNEL_NOT_FOUND'],
-  ['10 ABORTED: failed to endorse transaction, see attached details for more info | chaincode response 500, La evidencia EVD-REG-000001-V1 ya existe', 'EVIDENCE_ALREADY_EXISTS'],
-  ['chaincode response 500, No existe evidencia EVD-REG-999999-V1', 'EVIDENCE_NOT_FOUND'],
+  ['10 ABORTED: failed to endorse transaction, see attached details for more info | chaincode response 500, El evento 00000000-0000-4000-8000-000000000001 ya existe', 'EVIDENCE_ALREADY_EXISTS'],
+  ['chaincode response 500, No existe evidencia 00000000-0000-4000-8000-000000000009', 'EVIDENCE_NOT_FOUND'],
   ['4 DEADLINE_EXCEEDED: Deadline exceeded', 'TIMEOUT'],
   ['algo inesperado', 'UNKNOWN'],
 ];

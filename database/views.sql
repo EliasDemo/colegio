@@ -2,83 +2,121 @@
 -- Vistas de consulta del almacenamiento Off-chain (MySQL 8)
 -- Prototipo de trazabilidad microcurricular - I.E. Nuevo Horizonte (Hito 3)
 --
--- Ninguna vista expone student_identity: trabajan solo con códigos seudónimos.
--- Aplicar con:  mysql -u root -p trazabilidad_academica < views.sql
+-- vw_trazabilidad_resultado es la vista del Hito 2 (H2_04) adaptada a la referencia técnica
+-- resultado_academico.codigo (extensión E1). Todas las vistas trabajan solo con tokens seudónimos.
+-- Aplicar con:  mysql -u root -p nuevo_horizonte_trazabilidad < views.sql
 -- =============================================================================
 
--- Registro académico seudonimizado: la "copia de trabajo" que se canonicaliza y firma.
-CREATE OR REPLACE VIEW v_registro_academico AS
+-- Vista operativa del Hito 2: resultado + evento vigente + evidencia en el ledger.
+CREATE OR REPLACE VIEW vw_trazabilidad_resultado AS
 SELECT
-  r.code               AS registro,
-  s.pseudonym_code     AS estudiante,
-  e.code               AS matricula,
-  sec.code             AS seccion,
-  sub.code             AS area,
-  a.code               AS actividad,
-  a.type               AS tipo_actividad,
-  p.code               AS periodo,
-  t.pseudonym_code     AS docente,
-  r.qualitative_grade  AS calificacion,
-  r.numeric_score      AS nota,
-  r.recorded_at        AS registrado_en,
-  r.version            AS version
-FROM academic_result r
-JOIN enrollment e           ON e.id = r.enrollment_id
-JOIN student s              ON s.id = e.student_id
-JOIN section sec            ON sec.id = e.section_id
-JOIN academic_activity a    ON a.id = r.activity_id
-JOIN academic_period p      ON p.id = a.period_id
-JOIN teaching_assignment ta ON ta.id = a.teaching_assignment_id
-JOIN subject sub            ON sub.id = ta.subject_id
-JOIN teacher t              ON t.id = r.recorded_by_teacher_id;
+    r.resultado_id,
+    r.codigo,
+    e.token_estudiante,
+    ac.codigo AS actividad_codigo,
+    ac.titulo AS actividad_titulo,
+    ar.codigo AS area_codigo,
+    ar.nombre AS area_nombre,
+    r.version_actual,
+    r.puntaje_obtenido,
+    r.estado,
+    r.registrado_en,
+    et.evento_id,
+    et.evento_tipo,
+    et.compromiso_hmac,
+    eb.tx_id,
+    eb.block_number,
+    eb.validacion AS validacion_blockchain
+FROM resultado_academico r
+JOIN matricula m ON m.matricula_id = r.matricula_id
+JOIN estudiante e ON e.estudiante_id = m.estudiante_id
+JOIN actividad_academica ac ON ac.actividad_id = r.actividad_id
+JOIN asignacion_docente ad ON ad.asignacion_id = ac.asignacion_id
+JOIN area_curricular ar ON ar.area_id = ad.area_id
+LEFT JOIN evento_trazabilidad et
+    ON et.objeto_tipo = 'RESULTADO'
+   AND et.objeto_ref = r.codigo
+   AND et.version = r.version_actual
+   AND et.evento_tipo IN ('CREACION', 'RECTIFICACION', 'REVOCACION')
+LEFT JOIN evidencia_blockchain eb ON eb.evento_id = et.evento_id;
 
--- Estado del vínculo On-chain / Off-chain de la versión vigente de cada registro.
-CREATE OR REPLACE VIEW v_estado_vinculo AS
+-- Registro académico completo (payload canónico) con referencias seudónimas.
+CREATE OR REPLACE VIEW vw_registro_academico AS
 SELECT
-  r.code                               AS registro,
-  r.version                            AS version_actual,
-  be.evidence_id                       AS evidencia,
-  COALESCE(be.status, 'SIN_ANCLAR')    AS estado_vinculo,
-  be.tx_id                             AS tx_id,
-  be.block_number                      AS bloque,
-  be.confirmed_at                      AS confirmado_en
-FROM academic_result r
-LEFT JOIN blockchain_evidence be ON be.result_id = r.id AND be.version = r.version;
+    r.codigo            AS registro,
+    e.token_estudiante  AS estudiante,
+    p.codigo            AS periodo,
+    g.numero            AS grado,
+    s.codigo            AS seccion,
+    ar.codigo           AS area,
+    ac.codigo           AS actividad,
+    ta.codigo           AS tipo_actividad,
+    ac.fecha_actividad,
+    ac.puntaje_maximo,
+    r.puntaje_obtenido,
+    r.estado,
+    u.username          AS registrado_por,
+    r.registrado_en,
+    r.version_actual,
+    CASE WHEN r.codigo LIKE 'REG-V%' THEN 'COMPLEMENTO' ELSE 'DATASET_H2' END AS origen
+FROM resultado_academico r
+JOIN matricula m ON m.matricula_id = r.matricula_id
+JOIN estudiante e ON e.estudiante_id = m.estudiante_id
+JOIN periodo_academico p ON p.periodo_id = m.periodo_id
+JOIN seccion s ON s.seccion_id = m.seccion_id
+JOIN grado g ON g.grado_id = s.grado_id
+JOIN actividad_academica ac ON ac.actividad_id = r.actividad_id
+JOIN tipo_actividad ta ON ta.tipo_actividad_id = ac.tipo_actividad_id
+JOIN asignacion_docente ad ON ad.asignacion_id = ac.asignacion_id
+JOIN area_curricular ar ON ar.area_id = ad.area_id
+JOIN usuario u ON u.usuario_id = r.registrado_por;
 
--- Registros cuya versión vigente todavía no tiene evidencia confirmada en Fabric
--- (pendientes, fallidos o nunca anclados): insumo para reintentos y reconciliación.
-CREATE OR REPLACE VIEW v_pendientes_anclaje AS
-SELECT registro, version_actual, evidencia, estado_vinculo
-FROM v_estado_vinculo
-WHERE estado_vinculo <> 'CONFIRMADO';
-
--- Bitácora de trazabilidad (Off-chain) con referencias seudónimas.
-CREATE OR REPLACE VIEW v_trazabilidad AS
+-- Estado del vínculo On-chain de la versión vigente de cada resultado.
+CREATE OR REPLACE VIEW vw_estado_vinculo AS
 SELECT
-  r.code            AS registro,
-  te.occurred_at    AS fecha,
-  te.event_type     AS evento,
-  te.version        AS version,
-  te.status         AS estado,
-  te.actor_reference AS actor,
-  te.actor_role     AS rol,
-  te.evidence_id    AS evidencia,
-  te.tx_id          AS tx_id,
-  te.detail         AS detalle
-FROM traceability_event te
-JOIN academic_result r ON r.id = te.result_id;
+    r.codigo                                   AS registro,
+    r.version_actual,
+    et.evento_id,
+    COALESCE(et.estado_evento, 'SIN_EVENTO')   AS estado_evento,
+    eb.tx_id,
+    eb.block_number,
+    eb.committed_at
+FROM resultado_academico r
+LEFT JOIN evento_trazabilidad et
+    ON et.objeto_tipo = 'RESULTADO' AND et.objeto_ref = r.codigo AND et.version = r.version_actual
+   AND et.evento_tipo IN ('CREACION', 'RECTIFICACION', 'REVOCACION')
+LEFT JOIN evidencia_blockchain eb ON eb.evento_id = et.evento_id;
 
--- Resumen de resultados por sección, área y periodo.
-CREATE OR REPLACE VIEW v_resumen_seccion_periodo AS
+-- Versiones vigentes aún no confirmadas en Fabric (pendientes, con error o sin evento): cola de reintentos.
+CREATE OR REPLACE VIEW vw_pendientes_anclaje AS
+SELECT registro, version_actual, evento_id, estado_evento
+FROM vw_estado_vinculo
+WHERE estado_evento <> 'CONFIRMADO';
+
+-- Historial de verificaciones de integridad.
+CREATE OR REPLACE VIEW vw_verificaciones AS
 SELECT
-  seccion,
-  area,
-  periodo,
-  COUNT(*)                                    AS resultados,
-  ROUND(AVG(nota), 2)                         AS promedio,
-  SUM(calificacion = 'AD')                    AS logro_destacado,
-  SUM(calificacion = 'A')                     AS logro_esperado,
-  SUM(calificacion = 'B')                     AS en_proceso,
-  SUM(calificacion = 'C')                     AS en_inicio
-FROM v_registro_academico
-GROUP BY seccion, area, periodo;
+    et.objeto_ref            AS registro,
+    et.creado_en             AS fecha,
+    et.version,
+    et.resultado_verificacion,
+    et.actor_rol_codigo      AS rol,
+    et.estado_evento,
+    eb.tx_id
+FROM evento_trazabilidad et
+LEFT JOIN evidencia_blockchain eb ON eb.evento_id = et.evento_id
+WHERE et.evento_tipo = 'VERIFICACION';
+
+-- Resumen académico por sección, área y periodo.
+CREATE OR REPLACE VIEW vw_resumen_seccion_periodo AS
+SELECT
+    periodo,
+    CONCAT(grado, seccion)        AS seccion,
+    area,
+    origen,
+    COUNT(*)                      AS resultados,
+    ROUND(AVG(puntaje_obtenido), 2) AS promedio,
+    MIN(puntaje_obtenido)         AS minimo,
+    MAX(puntaje_obtenido)         AS maximo
+FROM vw_registro_academico
+GROUP BY periodo, grado, seccion, area, origen;

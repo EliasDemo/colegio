@@ -1,51 +1,44 @@
 ==================================================
 CASO 2: Fabric confirma, pero falla la escritura del TX_ID en MySQL
 ==================================================
---- Inyección del fallo: trigger que rechaza marcar EVD-REG-000013-V1 como CONFIRMADO
-+------------------------+
-| TRIGGER_NAME           |
-+------------------------+
-| pt_caso2_fallo_vinculo |
-+------------------------+
---- npm run record -- REG-000013
-Error occurred during query execution:
+--- Inyección del fallo: trigger que rechaza insertar en evidencia_blockchain el vínculo de REG-V003
++------------------------+--------------------+----------------------+
+| TRIGGER_NAME           | EVENT_MANIPULATION | EVENT_OBJECT_TABLE   |
++------------------------+--------------------+----------------------+
+| pt_caso2_fallo_vinculo | INSERT             | evidencia_blockchain |
++------------------------+--------------------+----------------------+
+--- npm run record -- REG-V003
+[INFO] Compromiso HMAC generado {"eventType":"CREACION","version":1}
+[INFO] Evento PENDIENTE {"eventId":"932b374d-672e-4752-ba6c-4c5aca8ff543","reintento":false}
+[INFO] Conectando a Fabric {"channel":"academicchannel"}
+[INFO] Transacción enviada {"eventId":"932b374d-672e-4752-ba6c-4c5aca8ff543","eventType":"CREACION"}
+[INFO] TX_ID obtenido {"txId":"c7158e4d52b4f11f126c40581344aaa8410895e24a7e2dccfbf9f91878600796"}
+Error in batch request 0: Error occurred during query execution:
 ConnectorError(ConnectorError { user_facing_error: None, kind: QueryError(Server(MysqlError { code: 1644, message: "Fallo simulado de escritura del TX_ID", state: "45000" })), transient: false })
-[ERROR] Fabric confirmó la transacción pero falló la persistencia en MySQL {"evidenceId":"EVD-REG-000013-V1","txId":"3c7273d64b3ffcbece3a2e6361a8019443f0b5940ef4e44d8ceaaa622b885f16"}
+prisma:error Error in batch request 0: Error occurred during query execution:
+ConnectorError(ConnectorError { user_facing_error: None, kind: QueryError(Server(MysqlError { code: 1644, message: "Fallo simulado de escritura del TX_ID", state: "45000" })), transient: false })
+[ERROR] Fabric confirmó la transacción pero falló la persistencia en MySQL {"eventId":"932b374d-672e-4752-ba6c-4c5aca8ff543","txId":"c7158e4d52b4f11f126c40581344aaa8410895e24a7e2dccfbf9f91878600796"}
 PROCESO NO COMPLETADO.
-EvidenceLinkError: La evidencia EVD-REG-000013-V1 quedó registrada en Fabric (TX_ID 3c7273d64b3ffcbece3a2e6361a8019443f0b5940ef4e44d8ceaaa622b885f16) pero no se pudo persistir el vínculo en MySQL. Vuelva a ejecutar el registro para reconciliar.
+EvidenceLinkError: El evento 932b374d-672e-4752-ba6c-4c5aca8ff543 quedó registrado en Fabric (TX_ID c7158e4d52b4f11f126c40581344aaa8410895e24a7e2dccfbf9f91878600796) pero no se pudo persistir el vínculo en MySQL. Vuelva a ejecutar el registro para reconciliar.
 (código de salida: 1)
---- Estado en MySQL tras el fallo (vínculo sin TX_ID):
-+-------------------+-----------+-------+
-| evidence_id       | status    | tx_id |
-+-------------------+-----------+-------+
-| EVD-REG-000013-V1 | PENDIENTE | NULL  |
-+-------------------+-----------+-------+
---- Estado en el ledger (consulta directa con peer CLI): la evidencia SÍ existe
-{"actorReference":"ADM-PSE-001","actorRole":"ADMINISTRADOR","algorithm":"HMAC-SHA-256","docType":"academicEvidence","eventType":"REGISTRO","evidence":"3374ab9a02dc437f88b06a694ec04355e60e8ed73159f99680842704c8474223","evidenceId":"EVD-REG-000013-V1","recordReference":"REG-000013","status":"REGISTRADO","submitterMspId":"NuevoHorizonteMSP","timestamp":"2026-09-28T22:45:16.003Z","txId":"3c7273d64b3ffcbece3a2e6361a8019443f0b5940ef4e44d8ceaaa622b885f16","version":1}
+--- Estado en MySQL tras el fallo (evento sin vínculo):
++--------------------------------------+---------------+-------+
+| evento_id                            | estado_evento | tx_id |
++--------------------------------------+---------------+-------+
+| 932b374d-672e-4752-ba6c-4c5aca8ff543 | PENDIENTE     | NULL  |
++--------------------------------------+---------------+-------+
+--- Estado en el ledger (consulta directa con peer CLI por eventId 932b374d-672e-4752-ba6c-4c5aca8ff543): el evento SÍ existe
+{"actorRole":"ADMIN","algorithm":"HMAC-SHA-256","commitment":"2db9bd2ada03c1926ab9e6a1c44d530cf7602baaeeea1ddc3d7ccee0d6b6e1e2","docType":"academicEvent","eventId":"932b374d-672e-4752-ba6c-4c5aca8ff543","eventType":"CREACION","objectRef":"REG-V003","objectType":"RESULTADO","previousCommitment":null,"status":"REGISTRADO","submitterMspId":"NuevoHorizonteMSP","timestamp":"2026-09-29T22:03:57.460Z","txId":"c7158e4d52b4f11f126c40581344aaa8410895e24a7e2dccfbf9f91878600796","version":1}
 
 --- Se retira el trigger (se corrige la causa) y se reintenta:
---- npm run record -- REG-000013
-1  (REGISTRO)
-Evidence (HMAC-SHA-256):
-3374ab9a02dc437f88b06a694ec04355e60e8ed73159f99680842704c8474223
-Evidence ID:
-EVD-REG-000013-V1
-La evidencia ya existía en el ledger: vínculo reconciliado.
-TX_ID:
-3c7273d64b3ffcbece3a2e6361a8019443f0b5940ef4e44d8ceaaa622b885f16
-Referencia blockchain guardada en MySQL (blockchain_evidence).
+[INFO] Evento PENDIENTE {"eventId":"932b374d-672e-4752-ba6c-4c5aca8ff543","reintento":true}
+[WARN] El evento ya existía en el ledger: se reconcilia el vínculo {"eventId":"932b374d-672e-4752-ba6c-4c5aca8ff543"}
+El evento ya existía en el ledger: vínculo reconciliado sin reenviar.
 PROCESO COMPLETADO CORRECTAMENTE.
 (código de salida: 0)
-+-------------------+------------+------------------+--------------+
-| evidence_id       | status     | tx_id            | block_number |
-+-------------------+------------+------------------+--------------+
-| EVD-REG-000013-V1 | CONFIRMADO | 3c7273d64b3ffcbe |         NULL |
-+-------------------+------------+------------------+--------------+
-+------------+------------+------------------+--------------------------------------+
-| event_type | status     | tx               | detail                               |
-+------------+------------+------------------+--------------------------------------+
-| REGISTRO   | CONFIRMADO | 3c7273d64b3ffcbe | V�nculo reconciliado desde el ledger |
-+------------+------------+------------------+--------------------------------------+
-
-NOTA: "V?nculo" en la tabla anterior es un problema de codificación de la consola mysql (cliente sin utf8mb4).
-Consulta con --default-character-set=utf8mb4: "Vínculo reconciliado desde el ledger" (dato almacenado correctamente).
++--------------------------------------+---------------+------------------+--------------+
+| evento_id                            | estado_evento | tx_id            | block_number |
++--------------------------------------+---------------+------------------+--------------+
+| 932b374d-672e-4752-ba6c-4c5aca8ff543 | CONFIRMADO    | c7158e4d52b4f11f |         NULL |
++--------------------------------------+---------------+------------------+--------------+
+(block_number NULL: el vínculo se reconstruyó desde el ledger, que devuelve el TX_ID pero no el número de bloque)

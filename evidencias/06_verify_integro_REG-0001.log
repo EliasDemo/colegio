@@ -1,0 +1,30 @@
+
+
+
+------------------------------------
+VERIFICACIÓN DE INTEGRIDAD
+------------------------------------
+
+[INFO] Buscando registro REG-0001
+[INFO] Registro encontrado {"version":1,"estado":"VIGENTE"}
+[INFO] Consultando eventos On-chain
+[INFO] Verificación calculada {"status":"INTEGRO","chainIntact":true}
+[INFO] Conectando a Fabric {"channel":"academicchannel"}
+[INFO] Transacción enviada {"eventId":"e568ece5-d228-46d9-9f3b-d490025449dd","eventType":"VERIFICACION"}
+
+Registro:
+REG-0001  (versión Off-chain 1, estado VIGENTE)
+
+Compromiso en blockchain (v1 CREACION, TX 342dd8cca7ca8f6d...):
+e68d43b57c32539240eefff1a57523a16d91d46f45292c6a5764865428999b36
+
+Compromiso calculado:
+e68d43b57c32539240eefff1a57523a16d91d46f45292c6a5764865428999b36
+
+Cadena de compromisos entre versiones íntegra: SÍ
+Copia local del vínculo (MySQL) consistente con el ledger: SÍ
+Verificación registrada On-chain: evento e568ece5-d228-46d9-9f3b-d490025449dd · TX 8d06a017eaa2b98f...
+
+RESULTADO:
+
+INTEGRO

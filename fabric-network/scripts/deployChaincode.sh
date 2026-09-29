@@ -74,5 +74,5 @@ info "7/7 Verificando el despliegue..."
 as_org nuevohorizonte peer lifecycle chaincode querycommitted --channelID "${CHANNEL_NAME}" --name "${CC_NAME}"
 sleep 3
 as_org nuevohorizonte peer chaincode query -C "${CHANNEL_NAME}" -n "${CC_NAME}" \
-  -c '{"function":"academicEvidenceExists","Args":["EVD-REG-000000-V1"]}'
+  -c '{"function":"academicEvidenceExists","Args":["00000000-0000-4000-8000-000000000000"]}'
 success "Chaincode ${CC_NAME} ${CC_VERSION} desplegado en ${CHANNEL_NAME}"

@@ -1,6 +1,6 @@
 /**
- * npm run demo:evidence -- REG-000001
- * Demostración de la evidencia criptográfica sobre un registro real de MySQL:
+ * npm run demo:evidence -- REG-0001
+ * Demostración del compromiso criptográfico sobre un registro real de MySQL:
  * forma canónica, SHA-256 vs HMAC-SHA-256, determinismo, efecto avalancha y por qué
  * un hash sin clave permitiría deducir la nota (ataque de diccionario).
  */
@@ -37,7 +37,7 @@ void runCli(async () => {
   const input = toAcademicRecordInput(record);
   const canonical = canonicalizeAcademicRecord(input);
 
-  console.log('1) Forma canónica (UTF-8, orden fijo, sin espacios):\n');
+  console.log('1) Payload canónico v2 (UTF-8, orden fijo, sin espacios):\n');
   console.log(canonical);
   console.log(`\n   Longitud: ${Buffer.byteLength(canonical, 'utf8')} bytes`);
 
@@ -49,31 +49,28 @@ void runCli(async () => {
 
   const runs = new Set(Array.from({ length: 1000 }, () => generateEvidence(toAcademicRecordInput(record), secret).evidence));
   console.log(`\n3) Determinismo: 1000 cálculos → ${runs.size} valor(es) distinto(s)`);
-
   const reordered = Object.fromEntries(Object.entries(input).reverse()) as typeof input;
   console.log(`   Mismo registro con propiedades en otro orden → ${generateEvidence(reordered, secret).evidence === evidence ? 'misma evidencia' : 'EVIDENCIA DISTINTA'}`);
 
-  const original = Number(input.numericScore);
-  const altered = { ...input, numericScore: (original + 0.01).toFixed(2) };
+  const original = Number(input.score);
+  const delta = original + 0.01 > Number(input.maxScore) ? -0.01 : 0.01;
+  const altered = { ...input, score: (original + delta).toFixed(2) };
   const alteredEvidence = generateEvidence(altered, secret).evidence;
-  console.log(`\n4) Efecto avalancha: nota ${input.numericScore} → ${altered.numericScore}`);
+  console.log(`\n4) Efecto avalancha: puntaje ${input.score} → ${altered.score}`);
   console.log(`   ${alteredEvidence}`);
   console.log(`   Bits distintos: ${differentBits(evidence, alteredEvidence)} de 256`);
 
   console.log('\n5) Verificación:');
-  console.log(`   verifyEvidence(registro original, evidence)  → valid = ${verifyEvidence(input, evidence, secret).valid}`);
-  console.log(`   verifyEvidence(registro alterado, evidence)  → valid = ${verifyEvidence(altered, evidence, secret).valid}`);
+  console.log(`   verifyEvidence(registro original, compromiso)  → valid = ${verifyEvidence(input, evidence, secret).valid}`);
+  console.log(`   verifyEvidence(registro alterado, compromiso)  → valid = ${verifyEvidence(altered, evidence, secret).valid}`);
 
-  // Ataque de diccionario: el adversario conoce el formato y las referencias del registro,
-  // pero no la nota. Las notas posibles (0.00-20.00 en pasos de 0.50, 4 calificaciones) son pocas.
-  const candidates: Array<{ grade: string; score: string }> = [];
-  for (const grade of ['AD', 'A', 'B', 'C']) {
-    for (let s = 0; s <= 40; s++) candidates.push({ grade, score: (s / 2).toFixed(2) });
-  }
-  const recovered = candidates.find((c) => sha256(canonicalizeAcademicRecord({ ...input, qualitativeGrade: c.grade, numericScore: c.score })) === plainHash);
-  console.log(`\n6) Ataque de diccionario sobre ${candidates.length} combinaciones de calificación y nota:`);
-  console.log(`   Contra SHA-256 sin clave      → ${recovered ? `NOTA DESCUBIERTA: ${recovered.grade} / ${recovered.score}` : 'no encontrada'}`);
+  // Ataque de diccionario: el adversario conoce el formato y los tokens del registro, no la nota.
+  // En el dataset del Hito 2 las notas son enteros de 0 a 20: solo 21 candidatos.
+  const candidates = Array.from({ length: 21 }, (_, s) => s.toFixed(2));
+  const recovered = candidates.find((s) => sha256(canonicalizeAcademicRecord({ ...input, score: s })) === plainHash);
+  console.log(`\n6) Ataque de diccionario sobre ${candidates.length} puntajes posibles (0-20):`);
+  console.log(`   Contra SHA-256 sin clave         → ${recovered ? `NOTA DESCUBIERTA: ${recovered}` : 'no encontrada'}`);
   const wrongKey = 'clave-de-un-atacante-que-no-conoce-el-secreto-real';
-  const recoveredHmac = candidates.find((c) => computeHmac(canonicalizeAcademicRecord({ ...input, qualitativeGrade: c.grade, numericScore: c.score }), wrongKey) === evidence);
-  console.log(`   Contra HMAC sin conocer la clave → ${recoveredHmac ? 'nota descubierta' : 'no encontrada (la evidencia no revela la nota)'}`);
+  const recoveredHmac = candidates.find((s) => computeHmac(canonicalizeAcademicRecord({ ...input, score: s }), wrongKey) === evidence);
+  console.log(`   Contra HMAC sin conocer la clave → ${recoveredHmac ? 'nota descubierta' : 'no encontrada (el compromiso no revela la nota)'}`);
 });

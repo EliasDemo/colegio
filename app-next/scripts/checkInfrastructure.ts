@@ -4,9 +4,10 @@
  */
 import { header, runCli } from './_cli';
 import { prisma } from '@/lib/db/prisma';
-import { getFabricEnv, getHmacSecret } from '@/lib/env/config';
+import { getDefaultActorUsername, getFabricEnv, getHmacSecret } from '@/lib/env/config';
 import { fabricAcademicLedger } from '@/lib/fabric/academicLedger';
 import { FabricError } from '@/lib/fabric/errors';
+import { usuarioRepository } from '@/repositories/usuario.repository';
 
 type Check = { name: string; ok: boolean; detail: string };
 
@@ -36,26 +37,36 @@ void runCli(async () => {
     return `${env.FABRIC_MSP_ID} → ${env.FABRIC_PEER_ENDPOINT} · ${env.FABRIC_CHANNEL_NAME}/${env.FABRIC_CHAINCODE_NAME}`;
   }));
   checks.push(await check('Conexión MySQL (Prisma)', async () => {
-    const [row] = await prisma.$queryRaw<Array<{ version: string }>>`SELECT VERSION() AS version`;
-    return `MySQL ${row?.version}`;
+    const [row] = await prisma.$queryRaw<Array<{ version: string; db: string }>>`SELECT VERSION() AS version, DATABASE() AS db`;
+    return `MySQL ${row?.version} · base ${row?.db}`;
   }));
   checks.push(await check('Registros académicos', async () => {
-    const [results, students, activities] = await Promise.all([
-      prisma.academicResult.count(),
-      prisma.student.count(),
-      prisma.academicActivity.count(),
+    const [results, h2, students, activities] = await Promise.all([
+      prisma.resultadoAcademico.count(),
+      prisma.resultadoAcademico.count({ where: { NOT: { codigo: { startsWith: 'REG-V' } } } }),
+      prisma.estudiante.count(),
+      prisma.actividadAcademica.count(),
     ]);
     if (results === 0) throw new Error('No hay registros: ejecute npm run seed');
-    return `${results} resultados · ${students} estudiantes · ${activities} actividades`;
+    return `${results} resultados (${h2} del dataset Hito 2) · ${students} estudiantes · ${activities} actividades`;
+  }));
+  checks.push(await check('Usuario actor', async () => {
+    const username = getDefaultActorUsername();
+    const actor = await usuarioRepository.findActor(username);
+    if (!actor) throw new Error(`El usuario ${username} no existe o no tiene rol`);
+    return `${actor.username} (${actor.role})`;
   }));
   checks.push(await check('Fabric Gateway → chaincode', async () => {
-    const exists = await fabricAcademicLedger.evidenceExists('EVD-REG-000000-V1');
+    const exists = await fabricAcademicLedger.evidenceExists('00000000-0000-4000-8000-000000000000');
     return `academicEvidenceExists respondió (${exists})`;
   }));
-  checks.push(await check('Evidencias vinculadas en MySQL', async () => {
-    const confirmed = await prisma.blockchainEvidence.count({ where: { status: 'CONFIRMADO' } });
-    const pending = await prisma.blockchainEvidence.count({ where: { status: { in: ['PENDIENTE', 'FALLIDO'] } } });
-    return `${confirmed} confirmadas · ${pending} pendientes/fallidas`;
+  checks.push(await check('Eventos de trazabilidad en MySQL', async () => {
+    const [confirmed, pending, error] = await Promise.all([
+      prisma.eventoTrazabilidad.count({ where: { estadoEvento: 'CONFIRMADO' } }),
+      prisma.eventoTrazabilidad.count({ where: { estadoEvento: 'PENDIENTE' } }),
+      prisma.eventoTrazabilidad.count({ where: { estadoEvento: 'ERROR' } }),
+    ]);
+    return `${confirmed} confirmados · ${pending} pendientes · ${error} con error`;
   }));
 
   for (const item of checks) console.log(`${item.ok ? '[OK]   ' : '[FALLA]'} ${item.name}: ${item.detail}`);

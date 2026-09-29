@@ -1,41 +1,61 @@
 # app-next — Capa de aplicación (Next.js + TypeScript)
 
-Aplicación Next.js 15 (App Router) que integra el almacenamiento Off-chain (MySQL 8 vía Prisma) con
-Hyperledger Fabric (vía `@hyperledger/fabric-gateway`). En el Hito 3 no incluye interfaz completa: expone la
-página `/`, el endpoint `/api/health` y scripts de línea de comandos que ejecutan el flujo de trazabilidad.
+Aplicación Next.js 15 (App Router) que implementa el middleware diseñado en el Hito 2 (H2-05): integra el
+almacenamiento Off-chain (MySQL 8, modelo H2_04, vía Prisma) con Hyperledger Fabric (vía `@hyperledger/fabric-gateway`).
+En el Hito 3 expone la página `/`, el endpoint `/api/health` y scripts de línea de comandos para el flujo de trazabilidad.
 
-## Arquitectura interna
+## Correspondencia con la arquitectura del Hito 2
+
+| Componente H2-05 | Implementación |
+|---|---|
+| Servicio de trazabilidad (UUID + versionado + orquestación) | `src/services/traceability.service.ts` |
+| Servicio criptográfico (canonicaliza, HMAC-SHA-256) | `src/lib/crypto/` |
+| MySQL Off-chain | `prisma/schema.prisma` (19 tablas de H2_04) + `src/repositories/` |
+| Fabric Gateway SDK | `src/lib/fabric/` (solo servidor, `import 'server-only'`) |
+| Autenticación + RBAC | Estructura `usuario` / `rol` / `usuario_rol`; el actor de los scripts sale de `ACTOR_USERNAME` (autenticación: Hito 5) |
+| API REST | Pendiente para el Hito 4 (hoy: `/api/health` y scripts) |
 
 ```text
-scripts/ (CLI)   app/api/health (Route Handler)
+scripts/ (CLI)   app/api/health
         \              /
-      services/  ── traceability.service.ts  (orquesta el flujo y la recuperación de fallos)
-         |       └─ academicRecord.service.ts (proyección a referencias seudónimas)
+   services/traceability.service.ts ── academicRecord.service.ts
          |
-   ┌─────┴───────────────┬───────────────────────┐
-repositories/        lib/crypto/              lib/fabric/  (server-only)
- (Prisma → MySQL)    canonicalize.ts          config · connection · gateway
-                     generateEvidence.ts      submitTransaction · evaluateTransaction
-                     verifyEvidence.ts        academicLedger · errors
+   ┌─────┴───────────────┬────────────────────┐
+repositories/          lib/crypto/          lib/fabric/ (server-only)
+ academicRecord         canonicalize         config · connection · gateway
+ traceabilityEvent      generateEvidence     submit/evaluateTransaction
+ blockchainEvidence     verifyEvidence       academicLedger · errors
+ usuario
 ```
-
-- Todo lo que toca Prisma o Fabric importa `server-only`: no puede llegar a un Client Component.
-- `next.config.ts` declara `@hyperledger/fabric-gateway`, `@grpc/grpc-js` y `@prisma/client` como paquetes externos del servidor.
-- Los servicios reciben sus dependencias (`createTraceabilityService(deps)`), lo que permite probarlos con un ledger en memoria.
 
 ## Variables de entorno (`.env`)
 
 | Variable | Descripción |
 |---|---|
-| `DATABASE_URL` | `mysql://root:<password>@localhost:3306/trazabilidad_academica` |
+| `DATABASE_URL` | `mysql://root:<password>@localhost:3306/nuevo_horizonte_trazabilidad` |
 | `HMAC_SECRET` | Clave HMAC (≥ 32 caracteres). La misma para todo el equipo |
-| `FABRIC_CHANNEL_NAME` / `FABRIC_CHAINCODE_NAME` | `academicchannel` / `academic-traceability` |
-| `FABRIC_MSP_ID` | `NuevoHorizonteMSP` |
-| `FABRIC_PEER_ENDPOINT` / `FABRIC_PEER_HOST_ALIAS` | `localhost:7051` / `peer0.nuevohorizonte.example.com` |
-| `FABRIC_TLS_CERT_PATH` | CA TLS del peer |
-| `FABRIC_CERT_PATH` / `FABRIC_PRIVATE_KEY_PATH` | Certificado y clave de `User1@nuevohorizonte` (se aceptan directorios `signcerts/` y `keystore/`) |
-| `ACTOR_REFERENCE` / `ACTOR_ROLE` | Actor seudónimo que firma las operaciones de los scripts |
+| `FABRIC_*` | Canal, chaincode, MSP, endpoint del peer y rutas de TLS, certificado y clave de `User1@nuevohorizonte` |
+| `ACTOR_USERNAME` | Usuario del prototipo con el que actúan los scripts (por defecto `admin.prototipo`) |
 | `LOG_LEVEL` | `debug`, `info`, `warn`, `error` |
+
+## Flujo implementado (H2-06)
+
+1. **Registro:** carga el resultado con sus relaciones → payload canónico v2 → HMAC → evento `PENDIENTE` con UUID →
+   `createAcademicEvidence` (CREACION si versión 1; RECTIFICACION encadenada con `previousCommitment`) →
+   `evidencia_blockchain` + evento `CONFIRMADO` en una transacción MySQL.
+2. **Reintentos idempotentes:** una versión CONFIRMADA no se reenvía; un evento `PENDIENTE`/`ERROR` se reintenta con el
+   **mismo UUID** y, si ya está en el ledger, se reconcilia su TX_ID sin reenviar ("commit confirmado pero respuesta perdida").
+3. **Verificación:** recalcula el HMAC y lo compara con la última versión On-chain; comprueba la cadena de compromisos
+   y registra un evento `VERIFICACION` con `resultado_verificacion` (INTEGRO / ALTERADO / NO_VERIFICABLE).
+4. **Rectificación:** `historial_resultado` (puntaje anterior/nuevo, motivo) + `version_actual + 1` + estado `RECTIFICADO`
+   + evento RECTIFICACION. Si la versión vigente no estaba anclada, la ancla primero.
+
+## Payload canónico v2
+
+Orden fijo: `canonicalVersion, objectType, objectRef, studentToken, periodCode, gradeNumber, sectionCode, areaCode,
+activityCode, activityType, activityDate, maxScore, score, status, registeredBy, registeredAt, version`.
+Reglas: UTF-8/NFC, espacios colapsados, códigos en mayúsculas, puntajes con 2 decimales, fechas `YYYY-MM-DD`,
+marcas de tiempo ISO 8601 UTC, `null` explícito, JSON compacto.
 
 ## Uso
 
@@ -43,45 +63,17 @@ repositories/        lib/crypto/              lib/fabric/  (server-only)
 npm install
 npx prisma generate && npx prisma migrate deploy && npm run seed
 npm run check
-npm run record -- REG-000001
-npm run verify -- REG-000001
-npm run trace  -- REG-000001
-npm run dev            # http://localhost:3000/api/health
-npm test               # unitarias (no requieren infraestructura)
+npm run record -- REG-0001 && npm run verify -- REG-0001 && npm run trace -- REG-0001
+npm test                   # unitarias (sin infraestructura)
 npm run test:integration   # MySQL + Fabric reales
 ```
 
-Los scripts se ejecutan con `tsx --conditions=react-server` para que el paquete `server-only` se resuelva igual que en el servidor de Next.js.
-
-## Evidencia criptográfica
-
-`canonicalizeAcademicRecord()` produce un JSON compacto con **orden de campos fijo**:
-
-```text
-canonicalVersion, academicRecordId, studentReference, enrollmentReference, sectionReference,
-subjectReference, activityReference, periodReference, teacherReference, qualitativeGrade,
-numericScore, observation, recordedAt, version
-```
-
-Reglas: UTF-8 y Unicode NFC · espacios recortados y colapsados · códigos en mayúsculas · `numericScore` con 2 decimales
-como texto · fechas ISO 8601 UTC con milisegundos · `null` explícito. `generateEvidence()` calcula
-`HMAC-SHA-256(HMAC_SECRET, canónico)` en hexadecimal; `verifyEvidence()` compara en tiempo constante.
-
-## Manejo de fallos (resumen)
+## Manejo de fallos
 
 | Caso | Comportamiento |
 |---|---|
-| Fabric / peer / orderer no responde | Vínculo `FALLIDO` + evento `FALLIDO` en MySQL; se puede reintentar |
-| Fabric confirma pero falla MySQL | `EvidenceLinkError` con el TX_ID; el reintento detecta la evidencia en el ledger y **reconcilia** sin duplicar |
-| Registro inexistente | `RecordNotFoundError`, no se contacta a Fabric |
-| Evidencia no coincide | `verify` → `ALTERADO` (código de salida 3); `record` → `EvidenceConflictError` |
-| Certificado inválido · canal incorrecto · chaincode no desplegado · endosos insuficientes | `FabricError` con código `IDENTITY_INVALID`, `CHANNEL_NOT_FOUND`, `CHAINCODE_NOT_DEPLOYED`, `ENDORSEMENT_FAILED` |
-
-## Pruebas
-
-```text
-tests/crypto/        canonicalización, HMAC, verificación
-tests/database/      validaciones Zod, AcademicRecordRepository
-tests/fabric/        clasificación de errores reales de Fabric
-tests/integration/   TraceabilityService (ledger en memoria) y E2E real (RUN_INTEGRATION=1)
-```
+| Fabric / peer / orderer no responde | Evento `ERROR` con `error_detalle`; el dato académico se conserva; reintento con el mismo UUID |
+| Fabric confirma pero falla MySQL | `EvidenceLinkError` con el TX_ID; el reintento consulta el ledger por `eventId` y reconcilia |
+| Registro inexistente / actor inexistente | `RecordNotFoundError` / `ActorNotFoundError`, sin contactar a Fabric |
+| Compromiso distinto al anclado | `verify` → ALTERADO (código 3); `record` → `EvidenceConflictError` |
+| Certificado, canal, chaincode, endosos | `FabricError`: `IDENTITY_INVALID`, `CHANNEL_NOT_FOUND`, `CHAINCODE_NOT_DEPLOYED`, `ENDORSEMENT_FAILED`, `ORDERER_UNAVAILABLE` |

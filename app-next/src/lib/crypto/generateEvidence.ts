@@ -6,6 +6,7 @@ import { canonicalizeAcademicRecord, CANONICAL_VERSION } from './canonicalize';
 export const EVIDENCE_ALGORITHM = 'HMAC-SHA-256' as const;
 
 export interface GeneratedEvidence {
+  /** Compromiso criptográfico (compromiso_hmac): HMAC-SHA-256 en hexadecimal. */
   evidence: string;
   algorithm: typeof EVIDENCE_ALGORITHM;
   canonicalVersion: string;
@@ -18,7 +19,7 @@ export function computeHmac(canonical: string, secret: string): string {
 }
 
 /**
- * Genera la evidencia criptográfica de un registro académico.
+ * Genera el compromiso criptográfico de un registro académico.
  * La clave se toma de process.env.HMAC_SECRET salvo que se inyecte explícitamente (pruebas).
  */
 export function generateEvidence(record: AcademicRecordInput, secret: string = getHmacSecret()): GeneratedEvidence {
@@ -28,9 +29,4 @@ export function generateEvidence(record: AcademicRecordInput, secret: string = g
     algorithm: EVIDENCE_ALGORITHM,
     canonicalVersion: CANONICAL_VERSION,
   };
-}
-
-/** Identificador determinista de la evidencia On-chain: EVD-REG-000001-V1. */
-export function buildEvidenceId(recordCode: string, version: number): string {
-  return `EVD-${recordCode.toUpperCase()}-V${version}`;
 }

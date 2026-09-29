@@ -1,48 +1,32 @@
 === PRUEBA B: respaldo y recuperación de la base Off-chain ===
-mysqldump: [Warning] Using a password on the command line interface can be insecure.
-[OK] Respaldo generado: database/backups/trazabilidad_academica_20260928_175111.sql
-73956 bytes  backups/trazabilidad_academica_20260928_175111.sql
---- Simulación de pérdida total: DROP DATABASE trazabilidad_academica
-[FALLA] Conexión MySQL (Prisma): (ver corrección posterior)
-[FALLA] Registros académicos: (ver corrección posterior)
-[FALLA] Evidencias vinculadas en MySQL: (ver corrección posterior)
+[OK] Respaldo generado: database/backups/nuevo_horizonte_trazabilidad_20260929_170742.sql
+158100 bytes  backups/nuevo_horizonte_trazabilidad_20260929_170742.sql
+--- Simulación de pérdida total: DROP DATABASE nuevo_horizonte_trazabilidad
+[FALLA] Conexión MySQL (Prisma): Database `nuevo_horizonte_trazabilidad` does not exist
+[FALLA] Registros académicos: Database `nuevo_horizonte_trazabilidad` does not exist
+[FALLA] Eventos de trazabilidad en MySQL: Database `nuevo_horizonte_trazabilidad` does not exist
 --- Recuperación:
-mysql: [Warning] Using a password on the command line interface can be insecure.
-[OK] Base trazabilidad_academica restaurada desde backups/trazabilidad_academica_20260928_175111.sql
-+------------+----------------+-------------------+----------------+------------------------------------------------------------------+--------+-------------------------+
-| registro   | version_actual | evidencia         | estado_vinculo | tx_id                                                            | bloque | confirmado_en           |
-+------------+----------------+-------------------+----------------+------------------------------------------------------------------+--------+-------------------------+
-| REG-000001 |              1 | EVD-REG-000001-V1 | CONFIRMADO     | ff57bd47a6589ed1f55e2193bf0be95762c9d5959e2e150105c74dc880aa96fb |      4 | 2026-09-28 22:39:44.349 |
-| REG-000002 |              2 | EVD-REG-000002-V2 | CONFIRMADO     | 0ee26a9e6731b1b754bf2f385cf17736615b4441ebe85572fd7be324fa273d04 |     14 | 2026-09-28 22:40:45.825 |
-| REG-000003 |              1 | EVD-REG-000003-V1 | CONFIRMADO     | 873a1d5d2ad722f60e1499ac69d1fa9df7546ac6f757674c13171e2b56f456cd |      6 | 2026-09-28 22:40:14.106 |
-| REG-000004 |              1 | EVD-REG-000004-V1 | CONFIRMADO     | 06b2737d288398cf3571e0eedb16d1fec1c1ea5617ec0fbaccea6557fd443684 |      7 | 2026-09-28 22:40:17.321 |
-| REG-000005 |              1 | EVD-REG-000005-V1 | CONFIRMADO     | 38a2035a233afdf7751e78339dbaab144909b03a38e2b79e080723df462b0173 |      8 | 2026-09-28 22:40:20.470 |
-| REG-000006 |              1 | EVD-REG-000006-V1 | CONFIRMADO     | f1047e125a621ee8b68f9fefd43d4b37b813013f740829f0f6d61dde2aeaf488 |      9 | 2026-09-28 22:40:24.065 |
-| REG-000007 |              1 | EVD-REG-000007-V1 | CONFIRMADO     | c1fa160935b3382178342c00ff9806b1d366ff63e905a6da2805435264e163f8 |     10 | 2026-09-28 22:40:27.394 |
-| REG-000008 |              1 | EVD-REG-000008-V1 | CONFIRMADO     | 8f8059a8e87ea05f500a2b94c007dde66b63776848574328665ccb893774d1da |     11 | 2026-09-28 22:40:30.566 |
-| REG-000009 |              1 | EVD-REG-000009-V1 | CONFIRMADO     | 5751b9356a372a94c3b8624d28d256a1adf686766bd314e565ae6fa9969a40a2 |     12 | 2026-09-28 22:40:33.846 |
-| REG-000010 |              1 | EVD-REG-000010-V1 | CONFIRMADO     | 2e5e37760014cd8355c9c6f01dca3a28daaa3a26e36ba374a28fec3a725e4eb1 |     13 | 2026-09-28 22:40:36.965 |
-| REG-000011 |              1 | EVD-REG-000011-V1 | CONFIRMADO     | 2b6b64aab478ccabc8e113b69151d9a263483b782c0a3009febca0a8ef5026cf |     15 | 2026-09-28 22:44:22.712 |
-| REG-000012 |              1 | EVD-REG-000012-V1 | CONFIRMADO     | 77a65ec39a3e24b8725acb9c1ac88585664453f99a7785226d06577687ce7d95 |     16 | 2026-09-28 22:44:56.971 |
-| REG-000013 |              1 | EVD-REG-000013-V1 | CONFIRMADO     | 3c7273d64b3ffcbece3a2e6361a8019443f0b5940ef4e44d8ceaaa622b885f16 |   NULL | 2026-09-28 22:45:20.279 |
-| REG-000020 |              1 | EVD-REG-000020-V1 | CONFIRMADO     | 970c748f8d93b1fbd5cad9f0683735927452a2601b537f31acf9dda7355de422 |     18 | 2026-09-28 22:49:25.896 |
-+------------+----------------+-------------------+----------------+------------------------------------------------------------------+--------+-------------------------+
+[OK] Base nuevo_horizonte_trazabilidad restaurada desde backups/nuevo_horizonte_trazabilidad_20260929_170742.sql
++---------------+-----------+
+| estado_evento | versiones |
++---------------+-----------+
+| CONFIRMADO    |        81 |
+| SIN_EVENTO    |        66 |
++---------------+-----------+
++---------+-------------+
+| eventos | confirmados |
++---------+-------------+
+|     169 |         169 |
++---------+-------------+
 VERIFICACIÓN DE INFRAESTRUCTURA
 [OK]    Variable HMAC_SECRET: definida (64 caracteres)
 [OK]    Configuración Fabric: NuevoHorizonteMSP → localhost:7051 · academicchannel/academic-traceability
-[OK]    Conexión MySQL (Prisma): MySQL 8.4.11
-[OK]    Registros académicos: 120 resultados · 24 estudiantes · 15 actividades
+[OK]    Conexión MySQL (Prisma): MySQL 8.4.11 · base nuevo_horizonte_trazabilidad
+[OK]    Registros académicos: 147 resultados (77 del dataset Hito 2) · 30 estudiantes · 15 actividades
+[OK]    Usuario actor: admin.prototipo (ADMIN)
 [OK]    Fabric Gateway → chaincode: academicEvidenceExists respondió (false)
-[OK]    Evidencias vinculadas en MySQL: 15 confirmadas · 0 pendientes/fallidas
+[OK]    Eventos de trazabilidad en MySQL: 169 confirmados · 0 pendientes · 0 con error
 INFRAESTRUCTURA OPERATIVA.
-verify REG-000001: INTEGRO
-verify REG-000002: INTEGRO
-
-NOTA: durante esta prueba se detectó que 'npm run check' clasificaba el error de Prisma
-(base inexistente) como EVIDENCE_NOT_FOUND. Se corrigió scripts/checkInfrastructure.ts; salida tras la corrección:
-[OK]    Variable HMAC_SECRET: definida (64 caracteres)
-[OK]    Configuración Fabric: NuevoHorizonteMSP → localhost:7051 · academicchannel/academic-traceability
-[FALLA] Conexión MySQL (Prisma): Database `base_inexistente` does not exist
-[FALLA] Registros académicos: Database `base_inexistente` does not exist
-[OK]    Fabric Gateway → chaincode: academicEvidenceExists respondió (false)
-[FALLA] Evidencias vinculadas en MySQL: Database `base_inexistente` does not exist
+verify REG-0001: INTEGRO
+verify REG-0040: INTEGRO
+verify REG-V001: INTEGRO

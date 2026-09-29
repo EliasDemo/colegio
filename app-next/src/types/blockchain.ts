@@ -1,16 +1,24 @@
-/** Tipos de evento anclados en el ledger. */
-export type EvidenceEventType = 'REGISTRO' | 'RECTIFICACION';
+/** Tipos de evento del Hito 2 (H2-03) que se anclan en el ledger. */
+export type LedgerEventType = 'CREACION' | 'RECTIFICACION' | 'VERIFICACION' | 'REVOCACION';
+export type LedgerObjectType = 'RESULTADO' | 'ACTIVIDAD' | 'ASISTENCIA';
 
-/** Modelo On-chain almacenado por el chaincode academic-traceability. */
+/** Eventos que fijan una versión del dato (VERIFICACION solo la consulta). */
+export const DATA_EVENT_TYPES: ReadonlyArray<LedgerEventType> = ['CREACION', 'RECTIFICACION', 'REVOCACION'];
+
+/**
+ * Evento On-chain almacenado por el chaincode academic-traceability.
+ * Corresponde al payload propuesto en H2-03 más los metadatos que añade Fabric.
+ */
 export interface AcademicEvidence {
-  docType: 'academicEvidence';
-  evidenceId: string;
-  recordReference: string;
-  eventType: EvidenceEventType;
+  docType: 'academicEvent';
+  eventId: string;
+  objectType: LedgerObjectType;
+  objectRef: string;
+  eventType: LedgerEventType;
   version: number;
-  evidence: string;
+  commitment: string;
+  previousCommitment: string | null;
   algorithm: 'HMAC-SHA-256';
-  actorReference: string;
   actorRole: string;
   submitterMspId: string;
   timestamp: string;
@@ -18,14 +26,15 @@ export interface AcademicEvidence {
   txId: string;
 }
 
-/** Argumentos que la aplicación envía a createAcademicEvidence. */
+/** Argumentos de createAcademicEvidence. */
 export interface CreateAcademicEvidenceArgs {
-  evidenceId: string;
-  recordReference: string;
-  eventType: EvidenceEventType;
+  eventId: string;
+  objectType: LedgerObjectType;
+  objectRef: string;
+  eventType: LedgerEventType;
   version: number;
-  evidence: string;
-  actorReference: string;
+  commitment: string;
+  previousCommitment: string | null;
   actorRole: string;
 }
 
@@ -37,15 +46,10 @@ export interface SubmitResult<T = unknown> {
 
 /** Operaciones del ledger que usa la capa de servicios (permite simularlo en pruebas). */
 export interface AcademicLedger {
-  evidenceExists(evidenceId: string): Promise<boolean>;
+  evidenceExists(eventId: string): Promise<boolean>;
   createEvidence(args: CreateAcademicEvidenceArgs): Promise<SubmitResult<AcademicEvidence>>;
-  readEvidence(evidenceId: string): Promise<AcademicEvidence>;
-  getEvidenceHistory(recordReference: string): Promise<AcademicEvidence[]>;
+  readEvidence(eventId: string): Promise<AcademicEvidence>;
+  getEvidenceHistory(objectType: LedgerObjectType, objectRef: string): Promise<AcademicEvidence[]>;
 }
 
-export type IntegrityStatus = 'INTEGRO' | 'ALTERADO' | 'NO_REGISTRADO';
-
-export interface Actor {
-  reference: string;
-  role: string;
-}
+export type IntegrityStatus = 'INTEGRO' | 'ALTERADO' | 'NO_VERIFICABLE';

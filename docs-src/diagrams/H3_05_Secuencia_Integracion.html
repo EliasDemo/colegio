@@ -39,29 +39,29 @@
 <text x="1686" y="146" text-anchor="middle" font-size="14.5" font-weight="600" fill="#7a4fb0">Ledger</text>
 <line x1="1686" y1="162" x2="1686" y2="1294" stroke="#b8c4d2" stroke-width="1.5" stroke-dasharray="5 5"/>
 <rect x="20" y="172" width="1760" height="28" rx="6" fill="#1b3a5c" opacity="0.92"/>
-<text x="36" y="191" font-size="14.5" font-weight="700" fill="#fff">REGISTRO  ·  npm run record -- REG-000001</text>
+<text x="36" y="191" font-size="14.5" font-weight="700" fill="#fff">REGISTRO (CREACION)  ·  npm run record -- REG-0001</text>
 <line x1="110" y1="224" x2="305" y2="224" stroke="#1b2a3a" stroke-width="1.6" marker-end="url(#m)"/>
-<text x="118" y="218" font-size="13" fill="#1b2a3a" paint-order="stroke" stroke="#fff" stroke-width="5">1. registerAcademicRecordEvidence(REG-000001)</text>
+<text x="118" y="218" font-size="13" fill="#1b2a3a" paint-order="stroke" stroke="#fff" stroke-width="5">1. registerAcademicRecordEvidence(REG-0001)</text>
 <line x1="307" y1="258" x2="502" y2="258" stroke="#1b2a3a" stroke-width="1.6" marker-end="url(#m)"/>
-<text x="315" y="252" font-size="13" fill="#1b2a3a" paint-order="stroke" stroke="#fff" stroke-width="5">2. findByCode (resultado + matrícula, actividad, periodo, área, docente)</text>
+<text x="315" y="252" font-size="13" fill="#1b2a3a" paint-order="stroke" stroke="#fff" stroke-width="5">2. findByCode: resultado_academico + matrícula, actividad, asignación</text>
 <line x1="504" y1="292" x2="309" y2="292" stroke="#5b6b7c" stroke-width="1.6" stroke-dasharray="6 4" marker-end="url(#mr)"/>
-<text x="315" y="286" font-size="13" fill="#5b6b7c" paint-order="stroke" stroke="#fff" stroke-width="5">3. registro v1 (solo referencias seudónimas)</text>
+<text x="315" y="286" font-size="13" fill="#5b6b7c" paint-order="stroke" stroke="#fff" stroke-width="5">3. resultado v1 (solo tokens seudónimos)</text>
 <line x1="307" y1="326" x2="699" y2="326" stroke="#1b2a3a" stroke-width="1.6" marker-end="url(#m)"/>
-<text x="315" y="320" font-size="13" fill="#1b2a3a" paint-order="stroke" stroke="#fff" stroke-width="5">4. canonicalizeAcademicRecord() + HMAC-SHA-256</text>
+<text x="315" y="320" font-size="13" fill="#1b2a3a" paint-order="stroke" stroke="#fff" stroke-width="5">4. payload canónico v2 + HMAC-SHA-256</text>
 <line x1="701" y1="360" x2="309" y2="360" stroke="#5b6b7c" stroke-width="1.6" stroke-dasharray="6 4" marker-end="url(#mr)"/>
-<text x="315" y="354" font-size="13" fill="#5b6b7c" paint-order="stroke" stroke="#fff" stroke-width="5">5. evidence (64 hex)</text>
+<text x="315" y="354" font-size="13" fill="#5b6b7c" paint-order="stroke" stroke="#fff" stroke-width="5">5. compromiso (64 hex)</text>
 <line x1="307" y1="394" x2="502" y2="394" stroke="#1b2a3a" stroke-width="1.6" marker-end="url(#m)"/>
-<text x="315" y="388" font-size="13" fill="#1b2a3a" paint-order="stroke" stroke="#fff" stroke-width="5">6. savePending → blockchain_evidence = PENDIENTE</text>
+<text x="315" y="388" font-size="13" fill="#1b2a3a" paint-order="stroke" stroke="#fff" stroke-width="5">6. evento_trazabilidad PENDIENTE (UUID)</text>
 <line x1="307" y1="428" x2="896" y2="428" stroke="#1b2a3a" stroke-width="1.6" marker-end="url(#m)"/>
-<text x="315" y="422" font-size="13" fill="#1b2a3a" paint-order="stroke" stroke="#fff" stroke-width="5">7. academicEvidenceExists (evaluate)</text>
+<text x="315" y="422" font-size="13" fill="#1b2a3a" paint-order="stroke" stroke="#fff" stroke-width="5">7. academicEvidenceExists(eventId)</text>
 <line x1="898" y1="462" x2="309" y2="462" stroke="#5b6b7c" stroke-width="1.6" stroke-dasharray="6 4" marker-end="url(#mr)"/>
 <text x="315" y="456" font-size="13" fill="#5b6b7c" paint-order="stroke" stroke="#fff" stroke-width="5">8. false</text>
 <line x1="307" y1="496" x2="896" y2="496" stroke="#1b2a3a" stroke-width="1.6" marker-end="url(#m)"/>
-<text x="315" y="490" font-size="13" fill="#1b2a3a" paint-order="stroke" stroke="#fff" stroke-width="5">9. createAcademicEvidence (submit)</text>
+<text x="315" y="490" font-size="13" fill="#1b2a3a" paint-order="stroke" stroke="#fff" stroke-width="5">9. createAcademicEvidence(eventId, CREACION, v1, commitment)</text>
 <line x1="898" y1="530" x2="1093" y2="530" stroke="#1b2a3a" stroke-width="1.6" marker-end="url(#m)"/>
 <text x="906" y="524" font-size="13" fill="#1b2a3a" paint-order="stroke" stroke="#fff" stroke-width="5">10. propuesta firmada (User1@NuevoHorizonteMSP)</text>
 <line x1="1095" y1="564" x2="1684" y2="564" stroke="#1b2a3a" stroke-width="1.6" marker-end="url(#m)"/>
-<text x="1103" y="558" font-size="13" fill="#1b2a3a" paint-order="stroke" stroke="#fff" stroke-width="5">11. simula la transacción</text>
+<text x="1103" y="558" font-size="13" fill="#1b2a3a" paint-order="stroke" stroke="#fff" stroke-width="5">11. simula y valida reglas y encadenamiento</text>
 <line x1="1095" y1="598" x2="1290" y2="598" stroke="#1b2a3a" stroke-width="1.6" marker-end="url(#m)"/>
 <text x="1103" y="592" font-size="13" fill="#1b2a3a" paint-order="stroke" stroke="#fff" stroke-width="5">12. solicita endoso (descubrimiento)</text>
 <line x1="1292" y1="632" x2="1684" y2="632" stroke="#1b2a3a" stroke-width="1.6" marker-end="url(#m)"/>
@@ -77,28 +77,28 @@
 <line x1="898" y1="802" x2="309" y2="802" stroke="#5b6b7c" stroke-width="1.6" stroke-dasharray="6 4" marker-end="url(#mr)"/>
 <text x="315" y="796" font-size="13" fill="#5b6b7c" paint-order="stroke" stroke="#fff" stroke-width="5">17. { txId, blockNumber }</text>
 <line x1="307" y1="836" x2="502" y2="836" stroke="#1b2a3a" stroke-width="1.6" marker-end="url(#m)"/>
-<text x="315" y="830" font-size="13" fill="#1b2a3a" paint-order="stroke" stroke="#fff" stroke-width="5">18. markConfirmed(TX_ID) + evento REGISTRO/CONFIRMADO</text>
+<text x="315" y="830" font-size="13" fill="#1b2a3a" paint-order="stroke" stroke="#fff" stroke-width="5">18. evidencia_blockchain(TX_ID) + evento CONFIRMADO</text>
 <line x1="307" y1="870" x2="112" y2="870" stroke="#5b6b7c" stroke-width="1.6" stroke-dasharray="6 4" marker-end="url(#mr)"/>
 <text x="118" y="864" font-size="13" fill="#5b6b7c" paint-order="stroke" stroke="#fff" stroke-width="5">19. PROCESO COMPLETADO · TX_ID</text>
 <rect x="20" y="886" width="1760" height="28" rx="6" fill="#1b3a5c" opacity="0.92"/>
-<text x="36" y="905" font-size="14.5" font-weight="700" fill="#fff">VERIFICACIÓN  ·  npm run verify -- REG-000001</text>
+<text x="36" y="905" font-size="14.5" font-weight="700" fill="#fff">VERIFICACIÓN  ·  npm run verify -- REG-0001</text>
 <line x1="110" y1="938" x2="305" y2="938" stroke="#1b2a3a" stroke-width="1.6" marker-end="url(#m)"/>
-<text x="118" y="932" font-size="13" fill="#1b2a3a" paint-order="stroke" stroke="#fff" stroke-width="5">20. verifyAcademicRecord(REG-000001)</text>
+<text x="118" y="932" font-size="13" fill="#1b2a3a" paint-order="stroke" stroke="#fff" stroke-width="5">20. verifyAcademicRecord(REG-0001)</text>
 <line x1="307" y1="972" x2="502" y2="972" stroke="#1b2a3a" stroke-width="1.6" marker-end="url(#m)"/>
 <text x="315" y="966" font-size="13" fill="#1b2a3a" paint-order="stroke" stroke="#fff" stroke-width="5">21. findByCode (estado actual en MySQL)</text>
 <line x1="307" y1="1006" x2="699" y2="1006" stroke="#1b2a3a" stroke-width="1.6" marker-end="url(#m)"/>
 <text x="315" y="1000" font-size="13" fill="#1b2a3a" paint-order="stroke" stroke="#fff" stroke-width="5">22. recalcula canónico + HMAC</text>
 <line x1="307" y1="1040" x2="896" y2="1040" stroke="#1b2a3a" stroke-width="1.6" marker-end="url(#m)"/>
-<text x="315" y="1034" font-size="13" fill="#1b2a3a" paint-order="stroke" stroke="#fff" stroke-width="5">23. getAcademicEvidenceHistory (evaluate)</text>
+<text x="315" y="1034" font-size="13" fill="#1b2a3a" paint-order="stroke" stroke="#fff" stroke-width="5">23. getAcademicEvidenceHistory(RESULTADO, REG-0001)</text>
 <line x1="898" y1="1074" x2="1684" y2="1074" stroke="#1b2a3a" stroke-width="1.6" marker-end="url(#m)"/>
 <text x="906" y="1068" font-size="13" fill="#1b2a3a" paint-order="stroke" stroke="#fff" stroke-width="5">24. consulta el estado del ledger (vía peer0.nuevohorizonte)</text>
 <line x1="898" y1="1108" x2="309" y2="1108" stroke="#5b6b7c" stroke-width="1.6" stroke-dasharray="6 4" marker-end="url(#mr)"/>
-<text x="315" y="1102" font-size="13" fill="#5b6b7c" paint-order="stroke" stroke="#fff" stroke-width="5">25. última versión anclada: evidence + TX_ID</text>
+<text x="315" y="1102" font-size="13" fill="#5b6b7c" paint-order="stroke" stroke="#fff" stroke-width="5">25. eventos: última versión + cadena de compromisos</text>
 <path d="M307 1134 h46 v18 h-40" fill="none" stroke="#1b2a3a" stroke-width="1.6" marker-end="url(#m)"/>
-<text x="361" y="1146" font-size="13" fill="#1b2a3a" paint-order="stroke" stroke="#fff" stroke-width="5">26. comparación en tiempo constante</text>
+<text x="361" y="1146" font-size="13" fill="#1b2a3a" paint-order="stroke" stroke="#fff" stroke-width="5">26. compara HMAC y previousCommitment</text>
 <line x1="307" y1="1176" x2="502" y2="1176" stroke="#1b2a3a" stroke-width="1.6" marker-end="url(#m)"/>
-<text x="315" y="1170" font-size="13" fill="#1b2a3a" paint-order="stroke" stroke="#fff" stroke-width="5">27. evento VERIFICACION (INTEGRO / ALTERADO)</text>
+<text x="315" y="1170" font-size="13" fill="#1b2a3a" paint-order="stroke" stroke="#fff" stroke-width="5">27. evento VERIFICACION (UUID), anclado como en 6-18</text>
 <line x1="307" y1="1210" x2="112" y2="1210" stroke="#5b6b7c" stroke-width="1.6" stroke-dasharray="6 4" marker-end="url(#mr)"/>
 <text x="118" y="1204" font-size="13" fill="#5b6b7c" paint-order="stroke" stroke="#fff" stroke-width="5">28. RESULTADO: INTEGRO / ALTERADO</text>
-<text x="20" y="1320" font-size="13" fill="#5b6b7c">Línea continua: llamada · línea discontinua: respuesta. Si Fabric falla (pasos 9-17) el vínculo queda FALLIDO; si falla el paso 18, el reintento detecta la evidencia en el ledger (paso 7 = true) y reconcilia el TX_ID sin duplicar la transacción.</text>
+<text x="20" y="1320" font-size="13" fill="#5b6b7c">Línea continua: llamada · línea discontinua: respuesta. Si Fabric falla (pasos 9-17) el evento queda en ERROR; si falla el paso 18 queda PENDIENTE. El reintento usa el mismo UUID: si el paso 7 devuelve true, reconcilia el TX_ID sin reenviar (H2-06 §7).</text>
 </svg></body></html>

@@ -1,67 +1,47 @@
 import 'server-only';
-import type { BlockchainEvidence, PrismaClient, TraceabilityEventType } from '@prisma/client';
+import type { EvidenciaBlockchain, PrismaClient } from '@prisma/client';
 import { prisma } from '@/lib/db/prisma';
-
-export interface PendingEvidenceInput {
-  resultId: number;
-  evidenceId: string;
-  version: number;
-  eventType: TraceabilityEventType;
-  evidenceHash: string;
-  canonicalVersion: string;
-  channelName: string;
-  chaincodeName: string;
-}
 
 export interface ConfirmationInput {
   txId: string;
   blockNumber: bigint | null;
-  confirmedAt?: Date;
+  committedAt?: Date;
+  red: string;
+  canal: string;
+  chaincode: string;
 }
 
 export function createBlockchainEvidenceRepository(db: PrismaClient) {
   return {
-    findByResultAndVersion(resultId: number, version: number): Promise<BlockchainEvidence | null> {
-      return db.blockchainEvidence.findUnique({ where: { resultId_version: { resultId, version } } });
+    /**
+     * Persiste el vínculo On-chain (H2-06, paso 8) en una sola transacción MySQL:
+     * inserta evidencia_blockchain con el TX_ID y marca el evento como CONFIRMADO.
+     */
+    async recordConfirmation(eventoId: string, confirmation: ConfirmationInput): Promise<EvidenciaBlockchain> {
+      const [evidencia] = await db.$transaction([
+        db.evidenciaBlockchain.create({
+          data: {
+            eventoId,
+            txId: confirmation.txId,
+            blockNumber: confirmation.blockNumber,
+            committedAt: confirmation.committedAt ?? new Date(),
+            validacion: 'VALIDA',
+            red: confirmation.red,
+            canal: confirmation.canal,
+            chaincode: confirmation.chaincode,
+          },
+        }),
+        db.eventoTrazabilidad.update({ where: { id: eventoId }, data: { estadoEvento: 'CONFIRMADO', errorDetalle: null } }),
+      ]);
+      return evidencia;
     },
 
-    listByResult(resultId: number): Promise<BlockchainEvidence[]> {
-      return db.blockchainEvidence.findMany({ where: { resultId }, orderBy: { version: 'asc' } });
+    findByEventId(eventoId: string): Promise<EvidenciaBlockchain | null> {
+      return db.evidenciaBlockchain.findUnique({ where: { eventoId } });
     },
 
-    listPending(): Promise<BlockchainEvidence[]> {
-      return db.blockchainEvidence.findMany({ where: { status: { in: ['PENDIENTE', 'FALLIDO'] } } });
-    },
-
-    /** Registra (o reintenta) la evidencia ANTES de enviarla a Fabric: estado PENDIENTE. */
-    savePending(input: PendingEvidenceInput): Promise<BlockchainEvidence> {
-      const { evidenceId, ...rest } = input;
-      return db.blockchainEvidence.upsert({
-        where: { evidenceId },
-        create: { evidenceId, ...rest, status: 'PENDIENTE' },
-        update: { evidenceHash: rest.evidenceHash, status: 'PENDIENTE', errorMessage: null },
-      });
-    },
-
-    /** Persiste el vínculo On-chain: TX_ID y número de bloque. */
-    markConfirmed(evidenceId: string, confirmation: ConfirmationInput): Promise<BlockchainEvidence> {
-      return db.blockchainEvidence.update({
-        where: { evidenceId },
-        data: {
-          status: 'CONFIRMADO',
-          txId: confirmation.txId,
-          blockNumber: confirmation.blockNumber,
-          confirmedAt: confirmation.confirmedAt ?? new Date(),
-          errorMessage: null,
-        },
-      });
-    },
-
-    markFailed(evidenceId: string, errorMessage: string): Promise<BlockchainEvidence> {
-      return db.blockchainEvidence.update({
-        where: { evidenceId },
-        data: { status: 'FALLIDO', errorMessage: errorMessage.slice(0, 500) },
-      });
+    countValid(): Promise<number> {
+      return db.evidenciaBlockchain.count({ where: { validacion: 'VALIDA' } });
     },
   };
 }

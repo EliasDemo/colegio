@@ -1,0 +1,48 @@
+[INFO] Eliminando contenedores y volúmenes...
+ Container academic-traceability-cc Stopping 
+ Container academic-traceability-cc Stopped 
+ Container academic-traceability-cc Removing 
+ Container academic-traceability-cc Removed 
+ Container cli Stopping 
+ Container ca.validator.example.com Stopping 
+ Container peer0.nuevohorizonte.example.com Stopping 
+ Container peer0.validator.example.com Stopping 
+ Container ca.nuevohorizonte.example.com Stopping 
+ Container peer0.nuevohorizonte.example.com Stopped 
+ Container peer0.nuevohorizonte.example.com Removing 
+ Container peer0.nuevohorizonte.example.com Removed 
+ Container peer0.validator.example.com Stopped 
+ Container peer0.validator.example.com Removing 
+ Container peer0.validator.example.com Removed 
+ Container orderer.example.com Stopping 
+ Container orderer.example.com Stopped 
+ Container orderer.example.com Removing 
+ Container orderer.example.com Removed 
+ Container ca.nuevohorizonte.example.com Stopped 
+ Container ca.nuevohorizonte.example.com Removing 
+ Container ca.nuevohorizonte.example.com Removed 
+ Container cli Stopped 
+ Container cli Removing 
+ Container cli Removed 
+ Container ca.validator.example.com Stopped 
+ Container ca.validator.example.com Removing 
+ Container ca.validator.example.com Removed 
+ Volume fabric-academic_orderer.example.com Removing 
+ Volume fabric-academic_peer0.validator.example.com Removing 
+ Volume fabric-academic_peer0.nuevohorizonte.example.com Removing 
+ Network fabric_academic Removing 
+ Volume fabric-academic_peer0.validator.example.com Removed 
+ Volume fabric-academic_orderer.example.com Removed 
+ Volume fabric-academic_peer0.nuevohorizonte.example.com Removed 
+ Network fabric_academic Removed 
+[INFO] Eliminando material generado...
+Unable to find image 'alpine:3.20' locally
+3.20: Pulling from library/alpine
+25f1d6b1951a: Pulling fs layer
+3a030ca3f633: Download complete
+d4050d56ebf2: Download complete
+25f1d6b1951a: Download complete
+25f1d6b1951a: Pull complete
+Digest: sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc
+Status: Downloaded newer image for alpine:3.20
+[OK] Red limpia. Ejecute ./scripts/network.sh up para crearla nuevamente

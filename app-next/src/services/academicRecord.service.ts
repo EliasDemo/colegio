@@ -1,46 +1,49 @@
 import 'server-only';
 import { academicRecordRepository, type AcademicRecordRepository } from '@/repositories/academicRecord.repository';
 import { RecordCodeSchema } from '@/schemas/academicRecord.schema';
-import type { AcademicRecordInput, AcademicRecordSummary, AcademicRecordWithRelations } from '@/types/academic';
+import type { AcademicRecordInput, AcademicRecordSummary, ResultadoConRelaciones } from '@/types/academic';
 import { RecordNotFoundError } from './errors';
 
-/** Proyección del registro Off-chain a la entrada de canonicalización (solo referencias seudónimas). */
-export function toAcademicRecordInput(record: AcademicRecordWithRelations): AcademicRecordInput {
+/** Proyección del resultado Off-chain al payload canónico (solo tokens seudónimos). */
+export function toAcademicRecordInput(r: ResultadoConRelaciones): AcademicRecordInput {
   return {
-    academicRecordId: record.code,
-    studentReference: record.enrollment.student.pseudonymCode,
-    enrollmentReference: record.enrollment.code,
-    sectionReference: record.enrollment.section.code,
-    subjectReference: record.activity.teachingAssignment.subject.code,
-    activityReference: record.activity.code,
-    periodReference: record.activity.period.code,
-    teacherReference: record.recordedBy.pseudonymCode,
-    qualitativeGrade: record.qualitativeGrade,
-    numericScore: record.numericScore === null ? null : record.numericScore.toFixed(2),
-    observation: record.observation,
-    recordedAt: record.recordedAt,
-    version: record.version,
+    objectRef: r.codigo,
+    studentToken: r.matricula.estudiante.tokenEstudiante,
+    periodCode: r.matricula.periodo.codigo,
+    gradeNumber: r.matricula.seccion.grado.numero,
+    sectionCode: r.matricula.seccion.codigo,
+    areaCode: r.actividad.asignacion.area.codigo,
+    activityCode: r.actividad.codigo,
+    activityType: r.actividad.tipoActividad.codigo,
+    activityDate: r.actividad.fechaActividad,
+    maxScore: r.actividad.puntajeMaximo.toFixed(2),
+    score: r.puntajeObtenido === null ? null : r.puntajeObtenido.toFixed(2),
+    status: r.estado,
+    registeredBy: r.registrador.username,
+    registeredAt: r.registradoEn,
+    version: r.versionActual,
   };
 }
 
-export function toAcademicRecordSummary(record: AcademicRecordWithRelations): AcademicRecordSummary {
+export function toAcademicRecordSummary(r: ResultadoConRelaciones): AcademicRecordSummary {
   return {
-    code: record.code,
-    studentReference: record.enrollment.student.pseudonymCode,
-    activityReference: record.activity.code,
-    subjectCode: record.activity.teachingAssignment.subject.code,
-    periodCode: record.activity.period.code,
-    sectionCode: record.enrollment.section.code,
-    version: record.version,
+    code: r.codigo,
+    studentToken: r.matricula.estudiante.tokenEstudiante,
+    activityCode: r.actividad.codigo,
+    areaCode: r.actividad.asignacion.area.codigo,
+    periodCode: r.matricula.periodo.codigo,
+    section: `${r.matricula.seccion.grado.numero}${r.matricula.seccion.codigo}`,
+    status: r.estado,
+    version: r.versionActual,
   };
 }
 
 export function createAcademicRecordService(repository: AcademicRecordRepository) {
   return {
-    async getByCode(code: string): Promise<AcademicRecordWithRelations> {
-      const recordCode = RecordCodeSchema.parse(code);
-      const record = await repository.findByCode(recordCode);
-      if (!record) throw new RecordNotFoundError(recordCode);
+    async getByCode(code: string): Promise<ResultadoConRelaciones> {
+      const codigo = RecordCodeSchema.parse(code);
+      const record = await repository.findByCode(codigo);
+      if (!record) throw new RecordNotFoundError(codigo);
       return record;
     },
   };

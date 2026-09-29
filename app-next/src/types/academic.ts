@@ -1,52 +1,69 @@
 import type {
-  AcademicActivity,
-  AcademicPeriod,
-  AcademicResult,
-  Enrollment,
-  Section,
-  Student,
-  Subject,
-  Teacher,
-  TeachingAssignment,
+  ActividadAcademica,
+  AreaCurricular,
+  AsignacionDocente,
+  Docente,
+  Estudiante,
+  Grado,
+  Matricula,
+  PeriodoAcademico,
+  ResultadoAcademico,
+  Seccion,
+  TipoActividad,
+  Usuario,
 } from '@prisma/client';
 
-/** Registro académico con las relaciones necesarias para construir su forma canónica. */
-export type AcademicRecordWithRelations = AcademicResult & {
-  enrollment: Enrollment & { student: Student; section: Section };
-  activity: AcademicActivity & {
-    period: AcademicPeriod;
-    teachingAssignment: TeachingAssignment & { subject: Subject };
+/** Resultado académico con las relaciones necesarias para construir su forma canónica. */
+export type ResultadoConRelaciones = ResultadoAcademico & {
+  matricula: Matricula & {
+    estudiante: Estudiante;
+    periodo: PeriodoAcademico;
+    seccion: Seccion & { grado: Grado };
   };
-  recordedBy: Teacher;
+  actividad: ActividadAcademica & {
+    tipoActividad: TipoActividad;
+    asignacion: AsignacionDocente & { area: AreaCurricular; docente: Docente };
+  };
+  registrador: Usuario;
 };
 
 /**
- * Entrada de la canonicalización. Solo contiene referencias seudónimas y el resultado;
- * nunca nombres, documentos ni otros datos personales.
+ * Entrada de la canonicalización (payload canónico del Hito 2, actividad 11).
+ * Solo tokens seudónimos y datos académicos del registro; nunca identidad real.
  */
 export interface AcademicRecordInput {
-  academicRecordId: string;
-  studentReference: string;
-  enrollmentReference: string;
-  sectionReference: string;
-  subjectReference: string;
-  activityReference: string;
-  periodReference: string;
-  teacherReference: string;
-  qualitativeGrade: string;
-  numericScore: string | number | null;
-  observation: string | null;
-  recordedAt: Date | string;
+  objectRef: string;
+  studentToken: string;
+  periodCode: string;
+  gradeNumber: number;
+  sectionCode: string;
+  areaCode: string;
+  activityCode: string;
+  activityType: string;
+  activityDate: Date | string;
+  maxScore: string | number;
+  score: string | number | null;
+  status: string;
+  registeredBy: string;
+  registeredAt: Date | string;
   version: number;
 }
 
 /** Vista resumida (sin datos personales) que devuelven los servicios. */
 export interface AcademicRecordSummary {
   code: string;
-  studentReference: string;
-  activityReference: string;
-  subjectCode: string;
+  studentToken: string;
+  activityCode: string;
+  areaCode: string;
   periodCode: string;
-  sectionCode: string;
+  section: string;
+  status: string;
   version: number;
+}
+
+/** Actor Off-chain de una operación (usuario del prototipo y su rol). */
+export interface Actor {
+  usuarioId: bigint;
+  username: string;
+  role: string;
 }

@@ -5,14 +5,16 @@ views.sql aplicado (exit 0)
 +-------------+----------+-------+-----------+----------+-------------+------------+
 | estudiantes | docentes | areas | secciones | periodos | actividades | resultados |
 +-------------+----------+-------+-----------+----------+-------------+------------+
-|          24 |        5 |    10 |         3 |        2 |          15 |        120 |
+|          30 |        5 |     8 |         3 |        2 |          15 |        147 |
 +-------------+----------+-------+-----------+----------+-------------+------------+
---- verify REG-000001 usando la base cargada solo con SQL:
-Evidence blockchain (versión 1, TX ff57bd47a6589ed1...):
-f5d60c6a21d19aa36947382e340943348b158da73b8d1e490f42196d31df9c10
-Evidence calculada:
-f5d60c6a21d19aa36947382e340943348b158da73b8d1e490f42196d31df9c10
-Copia local del vínculo (MySQL) consistente con el ledger: NO
-RESULTADO:
-(RESULTADO de la prueba A: INTEGRO — ambas evidencias son idénticas)
-
+--- verify REG-0001 y REG-0080 usando la base cargada solo con SQL:
+Compromiso en blockchain (v1 CREACION, TX 342dd8cca7ca8f6d...):
+e68d43b57c32539240eefff1a57523a16d91d46f45292c6a5764865428999b36
+Compromiso calculado:
+e68d43b57c32539240eefff1a57523a16d91d46f45292c6a5764865428999b36
+RESULTADO REG-0001: INTEGRO
+Compromiso en blockchain (v1 CREACION, TX bb135167755e84ec...):
+94f70148058d2dfc8f442d0f5523eb106496e29a0fc02a1beb52324c3016e6be
+Compromiso calculado:
+94f70148058d2dfc8f442d0f5523eb106496e29a0fc02a1beb52324c3016e6be
+RESULTADO REG-0080: INTEGRO

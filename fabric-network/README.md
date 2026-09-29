@@ -52,7 +52,7 @@ docker exec -e CORE_PEER_TLS_ENABLED=true -e CORE_PEER_LOCALMSPID=NuevoHorizonte
   -e CORE_PEER_MSPCONFIGPATH=/opt/network/organizations/peerOrganizations/nuevohorizonte.example.com/users/Admin@nuevohorizonte.example.com/msp \
   -e CORE_PEER_ADDRESS=peer0.nuevohorizonte.example.com:7051 \
   cli peer chaincode query -C academicchannel -n academic-traceability \
-  -c '{"function":"readAcademicEvidence","Args":["EVD-REG-000001-V1"]}'
+  -c '{"function":"getAcademicEvidenceHistory","Args":["RESULTADO","REG-0001"]}'
 ```
 
 ## Notas de compatibilidad

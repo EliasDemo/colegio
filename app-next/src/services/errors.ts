@@ -6,32 +6,40 @@ export class RecordNotFoundError extends Error {
   }
 }
 
+/** El usuario indicado como actor no existe, no está activo o no tiene rol. */
+export class ActorNotFoundError extends Error {
+  constructor(readonly username: string) {
+    super(`El usuario ${username} no existe, no está ACTIVO o no tiene un rol asignado`);
+    this.name = 'ActorNotFoundError';
+  }
+}
+
 /**
- * Caso 2: Fabric confirmó la transacción pero no se pudo guardar el TX_ID en MySQL.
- * El fila queda PENDIENTE; al volver a ejecutar el registro el servicio detecta la evidencia
- * en el ledger y reconcilia el vínculo sin crear una transacción duplicada.
+ * Caso 2: Fabric confirmó la transacción pero no se pudo persistir el vínculo en MySQL.
+ * El evento queda PENDIENTE; al reintentar, el servicio consulta el ledger por evento_id
+ * y reconcilia el TX_ID sin reenviar la transacción (H2-06 §7).
  */
 export class EvidenceLinkError extends Error {
   constructor(
-    readonly evidenceId: string,
+    readonly eventId: string,
     readonly txId: string,
     readonly cause?: unknown,
   ) {
     super(
-      `La evidencia ${evidenceId} quedó registrada en Fabric (TX_ID ${txId}) pero no se pudo persistir el vínculo en MySQL. ` +
+      `El evento ${eventId} quedó registrado en Fabric (TX_ID ${txId}) pero no se pudo persistir el vínculo en MySQL. ` +
         'Vuelva a ejecutar el registro para reconciliar.',
     );
     this.name = 'EvidenceLinkError';
   }
 }
 
-/** La evidencia calculada no coincide con la ya anclada para la misma versión del registro. */
+/** El compromiso calculado no coincide con el ya anclado para la misma versión. */
 export class EvidenceConflictError extends Error {
   constructor(
-    readonly evidenceId: string,
+    readonly reference: string,
     detail: string,
   ) {
-    super(`Conflicto de evidencia ${evidenceId}: ${detail}`);
+    super(`Conflicto de evidencia ${reference}: ${detail}`);
     this.name = 'EvidenceConflictError';
   }
 }

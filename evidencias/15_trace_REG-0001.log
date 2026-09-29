@@ -1,0 +1,66 @@
+
+
+
+------------------------------------
+TRAZABILIDAD DEL REGISTRO
+------------------------------------
+
+[INFO] Buscando registro REG-0001
+[INFO] Registro encontrado {"version":1,"estado":"VIGENTE"}
+
+REGISTRO:
+REG-0001
+Estudiante: STU-99D2DC1D4BF4F412 · Actividad: EV-MAT-301 (MAT, 2026-B3) · Versión vigente: 1 · Estado: VIGENTE
+
+EVENTOS OFF-CHAIN (evento_trazabilidad, hora de Lima):
+
+2026-09-29 16:53:06
+CREACION
+Versión: 1 · Estado: CONFIRMADO · Rol: ADMIN · Evento: 0b30977e-b5dc-41e5-96e7-4610bafc85dd
+Compromiso: e68d43b57c325392... · Anterior: -
+TX: 342dd8cca7ca8f6d... · Bloque: 4 · Validación: VALIDA
+
+2026-09-29 16:53:18
+VERIFICACION → INTEGRO
+Versión: 1 · Estado: CONFIRMADO · Rol: ADMIN · Evento: e568ece5-d228-46d9-9f3b-d490025449dd
+Compromiso: e68d43b57c325392... · Anterior: e68d43b57c325392...
+TX: 8d06a017eaa2b98f... · Bloque: 5 · Validación: VALIDA
+
+2026-09-29 16:53:22
+VERIFICACION → ALTERADO
+Versión: 1 · Estado: CONFIRMADO · Rol: ADMIN · Evento: 8c4ec983-de2b-43e2-a722-def8ca3cb7d3
+Compromiso: 10acbd9875077206... · Anterior: e68d43b57c325392...
+TX: 8c0697fa1d8aae02... · Bloque: 6 · Validación: VALIDA
+
+2026-09-29 16:53:27
+VERIFICACION → INTEGRO
+Versión: 1 · Estado: CONFIRMADO · Rol: ADMIN · Evento: 7c56fdae-412d-422d-955e-87e4fa53a480
+Compromiso: e68d43b57c325392... · Anterior: e68d43b57c325392...
+TX: faa15394459b76f6... · Bloque: 7 · Validación: VALIDA
+
+2026-09-29 16:58:07
+VERIFICACION → INTEGRO
+Versión: 1 · Estado: CONFIRMADO · Rol: ADMIN · Evento: cde2911f-2e8f-4618-a5cd-23d99a3d41a4
+Compromiso: e68d43b57c325392... · Anterior: e68d43b57c325392...
+TX: 7b7812fff0ec7d27... · Bloque: 84 · Validación: VALIDA
+
+2026-09-29 17:05:22
+VERIFICACION → INTEGRO
+Versión: 1 · Estado: CONFIRMADO · Rol: ADMIN · Evento: 14b67dac-1130-4047-9f1e-bcc2a117d92c
+Compromiso: e68d43b57c325392... · Anterior: e68d43b57c325392...
+TX: baacdbacd8bed0fe... · Bloque: 168 · Validación: VALIDA
+
+EVENTOS ON-CHAIN (Hyperledger Fabric):
+
+2026-09-29T21:53:06.154Z · CREACION · v1 · rol ADMIN · MSP NuevoHorizonteMSP
+  evento 0b30977e-b5dc-41e5-96e7-4610bafc85dd · compromiso e68d43b57c325392... · anterior - · TX 342dd8cca7ca8f6d...
+2026-09-29T21:53:18.102Z · VERIFICACION · v1 · rol ADMIN · MSP NuevoHorizonteMSP
+  evento e568ece5-d228-46d9-9f3b-d490025449dd · compromiso e68d43b57c325392... · anterior e68d43b57c325392... · TX 8d06a017eaa2b98f...
+2026-09-29T21:53:22.439Z · VERIFICACION · v1 · rol ADMIN · MSP NuevoHorizonteMSP
+  evento 8c4ec983-de2b-43e2-a722-def8ca3cb7d3 · compromiso 10acbd9875077206... · anterior e68d43b57c325392... · TX 8c0697fa1d8aae02...
+2026-09-29T21:53:26.555Z · VERIFICACION · v1 · rol ADMIN · MSP NuevoHorizonteMSP
+  evento 7c56fdae-412d-422d-955e-87e4fa53a480 · compromiso e68d43b57c325392... · anterior e68d43b57c325392... · TX faa15394459b76f6...
+2026-09-29T21:58:07.146Z · VERIFICACION · v1 · rol ADMIN · MSP NuevoHorizonteMSP
+  evento cde2911f-2e8f-4618-a5cd-23d99a3d41a4 · compromiso e68d43b57c325392... · anterior e68d43b57c325392... · TX 7b7812fff0ec7d27...
+2026-09-29T22:05:21.793Z · VERIFICACION · v1 · rol ADMIN · MSP NuevoHorizonteMSP
+  evento 14b67dac-1130-4047-9f1e-bcc2a117d92c · compromiso e68d43b57c325392... · anterior e68d43b57c325392... · TX baacdbacd8bed0fe...

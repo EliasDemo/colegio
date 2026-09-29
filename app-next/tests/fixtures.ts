@@ -1,81 +1,89 @@
 import { Prisma } from '@prisma/client';
-import type { AcademicRecordInput, AcademicRecordWithRelations } from '@/types/academic';
+import type { AcademicRecordInput, ResultadoConRelaciones } from '@/types/academic';
 
 export const TEST_SECRET = 'test-secret-hmac-0123456789abcdef0123456789abcdef';
 
+/** Registro REG-0011 del dataset Hito 2 (tokens reales seudonimizados, sin identidad). */
 export function sampleInput(overrides: Partial<AcademicRecordInput> = {}): AcademicRecordInput {
   return {
-    academicRecordId: 'REG-000001',
-    studentReference: 'EST-PSE-001',
-    enrollmentReference: 'MAT-2026-0001',
-    sectionReference: '2026-1A',
-    subjectReference: 'MAT',
-    activityReference: 'ACT-2026-001',
-    periodReference: '2026-B2',
-    teacherReference: 'DOC-PSE-001',
-    qualitativeGrade: 'A',
-    numericScore: '15.50',
-    observation: null,
-    recordedAt: new Date('2026-06-10T20:15:00.000Z'),
+    objectRef: 'REG-0011',
+    studentToken: 'STU-54134667DA103F7B',
+    periodCode: '2026-B3',
+    gradeNumber: 3,
+    sectionCode: 'A',
+    areaCode: 'CTA',
+    activityCode: 'EV-CTA-301',
+    activityType: 'INFORME',
+    activityDate: '2026-09-03',
+    maxScore: '20.00',
+    score: '19.00',
+    status: 'VIGENTE',
+    registeredBy: 'DOC-EE60960CC95C1748',
+    registeredAt: new Date('2026-09-03T00:00:00.000Z'),
     version: 1,
     ...overrides,
   };
 }
 
-/** Registro con relaciones, como lo devuelve AcademicRecordRepository.findByCode. */
-export function sampleRecord(overrides: Partial<AcademicRecordWithRelations> = {}): AcademicRecordWithRelations {
+const d = (iso: string) => new Date(iso);
+
+/** Resultado con relaciones, como lo devuelve AcademicRecordRepository.findByCode. */
+export function sampleRecord(overrides: Partial<ResultadoConRelaciones> = {}): ResultadoConRelaciones {
   const base = {
-    id: 1,
-    code: 'REG-000001',
-    enrollmentId: 1,
-    activityId: 1,
-    qualitativeGrade: 'A',
-    numericScore: new Prisma.Decimal('15.5'),
-    observation: null,
-    recordedAt: new Date('2026-06-10T20:15:00.000Z'),
-    recordedByTeacherId: 1,
-    version: 1,
-    status: 'ACTIVO',
-    updatedAt: new Date('2026-06-10T20:15:00.000Z'),
-    enrollment: {
-      id: 1,
-      code: 'MAT-2026-0001',
-      studentId: 1,
-      sectionId: 1,
-      academicYear: 2026,
-      enrolledAt: new Date('2026-03-02'),
-      status: 'MATRICULADO',
-      student: { id: 1, institutionId: 1, pseudonymCode: 'EST-PSE-001', status: 'ACTIVO', createdAt: new Date() },
-      section: { id: 1, gradeId: 1, code: '2026-1A', letter: 'A', academicYear: 2026 },
+    id: 11n,
+    codigo: 'REG-0011',
+    matriculaId: 3n,
+    actividadId: 3n,
+    versionActual: 1,
+    puntajeObtenido: new Prisma.Decimal('19'),
+    estado: 'VIGENTE',
+    registradoPor: 3n,
+    registradoEn: d('2026-09-03T00:00:00.000Z'),
+    actualizadoEn: d('2026-09-03T00:00:00.000Z'),
+    matricula: {
+      id: 3n,
+      estudianteId: 3n,
+      periodoId: 2n,
+      seccionId: 1n,
+      estado: 'VIGENTE',
+      fechaMatricula: d('2026-03-02'),
+      estudiante: { id: 3n, tokenEstudiante: 'STU-54134667DA103F7B', estado: 'ACTIVO', creadoEn: d('2026-09-29') },
+      periodo: { id: 2n, institucionId: 1n, codigo: '2026-B3', nombre: 'III Bimestre 2026', fechaInicio: d('2026-08-10'), fechaFin: d('2026-10-16'), estado: 'ABIERTO' },
+      seccion: { id: 1n, gradoId: 3n, codigo: 'A', nombre: '3.º A', grado: { id: 3n, institucionId: 1n, nivel: 'SECUNDARIA', numero: 3, nombre: '3.º de secundaria' } },
     },
-    activity: {
-      id: 1,
-      code: 'ACT-2026-001',
-      teachingAssignmentId: 1,
-      periodId: 1,
-      type: 'EVALUACION_DIAGNOSTICA',
-      title: 'Evaluación diagnóstica',
-      competency: 'Resuelve problemas de cantidad',
-      scheduledDate: new Date('2026-06-08'),
-      period: { id: 1, institutionId: 1, code: '2026-B2', academicYear: 2026, name: 'II Bimestre 2026', startDate: new Date(), endDate: new Date() },
-      teachingAssignment: {
-        id: 1,
-        teacherId: 1,
-        subjectId: 1,
-        sectionId: 1,
-        academicYear: 2026,
-        subject: { id: 1, code: 'MAT', name: 'Matemática' },
+    actividad: {
+      id: 3n,
+      asignacionId: 3n,
+      tipoActividadId: 4,
+      codigo: 'EV-CTA-301',
+      titulo: 'Informe de laboratorio',
+      descripcion: null,
+      fechaActividad: d('2026-09-03T00:00:00.000Z'),
+      puntajeMaximo: new Prisma.Decimal('20'),
+      estado: 'PUBLICADA',
+      creadoPor: 3n,
+      creadoEn: d('2026-09-29'),
+      tipoActividad: { id: 4, codigo: 'INFORME', nombre: 'Informe', descripcion: null },
+      asignacion: {
+        id: 3n,
+        docenteId: 3n,
+        areaId: 3n,
+        seccionId: 1n,
+        periodoId: 2n,
+        estado: 'ACTIVA',
+        area: { id: 3n, institucionId: 1n, codigo: 'CTA', nombre: 'Ciencia y Tecnología', estado: 'ACTIVO' },
+        docente: { id: 3n, tokenDocente: 'DOC-EE60960CC95C1748', estado: 'ACTIVO', creadoEn: d('2026-09-29') },
       },
     },
-    recordedBy: {
-      id: 1,
-      institutionId: 1,
-      pseudonymCode: 'DOC-PSE-001',
-      firstNames: 'Docente',
-      lastNames: 'De Prueba',
-      specialty: 'Matemática',
-      status: 'ACTIVO',
+    registrador: {
+      id: 3n,
+      username: 'DOC-EE60960CC95C1748',
+      passwordHash: 'scrypt$x$y',
+      docenteId: 3n,
+      estado: 'ACTIVO',
+      ultimoAccesoEn: null,
+      creadoEn: d('2026-09-29'),
     },
-  } as AcademicRecordWithRelations;
+  } as ResultadoConRelaciones;
   return { ...base, ...overrides };
 }

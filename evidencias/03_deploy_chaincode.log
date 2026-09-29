@@ -1,21 +1,20 @@
 [INFO] 1/7 Construyendo imagen academic-traceability-ccaas:1.0 desde chaincode/academic-traceability...
-sha256:bd20d1faa49c4bbadacdfbd4b70a1ff6c3a4aff0822e74cff96341f98b78cc71
+sha256:7bf68629ab3a78d6558218eb937fbdbfd6b21b864c2d2e9c88a3b6e8edfa7be2
 [INFO] 2/7 Empaquetando chaincode (tipo ccaas, dirección academic-traceability-cc:9999)...
-[INFO] Package ID: academic-traceability_1.0:15b1929d21e695b0addb0624286f5a573c98e1d636b1a17f12aa1f8856bbd1bb
+[INFO] Package ID: academic-traceability_1.0:41680792776d02ce13dbeb29c1f5a345e093da87c74801f04c243baddad5d0c4
 [INFO] 3/7 Instalando en los peers de ambas organizaciones...
-2026-09-28 22:38:54.968 UTC 0001 INFO [cli.lifecycle.chaincode] submitInstallProposal -> Installed remotely: response:<status:200 payload:"\nZacademic-traceability_1.0:15b1929d21e695b0addb0624286f5a573c98e1d636b1a17f12aa1f8856bbd1bb\022\031academic-traceability_1.0" > 
-2026-09-28 22:38:54.968 UTC 0002 INFO [cli.lifecycle.chaincode] submitInstallProposal -> Chaincode code package identifier: academic-traceability_1.0:15b1929d21e695b0addb0624286f5a573c98e1d636b1a17f12aa1f8856bbd1bb
-2026-09-28 22:38:55.567 UTC 0001 INFO [cli.lifecycle.chaincode] submitInstallProposal -> Installed remotely: response:<status:200 payload:"\nZacademic-traceability_1.0:15b1929d21e695b0addb0624286f5a573c98e1d636b1a17f12aa1f8856bbd1bb\022\031academic-traceability_1.0" > 
-2026-09-28 22:38:55.568 UTC 0002 INFO [cli.lifecycle.chaincode] submitInstallProposal -> Chaincode code package identifier: academic-traceability_1.0:15b1929d21e695b0addb0624286f5a573c98e1d636b1a17f12aa1f8856bbd1bb
+2026-09-29 21:52:33.034 UTC 0001 INFO [cli.lifecycle.chaincode] submitInstallProposal -> Installed remotely: response:<status:200 payload:"\nZacademic-traceability_1.0:41680792776d02ce13dbeb29c1f5a345e093da87c74801f04c243baddad5d0c4\022\031academic-traceability_1.0" > 
+2026-09-29 21:52:33.034 UTC 0002 INFO [cli.lifecycle.chaincode] submitInstallProposal -> Chaincode code package identifier: academic-traceability_1.0:41680792776d02ce13dbeb29c1f5a345e093da87c74801f04c243baddad5d0c4
+2026-09-29 21:52:33.789 UTC 0001 INFO [cli.lifecycle.chaincode] submitInstallProposal -> Installed remotely: response:<status:200 payload:"\nZacademic-traceability_1.0:41680792776d02ce13dbeb29c1f5a345e093da87c74801f04c243baddad5d0c4\022\031academic-traceability_1.0" > 
+2026-09-29 21:52:33.790 UTC 0002 INFO [cli.lifecycle.chaincode] submitInstallProposal -> Chaincode code package identifier: academic-traceability_1.0:41680792776d02ce13dbeb29c1f5a345e093da87c74801f04c243baddad5d0c4
 [INFO] 4/7 Iniciando el contenedor del chaincode...
-time="2026-09-28T17:38:55-05:00" level=warning msg="Found orphan containers ([peer0.nuevohorizonte.example.com peer0.validator.example.com ca.validator.example.com cli ca.nuevohorizonte.example.com orderer.example.com]) for this project. If you removed or renamed this service in your compose file, you can run this command with the --remove-orphans flag to clean it up."
  Container academic-traceability-cc Creating 
  Container academic-traceability-cc Created 
  Container academic-traceability-cc Starting 
  Container academic-traceability-cc Started 
 [INFO] 5/7 Aprobando la definición por cada organización...
-2026-09-28 22:38:58.946 UTC 0001 INFO [chaincodeCmd] ClientWait -> txid [9f06e48e8396e54042cd498716d90756aa4ea497e7becf581f64acfe6d428b4e] committed with status (VALID) at peer0.nuevohorizonte.example.com:7051
-2026-09-28 22:39:01.256 UTC 0001 INFO [chaincodeCmd] ClientWait -> txid [c63a140db32df638b883410dc2d79b2c4738b54b8977fa31527bce1d593d679c] committed with status (VALID) at peer0.validator.example.com:9051
+2026-09-29 21:52:37.748 UTC 0001 INFO [chaincodeCmd] ClientWait -> txid [e5887be3c4874a7a83b7d3d390b4fe0e3d4a9f9752130647a503bf93ad5aec44] committed with status (VALID) at peer0.nuevohorizonte.example.com:7051
+2026-09-29 21:52:40.133 UTC 0001 INFO [chaincodeCmd] ClientWait -> txid [0d8fddd3df7906322ea65b38f19e698408ba09071260bdbaf8188b4333c3bffc] committed with status (VALID) at peer0.validator.example.com:9051
 {
 	"approvals": {
 		"AcademicValidatorMSP": true,
@@ -23,8 +22,8 @@ time="2026-09-28T17:38:55-05:00" level=warning msg="Found orphan containers ([pe
 	}
 }
 [INFO] 6/7 Confirmando (commit) la definición en academicchannel...
-2026-09-28 22:39:03.958 UTC 0001 INFO [chaincodeCmd] ClientWait -> txid [aeb7a66422165285fe75b308124d1ea55da2bec92e272cfe11a748a18dbee97b] committed with status (VALID) at peer0.nuevohorizonte.example.com:7051
-2026-09-28 22:39:03.959 UTC 0002 INFO [chaincodeCmd] ClientWait -> txid [aeb7a66422165285fe75b308124d1ea55da2bec92e272cfe11a748a18dbee97b] committed with status (VALID) at peer0.validator.example.com:9051
+2026-09-29 21:52:42.818 UTC 0001 INFO [chaincodeCmd] ClientWait -> txid [b2163ef2f86c0d1c5e8d19b8393241d7e45f09b98b59af89a8a7b8a084c16495] committed with status (VALID) at peer0.nuevohorizonte.example.com:7051
+2026-09-29 21:52:42.819 UTC 0002 INFO [chaincodeCmd] ClientWait -> txid [b2163ef2f86c0d1c5e8d19b8393241d7e45f09b98b59af89a8a7b8a084c16495] committed with status (VALID) at peer0.validator.example.com:9051
 [INFO] 7/7 Verificando el despliegue...
 Committed chaincode definition for chaincode 'academic-traceability' on channel 'academicchannel':
 Version: 1.0, Sequence: 1, Endorsement Plugin: escc, Validation Plugin: vscc, Approvals: [AcademicValidatorMSP: true, NuevoHorizonteMSP: true]

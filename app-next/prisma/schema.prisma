@@ -1,9 +1,16 @@
-// Modelo lógico Off-chain del prototipo de trazabilidad microcurricular.
-// I.E. Nuevo Horizonte - Juliaca. Hito 3.
+// Modelo Off-chain del prototipo de trazabilidad microcurricular - I.E. Nuevo Horizonte.
 //
-// Regla de diseño: los datos personales viven solo en MySQL (student_identity, teacher);
-// el resto de tablas usa códigos seudónimos (EST-PSE-xxx, DOC-PSE-xxx) que son los
-// únicos identificadores que pueden salir hacia Hyperledger Fabric.
+// Implementa tabla por tabla el modelo del Hito 2 (hito2/H2_04_Modelo_Datos_OffChain.sql).
+// Los nombres de tablas y columnas son los mismos; los modelos Prisma usan PascalCase.
+//
+// Extensiones respecto del Hito 2 (justificadas en informes/H3_03):
+//   E1 resultado_academico.codigo          referencia técnica estable (registro_id del dataset H2_02)
+//   E2 evento_trazabilidad.resultado_verificacion  resultado explícito de la verificación (RF-22)
+//   E3 evento_trazabilidad.error_detalle   diagnóstico cuando el envío a Fabric falla (RNF-14)
+//   E4 tipo_actividad incluye TRABAJO     tipo presente en el dataset H2_02 y ausente en el catálogo H2
+//
+// Privacidad (RNF-06, RNF-07): la base solo contiene tokens seudónimos. La correspondencia
+// token ↔ identidad real NO se almacena aquí; permanece bajo custodia institucional separada.
 
 generator client {
   provider = "prisma-client-js"
@@ -15,385 +22,439 @@ datasource db {
 }
 
 // ---------------------------------------------------------------------------
-// Enumeraciones
+// Enumeraciones (mismos valores que el SQL del Hito 2)
 // ---------------------------------------------------------------------------
 
-enum RecordStatus {
+enum EstadoActivo {
   ACTIVO
   INACTIVO
 }
 
-enum EnrollmentStatus {
-  MATRICULADO
+enum EstadoPeriodo {
+  PLANIFICADO
+  ABIERTO
+  CERRADO
+}
+
+enum EstadoEstudiante {
+  ACTIVO
+  INACTIVO
   RETIRADO
-  TRASLADADO
 }
 
-enum ActivityType {
-  EVALUACION_DIAGNOSTICA
-  PRACTICA_CALIFICADA
-  EXAMEN_UNIDAD
-  TRABAJO_GRUPAL
-  EXPOSICION
-  PROYECTO
-  EVALUACION_BIMESTRAL
-  ACTIVIDAD_APRENDIZAJE
+enum EstadoUsuario {
+  ACTIVO
+  BLOQUEADO
+  INACTIVO
 }
 
-/// Escala de calificación del Currículo Nacional de Educación Básica (CNEB).
-enum QualitativeGrade {
-  AD
-  A
-  B
-  C
+enum EstadoMatricula {
+  VIGENTE
+  RETIRADA
+  TRASLADADA
+  CERRADA
 }
 
-enum AttendanceStatus {
+enum EstadoAsignacion {
+  ACTIVA
+  FINALIZADA
+}
+
+enum EstadoActividad {
+  BORRADOR
+  PUBLICADA
+  CERRADA
+  ANULADA
+}
+
+enum EstadoResultado {
+  VIGENTE
+  RECTIFICADO
+  REVOCADO
+}
+
+enum TipoCambio {
+  CREACION
+  RECTIFICACION
+  REVOCACION
+  RESTAURACION
+}
+
+enum EstadoAsistencia {
   PRESENTE
   TARDANZA
   FALTA
-  FALTA_JUSTIFICADA
+  JUSTIFICADA
 }
 
-enum TraceabilityEventType {
-  REGISTRO
-  VERIFICACION
+enum ObjetoTipo {
+  RESULTADO
+  ACTIVIDAD
+  ASISTENCIA
+}
+
+enum EventoTipo {
+  CREACION
+  ACTUALIZACION
   RECTIFICACION
+  VERIFICACION
+  REVOCACION
 }
 
-enum TraceabilityEventStatus {
+enum EstadoEvento {
   PENDIENTE
   CONFIRMADO
+  ERROR
+}
+
+enum ResultadoVerificacion {
   INTEGRO
   ALTERADO
-  FALLIDO
+  NO_VERIFICABLE
 }
 
-enum EvidenceStatus {
+enum ValidacionBlockchain {
+  VALIDA
+  INVALIDA
   PENDIENTE
-  CONFIRMADO
-  FALLIDO
 }
 
 // ---------------------------------------------------------------------------
 // Estructura institucional
 // ---------------------------------------------------------------------------
 
-model Institution {
-  id        Int      @id @default(autoincrement())
-  code      String   @unique @db.VarChar(20)
-  name      String   @db.VarChar(150)
-  city      String   @db.VarChar(80)
-  region    String   @db.VarChar(80)
-  createdAt DateTime @default(now()) @map("created_at")
+model Institucion {
+  id            BigInt       @id @default(autoincrement()) @map("institucion_id") @db.UnsignedBigInt
+  codigo        String       @unique @db.VarChar(30)
+  nombre        String       @db.VarChar(180)
+  ciudad        String       @db.VarChar(100)
+  estado        EstadoActivo @default(ACTIVO)
+  creadoEn      DateTime     @default(now()) @map("creado_en") @db.Timestamp(0)
+  actualizadoEn DateTime     @default(now()) @updatedAt @map("actualizado_en") @db.Timestamp(0)
 
-  periods  AcademicPeriod[]
-  grades   Grade[]
-  students Student[]
-  teachers Teacher[]
+  periodos PeriodoAcademico[]
+  areas    AreaCurricular[]
+  grados   Grado[]
 
-  @@map("institution")
+  @@map("institucion")
 }
 
-model AcademicPeriod {
-  id            Int      @id @default(autoincrement())
-  institutionId Int      @map("institution_id")
-  code          String   @unique @db.VarChar(20)
-  academicYear  Int      @map("academic_year")
-  name          String   @db.VarChar(60)
-  startDate     DateTime @map("start_date") @db.Date
-  endDate       DateTime @map("end_date") @db.Date
+model PeriodoAcademico {
+  id            BigInt        @id @default(autoincrement()) @map("periodo_id") @db.UnsignedBigInt
+  institucionId BigInt        @map("institucion_id") @db.UnsignedBigInt
+  codigo        String        @db.VarChar(30)
+  nombre        String        @db.VarChar(100)
+  fechaInicio   DateTime      @map("fecha_inicio") @db.Date
+  fechaFin      DateTime      @map("fecha_fin") @db.Date
+  estado        EstadoPeriodo @default(ABIERTO)
 
-  institution Institution        @relation(fields: [institutionId], references: [id])
-  activities  AcademicActivity[]
+  institucion  Institucion         @relation(fields: [institucionId], references: [id], map: "fk_periodo_institucion")
+  matriculas   Matricula[]
+  asignaciones AsignacionDocente[]
 
-  @@index([academicYear])
-  @@map("academic_period")
+  @@unique([institucionId, codigo], map: "uq_periodo")
+  @@map("periodo_academico")
 }
 
-model Grade {
-  id            Int    @id @default(autoincrement())
-  institutionId Int    @map("institution_id")
-  level         String @db.VarChar(20)
-  number        Int    @db.TinyInt
-  name          String @db.VarChar(40)
+model AreaCurricular {
+  id            BigInt       @id @default(autoincrement()) @map("area_id") @db.UnsignedBigInt
+  institucionId BigInt       @map("institucion_id") @db.UnsignedBigInt
+  codigo        String       @db.VarChar(30)
+  nombre        String       @db.VarChar(120)
+  estado        EstadoActivo @default(ACTIVO)
 
-  institution Institution @relation(fields: [institutionId], references: [id])
-  sections    Section[]
+  institucion  Institucion         @relation(fields: [institucionId], references: [id], map: "fk_area_institucion")
+  asignaciones AsignacionDocente[]
 
-  @@unique([institutionId, level, number])
-  @@map("grade")
+  @@unique([institucionId, codigo], map: "uq_area")
+  @@map("area_curricular")
 }
 
-model Section {
-  id           Int    @id @default(autoincrement())
-  gradeId      Int    @map("grade_id")
-  code         String @unique @db.VarChar(20)
-  letter       String @db.Char(1)
-  academicYear Int    @map("academic_year")
+model Grado {
+  id            BigInt @id @default(autoincrement()) @map("grado_id") @db.UnsignedBigInt
+  institucionId BigInt @map("institucion_id") @db.UnsignedBigInt
+  nivel         String @default("SECUNDARIA") @db.VarChar(40)
+  numero        Int    @db.UnsignedTinyInt
+  nombre        String @db.VarChar(60)
 
-  grade       Grade                @relation(fields: [gradeId], references: [id])
-  enrollments Enrollment[]
-  assignments TeachingAssignment[]
+  institucion Institucion @relation(fields: [institucionId], references: [id], map: "fk_grado_institucion")
+  secciones   Seccion[]
 
-  @@unique([gradeId, letter, academicYear])
-  @@map("section")
+  @@unique([institucionId, nivel, numero], map: "uq_grado")
+  @@map("grado")
+}
+
+model Seccion {
+  id      BigInt  @id @default(autoincrement()) @map("seccion_id") @db.UnsignedBigInt
+  gradoId BigInt  @map("grado_id") @db.UnsignedBigInt
+  codigo  String  @db.VarChar(10)
+  nombre  String? @db.VarChar(40)
+
+  grado        Grado               @relation(fields: [gradoId], references: [id], map: "fk_seccion_grado")
+  matriculas   Matricula[]
+  asignaciones AsignacionDocente[]
+
+  @@unique([gradoId, codigo], map: "uq_seccion")
+  @@map("seccion")
 }
 
 // ---------------------------------------------------------------------------
-// Personas (seudonimizadas)
+// Personas seudonimizadas
 // ---------------------------------------------------------------------------
 
-model Student {
-  id            Int          @id @default(autoincrement())
-  institutionId Int          @map("institution_id")
-  pseudonymCode String       @unique @map("pseudonym_code") @db.VarChar(20)
-  status        RecordStatus @default(ACTIVO)
-  createdAt     DateTime     @default(now()) @map("created_at")
+/// Representación seudonimizada del estudiante. Sin nombre, DNI ni código institucional legible.
+model Estudiante {
+  id              BigInt           @id @default(autoincrement()) @map("estudiante_id") @db.UnsignedBigInt
+  tokenEstudiante String           @unique @map("token_estudiante") @db.VarChar(40)
+  estado          EstadoEstudiante @default(ACTIVO)
+  creadoEn        DateTime         @default(now()) @map("creado_en") @db.Timestamp(0)
 
-  institution Institution      @relation(fields: [institutionId], references: [id])
-  identity    StudentIdentity?
-  enrollments Enrollment[]
+  matriculas Matricula[]
 
-  @@map("student")
+  @@map("estudiante")
 }
 
-/// Datos personales separados de la copia de trabajo (seudonimización del Hito 2).
-/// Nunca se envían a Fabric.
-model StudentIdentity {
-  studentId      Int      @id @map("student_id")
-  firstNames     String   @map("first_names") @db.VarChar(80)
-  lastNames      String   @map("last_names") @db.VarChar(80)
-  documentType   String   @default("DNI") @map("document_type") @db.VarChar(10)
-  documentNumber String   @unique @map("document_number") @db.VarChar(15)
-  birthDate      DateTime @map("birth_date") @db.Date
+/// Representación seudonimizada del docente.
+model Docente {
+  id           BigInt       @id @default(autoincrement()) @map("docente_id") @db.UnsignedBigInt
+  tokenDocente String       @unique @map("token_docente") @db.VarChar(40)
+  estado       EstadoActivo @default(ACTIVO)
+  creadoEn     DateTime     @default(now()) @map("creado_en") @db.Timestamp(0)
 
-  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  usuarios     Usuario[]
+  asignaciones AsignacionDocente[]
 
-  @@map("student_identity")
+  @@map("docente")
 }
 
-model Teacher {
-  id            Int          @id @default(autoincrement())
-  institutionId Int          @map("institution_id")
-  pseudonymCode String       @unique @map("pseudonym_code") @db.VarChar(20)
-  firstNames    String       @map("first_names") @db.VarChar(80)
-  lastNames     String       @map("last_names") @db.VarChar(80)
-  specialty     String       @db.VarChar(80)
-  status        RecordStatus @default(ACTIVO)
+model Usuario {
+  id             BigInt        @id @default(autoincrement()) @map("usuario_id") @db.UnsignedBigInt
+  username       String        @unique @db.VarChar(80)
+  passwordHash   String        @map("password_hash") @db.VarChar(255)
+  docenteId      BigInt?       @map("docente_id") @db.UnsignedBigInt
+  estado         EstadoUsuario @default(ACTIVO)
+  ultimoAccesoEn DateTime?     @map("ultimo_acceso_en") @db.DateTime(0)
+  creadoEn       DateTime      @default(now()) @map("creado_en") @db.Timestamp(0)
 
-  institution     Institution          @relation(fields: [institutionId], references: [id])
-  assignments     TeachingAssignment[]
-  recordedResults AcademicResult[]
-  user            User?
+  docente                Docente?             @relation(fields: [docenteId], references: [id], map: "fk_usuario_docente")
+  roles                  UsuarioRol[]
+  actividadesCreadas     ActividadAcademica[]
+  resultadosRegistrados  ResultadoAcademico[]
+  cambiosRealizados      HistorialResultado[]
+  asistenciasRegistradas Asistencia[]
+  eventos                EventoTrazabilidad[]
 
-  @@map("teacher")
+  @@map("usuario")
+}
+
+model Rol {
+  id          Int     @id @default(autoincrement()) @map("rol_id") @db.UnsignedSmallInt
+  codigo      String  @unique @db.VarChar(40)
+  nombre      String  @db.VarChar(80)
+  descripcion String? @db.VarChar(255)
+
+  usuarios UsuarioRol[]
+
+  @@map("rol")
+}
+
+model UsuarioRol {
+  usuarioId  BigInt   @map("usuario_id") @db.UnsignedBigInt
+  rolId      Int      @map("rol_id") @db.UnsignedSmallInt
+  asignadoEn DateTime @default(now()) @map("asignado_en") @db.Timestamp(0)
+
+  usuario Usuario @relation(fields: [usuarioId], references: [id], map: "fk_ur_usuario")
+  rol     Rol     @relation(fields: [rolId], references: [id], map: "fk_ur_rol")
+
+  @@id([usuarioId, rolId])
+  @@map("usuario_rol")
 }
 
 // ---------------------------------------------------------------------------
 // Gestión académica
 // ---------------------------------------------------------------------------
 
-model Enrollment {
-  id           Int              @id @default(autoincrement())
-  code         String           @unique @db.VarChar(20)
-  studentId    Int              @map("student_id")
-  sectionId    Int              @map("section_id")
-  academicYear Int              @map("academic_year")
-  enrolledAt   DateTime         @map("enrolled_at") @db.Date
-  status       EnrollmentStatus @default(MATRICULADO)
+model Matricula {
+  id             BigInt          @id @default(autoincrement()) @map("matricula_id") @db.UnsignedBigInt
+  estudianteId   BigInt          @map("estudiante_id") @db.UnsignedBigInt
+  periodoId      BigInt          @map("periodo_id") @db.UnsignedBigInt
+  seccionId      BigInt          @map("seccion_id") @db.UnsignedBigInt
+  estado         EstadoMatricula @default(VIGENTE)
+  fechaMatricula DateTime?       @map("fecha_matricula") @db.Date
 
-  student     Student          @relation(fields: [studentId], references: [id])
-  section     Section          @relation(fields: [sectionId], references: [id])
-  results     AcademicResult[]
-  attendances Attendance[]
+  estudiante  Estudiante           @relation(fields: [estudianteId], references: [id], map: "fk_matricula_estudiante")
+  periodo     PeriodoAcademico     @relation(fields: [periodoId], references: [id], map: "fk_matricula_periodo")
+  seccion     Seccion              @relation(fields: [seccionId], references: [id], map: "fk_matricula_seccion")
+  resultados  ResultadoAcademico[]
+  asistencias Asistencia[]
 
-  @@unique([studentId, academicYear])
-  @@index([sectionId])
-  @@map("enrollment")
+  @@unique([estudianteId, periodoId], map: "uq_matricula")
+  @@map("matricula")
 }
 
-model Subject {
-  id   Int    @id @default(autoincrement())
-  code String @unique @db.VarChar(10)
-  name String @unique @db.VarChar(80)
+model AsignacionDocente {
+  id        BigInt           @id @default(autoincrement()) @map("asignacion_id") @db.UnsignedBigInt
+  docenteId BigInt           @map("docente_id") @db.UnsignedBigInt
+  areaId    BigInt           @map("area_id") @db.UnsignedBigInt
+  seccionId BigInt           @map("seccion_id") @db.UnsignedBigInt
+  periodoId BigInt           @map("periodo_id") @db.UnsignedBigInt
+  estado    EstadoAsignacion @default(ACTIVA)
 
-  assignments TeachingAssignment[]
+  docente     Docente              @relation(fields: [docenteId], references: [id], map: "fk_asig_docente")
+  area        AreaCurricular       @relation(fields: [areaId], references: [id], map: "fk_asig_area")
+  seccion     Seccion              @relation(fields: [seccionId], references: [id], map: "fk_asig_seccion")
+  periodo     PeriodoAcademico     @relation(fields: [periodoId], references: [id], map: "fk_asig_periodo")
+  actividades ActividadAcademica[]
+  asistencias Asistencia[]
 
-  @@map("subject")
+  @@unique([docenteId, areaId, seccionId, periodoId], map: "uq_asignacion")
+  @@map("asignacion_docente")
 }
 
-model TeachingAssignment {
-  id           Int @id @default(autoincrement())
-  teacherId    Int @map("teacher_id")
-  subjectId    Int @map("subject_id")
-  sectionId    Int @map("section_id")
-  academicYear Int @map("academic_year")
+model TipoActividad {
+  id          Int     @id @default(autoincrement()) @map("tipo_actividad_id") @db.UnsignedSmallInt
+  codigo      String  @unique @db.VarChar(30)
+  nombre      String  @db.VarChar(80)
+  descripcion String? @db.VarChar(255)
 
-  teacher    Teacher            @relation(fields: [teacherId], references: [id])
-  subject    Subject            @relation(fields: [subjectId], references: [id])
-  section    Section            @relation(fields: [sectionId], references: [id])
-  activities AcademicActivity[]
+  actividades ActividadAcademica[]
 
-  @@unique([subjectId, sectionId, academicYear])
-  @@index([teacherId])
-  @@map("teaching_assignment")
+  @@map("tipo_actividad")
 }
 
-model AcademicActivity {
-  id                   Int          @id @default(autoincrement())
-  code                 String       @unique @db.VarChar(20)
-  teachingAssignmentId Int          @map("teaching_assignment_id")
-  periodId             Int          @map("period_id")
-  type                 ActivityType
-  title                String       @db.VarChar(150)
-  competency           String       @db.VarChar(150)
-  scheduledDate        DateTime     @map("scheduled_date") @db.Date
+model ActividadAcademica {
+  id              BigInt          @id @default(autoincrement()) @map("actividad_id") @db.UnsignedBigInt
+  asignacionId    BigInt          @map("asignacion_id") @db.UnsignedBigInt
+  tipoActividadId Int             @map("tipo_actividad_id") @db.UnsignedSmallInt
+  codigo          String          @db.VarChar(40)
+  titulo          String          @db.VarChar(180)
+  descripcion     String?         @db.Text
+  fechaActividad  DateTime        @map("fecha_actividad") @db.Date
+  puntajeMaximo   Decimal         @default(20.00) @map("puntaje_maximo") @db.Decimal(6, 2)
+  estado          EstadoActividad @default(PUBLICADA)
+  creadoPor       BigInt          @map("creado_por") @db.UnsignedBigInt
+  creadoEn        DateTime        @default(now()) @map("creado_en") @db.Timestamp(0)
 
-  teachingAssignment TeachingAssignment @relation(fields: [teachingAssignmentId], references: [id])
-  period             AcademicPeriod     @relation(fields: [periodId], references: [id])
-  results            AcademicResult[]
+  asignacion    AsignacionDocente    @relation(fields: [asignacionId], references: [id], map: "fk_act_asig")
+  tipoActividad TipoActividad        @relation(fields: [tipoActividadId], references: [id], map: "fk_act_tipo")
+  creador       Usuario              @relation(fields: [creadoPor], references: [id], map: "fk_act_usuario")
+  resultados    ResultadoAcademico[]
 
-  @@index([periodId])
-  @@index([teachingAssignmentId])
-  @@map("academic_activity")
+  @@unique([asignacionId, codigo], map: "uq_actividad")
+  @@index([fechaActividad, estado], map: "idx_actividad_fecha")
+  @@map("actividad_academica")
 }
 
-/// Registro académico microcurricular: resultado de un estudiante en una actividad.
-/// `code` (REG-xxxxxx) es la referencia técnica que se vincula con la evidencia On-chain.
-model AcademicResult {
-  id                  Int              @id @default(autoincrement())
-  code                String           @unique @db.VarChar(20)
-  enrollmentId        Int              @map("enrollment_id")
-  activityId          Int              @map("activity_id")
-  qualitativeGrade    QualitativeGrade @map("qualitative_grade")
-  numericScore        Decimal?         @map("numeric_score") @db.Decimal(4, 2)
-  observation         String?          @db.VarChar(255)
-  recordedAt          DateTime         @map("recorded_at") @db.DateTime(3)
-  recordedByTeacherId Int              @map("recorded_by_teacher_id")
-  version             Int              @default(1)
-  status              RecordStatus     @default(ACTIVO)
-  updatedAt           DateTime         @updatedAt @map("updated_at") @db.DateTime(3)
+/// Resultado académico detallado. Permanece Off-chain.
+model ResultadoAcademico {
+  id              BigInt          @id @default(autoincrement()) @map("resultado_id") @db.UnsignedBigInt
+  /// E1: referencia técnica estable usada como objeto_ref On-chain (p. ej. REG-0001).
+  codigo          String          @unique @db.VarChar(20)
+  matriculaId     BigInt          @map("matricula_id") @db.UnsignedBigInt
+  actividadId     BigInt          @map("actividad_id") @db.UnsignedBigInt
+  versionActual   Int             @default(1) @map("version_actual") @db.UnsignedInt
+  puntajeObtenido Decimal?        @map("puntaje_obtenido") @db.Decimal(6, 2)
+  estado          EstadoResultado @default(VIGENTE)
+  registradoPor   BigInt          @map("registrado_por") @db.UnsignedBigInt
+  registradoEn    DateTime        @default(now()) @map("registrado_en") @db.DateTime(0)
+  actualizadoEn   DateTime        @default(now()) @updatedAt @map("actualizado_en") @db.DateTime(0)
 
-  enrollment  Enrollment              @relation(fields: [enrollmentId], references: [id])
-  activity    AcademicActivity        @relation(fields: [activityId], references: [id])
-  recordedBy  Teacher                 @relation(fields: [recordedByTeacherId], references: [id])
-  history     AcademicResultHistory[]
-  evidences   BlockchainEvidence[]
-  traceEvents TraceabilityEvent[]
+  matricula   Matricula            @relation(fields: [matriculaId], references: [id], map: "fk_res_matricula")
+  actividad   ActividadAcademica   @relation(fields: [actividadId], references: [id], map: "fk_res_actividad")
+  registrador Usuario              @relation(fields: [registradoPor], references: [id], map: "fk_res_usuario")
+  historial   HistorialResultado[]
 
-  @@unique([enrollmentId, activityId])
-  @@index([activityId])
-  @@map("academic_result")
+  @@unique([matriculaId, actividadId], map: "uq_resultado")
+  @@index([actividadId, estado], map: "idx_resultado_actividad")
+  @@index([matriculaId, estado], map: "idx_resultado_matricula")
+  @@map("resultado_academico")
 }
 
-/// Versiones anteriores de un resultado (se escribe antes de cada rectificación).
-model AcademicResultHistory {
-  id                 Int              @id @default(autoincrement())
-  resultId           Int              @map("result_id")
-  version            Int
-  qualitativeGrade   QualitativeGrade @map("qualitative_grade")
-  numericScore       Decimal?         @map("numeric_score") @db.Decimal(4, 2)
-  observation        String?          @db.VarChar(255)
-  recordedAt         DateTime         @map("recorded_at") @db.DateTime(3)
-  changeReason       String           @map("change_reason") @db.VarChar(255)
-  changedByReference String           @map("changed_by_reference") @db.VarChar(20)
-  changedAt          DateTime         @default(now()) @map("changed_at") @db.DateTime(3)
+/// Historial detallado de cambios; respaldo operativo Off-chain.
+model HistorialResultado {
+  id              BigInt     @id @default(autoincrement()) @map("historial_id") @db.UnsignedBigInt
+  resultadoId     BigInt     @map("resultado_id") @db.UnsignedBigInt
+  version         Int        @db.UnsignedInt
+  puntajeAnterior Decimal?   @map("puntaje_anterior") @db.Decimal(6, 2)
+  puntajeNuevo    Decimal?   @map("puntaje_nuevo") @db.Decimal(6, 2)
+  tipoCambio      TipoCambio @map("tipo_cambio")
+  motivoCodigo    String?    @map("motivo_codigo") @db.VarChar(40)
+  motivoDetalle   String?    @map("motivo_detalle") @db.VarChar(500)
+  realizadoPor    BigInt     @map("realizado_por") @db.UnsignedBigInt
+  realizadoEn     DateTime   @default(now()) @map("realizado_en") @db.DateTime(0)
 
-  result AcademicResult @relation(fields: [resultId], references: [id])
+  resultado ResultadoAcademico @relation(fields: [resultadoId], references: [id], map: "fk_hist_resultado")
+  usuario   Usuario            @relation(fields: [realizadoPor], references: [id], map: "fk_hist_usuario")
 
-  @@unique([resultId, version])
-  @@map("academic_result_history")
+  @@unique([resultadoId, version], map: "uq_historial_version")
+  @@index([realizadoEn], map: "idx_historial_fecha")
+  @@map("historial_resultado")
 }
 
-model Attendance {
-  id           Int              @id @default(autoincrement())
-  enrollmentId Int              @map("enrollment_id")
-  date         DateTime         @db.Date
-  status       AttendanceStatus
+model Asistencia {
+  id            BigInt           @id @default(autoincrement()) @map("asistencia_id") @db.UnsignedBigInt
+  matriculaId   BigInt           @map("matricula_id") @db.UnsignedBigInt
+  asignacionId  BigInt           @map("asignacion_id") @db.UnsignedBigInt
+  fecha         DateTime         @db.Date
+  estado        EstadoAsistencia
+  registradoPor BigInt           @map("registrado_por") @db.UnsignedBigInt
+  registradoEn  DateTime         @default(now()) @map("registrado_en") @db.DateTime(0)
 
-  enrollment Enrollment @relation(fields: [enrollmentId], references: [id])
+  matricula  Matricula         @relation(fields: [matriculaId], references: [id], map: "fk_asis_matricula")
+  asignacion AsignacionDocente @relation(fields: [asignacionId], references: [id], map: "fk_asis_asignacion")
+  usuario    Usuario           @relation(fields: [registradoPor], references: [id], map: "fk_asis_usuario")
 
-  @@unique([enrollmentId, date])
-  @@map("attendance")
-}
-
-// ---------------------------------------------------------------------------
-// Usuarios y roles (estructura base; la autenticación completa es del Hito 5)
-// ---------------------------------------------------------------------------
-
-model Role {
-  id          Int    @id @default(autoincrement())
-  code        String @unique @db.VarChar(20)
-  name        String @db.VarChar(60)
-  description String @db.VarChar(255)
-
-  users User[]
-
-  @@map("role")
-}
-
-model User {
-  id             Int      @id @default(autoincrement())
-  username       String   @unique @db.VarChar(40)
-  actorReference String   @unique @map("actor_reference") @db.VarChar(20)
-  roleId         Int      @map("role_id")
-  teacherId      Int?     @unique @map("teacher_id")
-  active         Boolean  @default(true)
-  createdAt      DateTime @default(now()) @map("created_at")
-
-  role    Role     @relation(fields: [roleId], references: [id])
-  teacher Teacher? @relation(fields: [teacherId], references: [id])
-
-  @@map("app_user")
+  @@unique([matriculaId, asignacionId, fecha], map: "uq_asistencia")
+  @@index([fecha, estado], map: "idx_asistencia_fecha")
+  @@map("asistencia")
 }
 
 // ---------------------------------------------------------------------------
 // Vinculación On-chain / Off-chain
 // ---------------------------------------------------------------------------
 
-/// Copia local de la evidencia anclada en Fabric y su TX_ID.
-model BlockchainEvidence {
-  id               Int                   @id @default(autoincrement())
-  resultId         Int                   @map("result_id")
-  evidenceId       String                @unique @map("evidence_id") @db.VarChar(40)
-  version          Int
-  eventType        TraceabilityEventType @map("event_type")
-  evidenceHash     String                @map("evidence_hash") @db.Char(64)
-  algorithm        String                @default("HMAC-SHA-256") @db.VarChar(20)
-  canonicalVersion String                @map("canonical_version") @db.VarChar(10)
-  channelName      String                @map("channel_name") @db.VarChar(50)
-  chaincodeName    String                @map("chaincode_name") @db.VarChar(50)
-  txId             String?               @unique @map("tx_id") @db.Char(64)
-  blockNumber      BigInt?               @map("block_number")
-  status           EvidenceStatus        @default(PENDIENTE)
-  errorMessage     String?               @map("error_message") @db.VarChar(500)
-  createdAt        DateTime              @default(now()) @map("created_at") @db.DateTime(3)
-  confirmedAt      DateTime?             @map("confirmed_at") @db.DateTime(3)
+/// Cola/registro local de eventos destinados a blockchain.
+model EventoTrazabilidad {
+  /// UUID generado por el middleware; es también la clave de la evidencia en el ledger.
+  id                    String                 @id @map("evento_id") @db.Char(36)
+  objetoTipo            ObjetoTipo             @map("objeto_tipo")
+  /// Referencia seudónima/código técnico, nunca nombre o DNI.
+  objetoRef             String                 @map("objeto_ref") @db.VarChar(80)
+  eventoTipo            EventoTipo             @map("evento_tipo")
+  version               Int                    @db.UnsignedInt
+  actorUsuarioId        BigInt                 @map("actor_usuario_id") @db.UnsignedBigInt
+  actorRolCodigo        String                 @map("actor_rol_codigo") @db.VarChar(40)
+  /// HMAC-SHA-256 del payload canónico; la clave permanece fuera de la blockchain.
+  compromisoHmac        String                 @map("compromiso_hmac") @db.Char(64)
+  compromisoAnterior    String?                @map("compromiso_anterior") @db.Char(64)
+  estadoEvento          EstadoEvento           @default(PENDIENTE) @map("estado_evento")
+  /// E2: resultado de la verificación (solo eventos VERIFICACION).
+  resultadoVerificacion ResultadoVerificacion? @map("resultado_verificacion")
+  /// E3: causa del último fallo de envío a Fabric.
+  errorDetalle          String?                @map("error_detalle") @db.VarChar(500)
+  creadoEn              DateTime               @default(now()) @map("creado_en") @db.DateTime(0)
 
-  result AcademicResult @relation(fields: [resultId], references: [id])
+  actor     Usuario              @relation(fields: [actorUsuarioId], references: [id], map: "fk_evt_usuario")
+  evidencia EvidenciaBlockchain?
 
-  @@unique([resultId, version])
-  @@index([status])
-  @@map("blockchain_evidence")
+  @@index([objetoTipo, objetoRef, version], map: "idx_evt_objeto")
+  @@index([creadoEn], map: "idx_evt_fecha")
+  @@map("evento_trazabilidad")
 }
 
-/// Bitácora Off-chain de eventos de trazabilidad (registro, verificación, rectificación).
-model TraceabilityEvent {
-  id             Int                     @id @default(autoincrement())
-  resultId       Int                     @map("result_id")
-  eventType      TraceabilityEventType   @map("event_type")
-  version        Int
-  status         TraceabilityEventStatus
-  actorReference String                  @map("actor_reference") @db.VarChar(20)
-  actorRole      String                  @map("actor_role") @db.VarChar(30)
-  evidenceId     String?                 @map("evidence_id") @db.VarChar(40)
-  txId           String?                 @map("tx_id") @db.Char(64)
-  detail         String?                 @db.VarChar(500)
-  occurredAt     DateTime                @default(now()) @map("occurred_at") @db.DateTime(3)
+/// Referencia local a la transacción confirmada en Hyperledger Fabric.
+model EvidenciaBlockchain {
+  id          BigInt               @id @default(autoincrement()) @map("evidencia_id") @db.UnsignedBigInt
+  eventoId    String               @unique @map("evento_id") @db.Char(36)
+  red         String               @default("fabric-academic") @db.VarChar(80)
+  canal       String               @default("academicchannel") @db.VarChar(80)
+  chaincode   String               @default("academic-traceability") @db.VarChar(80)
+  txId        String               @unique @map("tx_id") @db.VarChar(160)
+  blockNumber BigInt?              @map("block_number") @db.UnsignedBigInt
+  committedAt DateTime?            @map("committed_at") @db.DateTime(0)
+  validacion  ValidacionBlockchain @default(PENDIENTE)
 
-  result AcademicResult @relation(fields: [resultId], references: [id])
+  evento EventoTrazabilidad @relation(fields: [eventoId], references: [id], map: "fk_evidencia_evento")
 
-  @@index([resultId, occurredAt])
-  @@map("traceability_event")
+  @@map("evidencia_blockchain")
 }

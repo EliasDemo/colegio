@@ -1,0 +1,44 @@
+
+
+
+------------------------------------
+REGISTRO ACADÉMICO
+------------------------------------
+
+[INFO] Buscando registro REG-0001
+[INFO] Registro encontrado {"version":1,"estado":"VIGENTE"}
+[INFO] Compromiso HMAC generado {"eventType":"CREACION","version":1}
+[INFO] Evento PENDIENTE {"eventId":"0b30977e-b5dc-41e5-96e7-4610bafc85dd","reintento":false}
+[INFO] Conectando a Fabric {"channel":"academicchannel"}
+[INFO] Transacción enviada {"eventId":"0b30977e-b5dc-41e5-96e7-4610bafc85dd","eventType":"CREACION"}
+[INFO] TX_ID obtenido {"txId":"342dd8cca7ca8f6d72c7a4184fb90d98f3f83ba0723f91f15249a75fc94906e7"}
+[INFO] Referencia persistida en evidencia_blockchain
+
+Registro: REG-0001
+
+Estudiante (token):
+STU-99D2DC1D4BF4F412
+
+Actividad:
+EV-MAT-301  (MAT, 2026-B3, sección 3A)
+
+Versión:
+1  (CREACION, estado VIGENTE)
+
+Compromiso (HMAC-SHA-256):
+e68d43b57c32539240eefff1a57523a16d91d46f45292c6a5764865428999b36
+
+Evento (UUID):
+0b30977e-b5dc-41e5-96e7-4610bafc85dd
+
+Transacción confirmada en Hyperledger Fabric.
+
+TX_ID:
+342dd8cca7ca8f6d72c7a4184fb90d98f3f83ba0723f91f15249a75fc94906e7
+
+Bloque:
+4
+
+Referencia guardada en MySQL (evidencia_blockchain, evento CONFIRMADO).
+
+PROCESO COMPLETADO CORRECTAMENTE.

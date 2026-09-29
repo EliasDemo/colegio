@@ -11,7 +11,7 @@ services:
     restart: unless-stopped
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Defina MYSQL_ROOT_PASSWORD en database/.env}
-      MYSQL_DATABASE: trazabilidad_academica
+      MYSQL_DATABASE: nuevo_horizonte_trazabilidad
       TZ: America/Lima
     command:
       - --character-set-server=utf8mb4

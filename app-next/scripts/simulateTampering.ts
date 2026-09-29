@@ -1,9 +1,9 @@
 /**
  * SOLO PARA PRUEBAS (PT-13). Simula una modificación NO autorizada directamente en MySQL,
- * sin pasar por la aplicación ni incrementar la versión.
+ * sin pasar por la aplicación, sin historial y sin incrementar la versión.
  *
- *   npm run tamper -- REG-000001            altera la nota y guarda un respaldo local
- *   npm run tamper -- REG-000001 --restore  restaura el valor original
+ *   npm run tamper -- REG-0001            altera puntaje_obtenido y guarda un respaldo local
+ *   npm run tamper -- REG-0001 --restore  restaura el valor original
  */
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
@@ -18,25 +18,28 @@ void runCli(async () => {
   header(restore ? 'RESTAURACIÓN DE PRUEBA' : 'SIMULACIÓN DE ALTERACIÓN (PT-13)');
 
   if (restore) {
-    const saved = JSON.parse(await fs.readFile(backupFile(code), 'utf8')) as { grade: string; score: string | null };
-    await prisma.$executeRaw`UPDATE academic_result SET qualitative_grade = ${saved.grade}, numeric_score = ${saved.score} WHERE code = ${code}`;
+    const saved = JSON.parse(await fs.readFile(backupFile(code), 'utf8')) as { score: string | null };
+    await prisma.$executeRaw`UPDATE resultado_academico SET puntaje_obtenido = ${saved.score} WHERE codigo = ${code}`;
     await fs.rm(backupFile(code));
-    console.log(`Registro ${code} restaurado a ${saved.grade} / ${saved.score ?? 'null'}.`);
+    console.log(`Registro ${code} restaurado a puntaje ${saved.score ?? 'null'}.`);
     return;
   }
 
-  const rows = await prisma.$queryRaw<Array<{ grade: string; score: string | null }>>`
-    SELECT qualitative_grade AS grade, CAST(numeric_score AS CHAR) AS score FROM academic_result WHERE code = ${code}`;
+  const rows = await prisma.$queryRaw<Array<{ score: string | null; max: string }>>`
+    SELECT CAST(r.puntaje_obtenido AS CHAR) AS score, CAST(a.puntaje_maximo AS CHAR) AS max
+    FROM resultado_academico r JOIN actividad_academica a ON a.actividad_id = r.actividad_id
+    WHERE r.codigo = ${code}`;
   const original = rows[0];
   if (!original) throw new Error(`El registro ${code} no existe`);
 
   await fs.mkdir(path.dirname(backupFile(code)), { recursive: true });
-  await fs.writeFile(backupFile(code), JSON.stringify(original));
+  await fs.writeFile(backupFile(code), JSON.stringify({ score: original.score }));
 
-  const tamperedScore = original.score === null || Number(original.score) < 20 ? '20.00' : '19.00';
-  await prisma.$executeRaw`UPDATE academic_result SET qualitative_grade = 'AD', numeric_score = ${tamperedScore} WHERE code = ${code}`;
-  console.log(`Registro ${code} modificado directamente en MySQL (sin nueva versión):`);
-  console.log(`  antes:   ${original.grade} / ${original.score ?? 'null'}`);
-  console.log(`  después: AD / ${tamperedScore}`);
+  const max = Number(original.max);
+  const tampered = (original.score === null || Number(original.score) < max ? max : max - 1).toFixed(2);
+  await prisma.$executeRaw`UPDATE resultado_academico SET puntaje_obtenido = ${tampered} WHERE codigo = ${code}`;
+  console.log(`Registro ${code} modificado directamente en MySQL (sin historial ni nueva versión):`);
+  console.log(`  antes:   ${original.score ?? 'null'}`);
+  console.log(`  después: ${tampered}`);
   console.log(`\nEjecute ahora: npm run verify -- ${code}`);
 });

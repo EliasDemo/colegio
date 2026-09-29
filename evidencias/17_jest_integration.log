@@ -1,91 +1,90 @@
 
 
   console.log
-    [INFO] Buscando registro REG-000020
+    [INFO] Buscando registro REG-0020
 
       at write (src/lib/logger/index.ts:32:16)
 
   console.log
-    [INFO] Registro encontrado {"version":1}
+    [INFO] Registro encontrado {"version":1,"estado":"VIGENTE"}
 
       at write (src/lib/logger/index.ts:32:16)
 
   console.log
-    [INFO] Evidence generada {"evidenceId":"EVD-REG-000020-V1"}
+    [INFO] Compromiso HMAC generado {"eventType":"CREACION","version":1}
 
       at write (src/lib/logger/index.ts:32:16)
 
   console.log
-    [INFO] Conectando a Fabric {"channel":"academicchannel","chaincode":"academic-traceability"}
+    [INFO] La versión ya estaba anclada (reintento idempotente) {"txId":"949ed1d2cf003d72a2f2b68f0cc62e50209705b1d9ac806192ecd259d5358424"}
 
       at write (src/lib/logger/index.ts:32:16)
 
   console.log
-    [INFO] Transacción enviada {"evidenceId":"EVD-REG-000020-V1"}
+    [INFO] Buscando registro REG-0020
 
       at write (src/lib/logger/index.ts:32:16)
 
   console.log
-    [INFO] TX_ID obtenido {"txId":"970c748f8d93b1fbd5cad9f0683735927452a2601b537f31acf9dda7355de422"}
+    [INFO] Registro encontrado {"version":1,"estado":"VIGENTE"}
 
       at write (src/lib/logger/index.ts:32:16)
 
   console.log
-    [INFO] Referencia persistida
+    [INFO] Consultando eventos On-chain
 
       at write (src/lib/logger/index.ts:32:16)
 
   console.log
-    [INFO] Buscando registro REG-000020
+    [INFO] Verificación calculada {"status":"INTEGRO","chainIntact":true}
 
       at write (src/lib/logger/index.ts:32:16)
 
   console.log
-    [INFO] Registro encontrado {"version":1}
+    [INFO] Conectando a Fabric {"channel":"academicchannel"}
 
       at write (src/lib/logger/index.ts:32:16)
 
   console.log
-    [INFO] Consultando evidencia On-chain
+    [INFO] Transacción enviada {"eventId":"18e570cd-2cb8-4c7e-b6db-6516d51df6a4","eventType":"VERIFICACION"}
 
       at write (src/lib/logger/index.ts:32:16)
 
   console.log
-    [INFO] Verificación completada {"status":"INTEGRO"}
+    [INFO] Buscando registro REG-0020
 
       at write (src/lib/logger/index.ts:32:16)
 
   console.log
-    [INFO] Buscando registro REG-000020
-
-      at write (src/lib/logger/index.ts:32:16)
-
-  console.log
-    [INFO] Registro encontrado {"version":1}
+    [INFO] Registro encontrado {"version":1,"estado":"VIGENTE"}
 
       at write (src/lib/logger/index.ts:32:16)
 
 PASS tests/integration/e2e.fabric-mysql.test.ts
   Integración On-chain / Off-chain (infraestructura real)
-    √ registra (o reutiliza) la evidencia y guarda el TX_ID en MySQL (2235 ms)
-    √ verifica el registro como INTEGRO contra el ledger (37 ms)
-    √ el ledger no contiene datos personales (36 ms)
+    √ registra (o reutiliza) el evento y guarda el TX_ID en evidencia_blockchain (59 ms)
+    √ verifica el registro como INTEGRO contra el ledger (2236 ms)
+    √ el ledger no contiene tokens, notas ni datos académicos del registro (29 ms)
 
 PASS tests/integration/traceability.service.test.ts
-  TraceabilityService
-    √ registra la evidencia, guarda el TX_ID y crea el evento de trazabilidad (2 ms)
-    √ no envía datos personales al ledger (1 ms)
-    √ es idempotente: un segundo registro de la misma versión no crea otra transacción (1 ms)
-    √ verifica INTEGRO y detecta ALTERADO tras una modificación directa (2 ms)
-    √ informa NO_REGISTRADO cuando no hay evidencia anclada
-    √ caso 3: registro inexistente (1 ms)
-    √ caso 1: si Fabric falla, el intento queda FALLIDO en MySQL y puede reintentarse
-    √ caso 2: si falla la escritura del TX_ID, el reintento reconcilia sin duplicar la transacción (1 ms)
-    √ la rectificación crea una nueva versión On-chain y conserva la anterior (1 ms)
-    √ rechaza actores que no sean seudónimos (9 ms)
+  TraceabilityService (flujo H2-06)
+    √ registra: evento PENDIENTE (UUID) → Fabric → evidencia_blockchain con TX_ID → CONFIRMADO (2 ms)
+    √ no envía datos académicos ni identidades al ledger
+    √ es idempotente: reintentar una versión confirmada no crea otra transacción (1 ms)
+    √ verifica INTEGRO, registra la verificación y detecta ALTERADO tras una modificación directa (1 ms)
+    √ informa NO_VERIFICABLE cuando no hay evidencia anclada (1 ms)
+    √ caso 3: registro inexistente
+    √ rechaza actores inexistentes (1 ms)
+    √ caso 1: si Fabric falla, el evento queda en ERROR y el reintento reutiliza el mismo UUID (1 ms)
+    √ caso 2: si falla la escritura del TX_ID, el reintento consulta el ledger por eventId y reconcilia
+    √ la rectificación ancla una nueva versión encadenada al compromiso anterior (1 ms)
+    √ la rectificación ancla primero la versión vigente si aún no estaba anclada (1 ms)
+    √ rechaza un puntaje de rectificación mayor que el máximo de la actividad (7 ms)
+  isCommitmentChainIntact()
+    √ acepta una cadena correcta y rechaza eslabones rotos
 
 Test Suites: 2 passed, 2 total
-Tests:       13 passed, 13 total
+Tests:       16 passed, 16 total
 Snapshots:   0 total
-Time:        2.98 s
+Time:        2.963 s, estimated 4 s
 Ran all test suites matching /tests\\integration/i.

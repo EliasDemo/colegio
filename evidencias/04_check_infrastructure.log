@@ -1,17 +1,11 @@
-
-> trazabilidad-academica-app@0.3.0 check
-> tsx --conditions=react-server scripts/checkInfrastructure.ts
-
-
 ------------------------------------
 VERIFICACIÓN DE INFRAESTRUCTURA
 ------------------------------------
-
 [OK]    Variable HMAC_SECRET: definida (64 caracteres)
 [OK]    Configuración Fabric: NuevoHorizonteMSP → localhost:7051 · academicchannel/academic-traceability
-[OK]    Conexión MySQL (Prisma): MySQL 8.4.11
-[OK]    Registros académicos: 120 resultados · 24 estudiantes · 15 actividades
+[OK]    Conexión MySQL (Prisma): MySQL 8.4.11 · base nuevo_horizonte_trazabilidad
+[OK]    Registros académicos: 147 resultados (77 del dataset Hito 2) · 30 estudiantes · 15 actividades
+[OK]    Usuario actor: admin.prototipo (ADMIN)
 [OK]    Fabric Gateway → chaincode: academicEvidenceExists respondió (false)
-[OK]    Evidencias vinculadas en MySQL: 0 confirmadas · 0 pendientes/fallidas
-
+[OK]    Eventos de trazabilidad en MySQL: 0 confirmados · 0 pendientes · 0 con error
 INFRAESTRUCTURA OPERATIVA.

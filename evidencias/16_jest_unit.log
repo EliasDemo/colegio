@@ -1,73 +1,76 @@
-PASS tests/database/academicRecord.repository.test.ts
-  AcademicRecordRepository
-    √ busca por código con las relaciones necesarias y sin datos personales (7 ms)
-    √ cuenta los registros (1 ms)
-    √ rectifica en una transacción: guarda historial y luego incrementa la versión (2 ms)
-
-PASS tests/crypto/canonicalize.test.ts
-  canonicalizeAcademicRecord()
-    √ produce exactamente la cadena canónica esperada (8 ms)
-    √ es determinista: la misma entrada produce siempre la misma salida (4 ms)
-    √ no depende del orden de las propiedades del objeto de entrada
-    √ respeta el orden de campos definido (1 ms)
-    √ normaliza espacios, mayúsculas de códigos y Unicode (NFC) (1 ms)
-    √ formatea números con 2 decimales y fechas en ISO 8601 UTC (1 ms)
-    √ representa los valores ausentes como null explícito
-    √ rechaza registros inválidos o con datos no seudonimizados (11 ms)
-
 PASS tests/database/schemas.test.ts
   Validaciones Zod
-    √ RecordCodeSchema normaliza y valida el código (6 ms)
-    √ AcademicRecordSchema acepta un registro válido y rechaza nombres en lugar de seudónimos (3 ms)
-    √ BlockchainEvidenceSchema valida el objeto devuelto por el chaincode (1 ms)
-    √ TraceabilityEventSchema y ActorSchema exigen actores seudónimos (1 ms)
-    √ RectificationSchema exige nota válida y motivo
+    √ RecordCodeSchema acepta los códigos del Hito 2 y del complemento (7 ms)
+    √ AcademicRecordSchema exige tokens seudónimos y puntaje dentro del máximo (2 ms)
+    √ BlockchainEvidenceSchema valida el evento devuelto por el chaincode (1 ms)
+    √ TraceabilityEventSchema valida el evento local antes de persistirlo (1 ms)
+    √ UsernameSchema y RectificationSchema
+
+PASS tests/database/academicRecord.repository.test.ts
+  AcademicRecordRepository
+    √ busca por código con las relaciones del modelo del Hito 2 (8 ms)
+    √ cuenta los registros (1 ms)
+    √ rectifica en una transacción: historial con motivo y luego nueva versión RECTIFICADO (2 ms)
+
+PASS tests/crypto/canonicalize.test.ts
+  canonicalizeAcademicRecord() — payload canónico v2
+    √ produce exactamente la cadena canónica esperada (10 ms)
+    √ es determinista: la misma entrada produce siempre la misma salida (4 ms)
+    √ no depende del orden de las propiedades del objeto de entrada (1 ms)
+    √ respeta el orden de campos definido (1 ms)
+    √ normaliza espacios y mayúsculas de códigos y tokens (1 ms)
+    √ formatea puntajes con 2 decimales y fechas en ISO 8601
+    √ representa el puntaje ausente como null explícito (1 ms)
+    √ rechaza registros inválidos o con identidad en lugar de tokens (11 ms)
 
 PASS tests/crypto/evidence.test.ts
   generateEvidence()
     √ genera HMAC-SHA-256 hexadecimal de 64 caracteres (6 ms)
-    √ coincide con un HMAC calculado de forma independiente sobre la cadena canónica (1 ms)
-    √ es determinista
+    √ coincide con un HMAC calculado de forma independiente sobre la cadena canónica
+    √ es determinista (1 ms)
     √ cambia ante cualquier modificación del registro (1 ms)
     √ depende de la clave secreta (sin clave no se puede recalcular) (1 ms)
     √ rechaza claves cortas (7 ms)
-    √ usa HMAC_SECRET del entorno cuando no se inyecta la clave
-    √ construye el evidenceId determinista (1 ms)
+    √ usa HMAC_SECRET del entorno cuando no se inyecta la clave (1 ms)
   verifyEvidence()
-    √ valida un registro íntegro
+    √ valida un registro íntegro (1 ms)
     √ detecta un registro modificado
-    √ acepta la evidencia en mayúsculas y rechaza formatos inválidos
+    √ acepta el compromiso en mayúsculas y rechaza formatos inválidos
 
 PASS tests/fabric/errors.test.ts
   toFabricError()
     √ clasifica "14 UNAVAILABLE: No connection established. Last error: Error: connect ECONNREFUSED 127.0.0.1:7051." como PEER_UNAVAILABLE (5 ms)
-    √ clasifica "14 UNAVAILABLE: no orderers could successfully process transaction" como ORDERER_UNAVAILABLE
+    √ clasifica "14 UNAVAILABLE: no orderers could successfully process transaction" como ORDERER_UNAVAILABLE (1 ms)
     √ clasifica "10 ABORTED: failed to collect enough transaction endorsements, see attached details for more info | AcademicValidatorMSP@peer0.validator.example.com:9051: rpc error: code = Unavailable" como ENDORSEMENT_FAILED
-    √ clasifica "9 FAILED_PRECONDITION: no combination of peers can be derived which satisfy the endorsement policy: no peer combination can satisfy the endorsement policy" como ENDORSEMENT_FAILED (1 ms)
+    √ clasifica "9 FAILED_PRECONDITION: no combination of peers can be derived which satisfy the endorsement policy: no peer combination can satisfy the endorsement policy" como ENDORSEMENT_FAILED
     √ clasifica "9 FAILED_PRECONDITION: evaluate call to endorser returned error: error validating proposal: access denied: channel [academicchannel] creator org unknown, creator is malformed" como IDENTITY_INVALID
-    √ clasifica "9 FAILED_PRECONDITION: no peers available to evaluate chaincode chaincode-inexistente in channel academicchannel" como CHAINCODE_NOT_DEPLOYED
+    √ clasifica "9 FAILED_PRECONDITION: no peers available to evaluate chaincode chaincode-inexistente in channel academicchannel" como CHAINCODE_NOT_DEPLOYED (1 ms)
     √ clasifica "14 UNAVAILABLE: failed to get config for channel [canalinexistente]: could not get last config for channel canalinexistente" como CHANNEL_NOT_FOUND
-    √ clasifica "10 ABORTED: failed to endorse transaction, see attached details for more info | chaincode response 500, La evidencia EVD-REG-000001-V1 ya existe" como EVIDENCE_ALREADY_EXISTS
-    √ clasifica "chaincode response 500, No existe evidencia EVD-REG-999999-V1" como EVIDENCE_NOT_FOUND (1 ms)
+    √ clasifica "10 ABORTED: failed to endorse transaction, see attached details for more info | chaincode response 500, El evento 00000000-0000-4000-8000-000000000001 ya existe" como EVIDENCE_ALREADY_EXISTS
+    √ clasifica "chaincode response 500, No existe evidencia 00000000-0000-4000-8000-000000000009" como EVIDENCE_NOT_FOUND
     √ clasifica "4 DEADLINE_EXCEEDED: Deadline exceeded" como TIMEOUT
-    √ clasifica "algo inesperado" como UNKNOWN
+    √ clasifica "algo inesperado" como UNKNOWN (1 ms)
     √ no vuelve a envolver un FabricError
 
 PASS tests/integration/traceability.service.test.ts
-  TraceabilityService
-    √ registra la evidencia, guarda el TX_ID y crea el evento de trazabilidad (9 ms)
-    √ no envía datos personales al ledger (1 ms)
-    √ es idempotente: un segundo registro de la misma versión no crea otra transacción (1 ms)
-    √ verifica INTEGRO y detecta ALTERADO tras una modificación directa (1 ms)
-    √ informa NO_REGISTRADO cuando no hay evidencia anclada (1 ms)
+  TraceabilityService (flujo H2-06)
+    √ registra: evento PENDIENTE (UUID) → Fabric → evidencia_blockchain con TX_ID → CONFIRMADO (9 ms)
+    √ no envía datos académicos ni identidades al ledger (1 ms)
+    √ es idempotente: reintentar una versión confirmada no crea otra transacción (1 ms)
+    √ verifica INTEGRO, registra la verificación y detecta ALTERADO tras una modificación directa (1 ms)
+    √ informa NO_VERIFICABLE cuando no hay evidencia anclada (1 ms)
     √ caso 3: registro inexistente
-    √ caso 1: si Fabric falla, el intento queda FALLIDO en MySQL y puede reintentarse (1 ms)
-    √ caso 2: si falla la escritura del TX_ID, el reintento reconcilia sin duplicar la transacción (1 ms)
-    √ la rectificación crea una nueva versión On-chain y conserva la anterior (2 ms)
-    √ rechaza actores que no sean seudónimos (10 ms)
+    √ rechaza actores inexistentes
+    √ caso 1: si Fabric falla, el evento queda en ERROR y el reintento reutiliza el mismo UUID (1 ms)
+    √ caso 2: si falla la escritura del TX_ID, el reintento consulta el ledger por eventId y reconcilia (1 ms)
+    √ la rectificación ancla una nueva versión encadenada al compromiso anterior (1 ms)
+    √ la rectificación ancla primero la versión vigente si aún no estaba anclada (1 ms)
+    √ rechaza un puntaje de rectificación mayor que el máximo de la actividad (9 ms)
+  isCommitmentChainIntact()
+    √ acepta una cadena correcta y rechaza eslabones rotos (1 ms)
 
 Test Suites: 1 skipped, 6 passed, 6 of 7 total
-Tests:       3 skipped, 49 passed, 52 total
+Tests:       3 skipped, 51 passed, 54 total
 Snapshots:   0 total
-Time:        1.579 s, estimated 3 s
+Time:        1.409 s, estimated 4 s
 Ran all test suites.

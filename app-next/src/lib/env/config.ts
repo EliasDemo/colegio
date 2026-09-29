@@ -21,8 +21,7 @@ const FabricEnvSchema = z.object({
 });
 
 const ActorEnvSchema = z.object({
-  ACTOR_REFERENCE: z.string().default('ADM-PSE-001'),
-  ACTOR_ROLE: z.string().default('ADMINISTRADOR'),
+  ACTOR_USERNAME: z.string().min(3).default('admin.prototipo'),
 });
 
 export class ConfigurationError extends Error {
@@ -55,7 +54,7 @@ export function isFabricConfigured(): boolean {
   return FabricEnvSchema.safeParse(process.env).success;
 }
 
-export function getDefaultActor(): { reference: string; role: string } {
-  const env = parse(ActorEnvSchema, 'actor');
-  return { reference: env.ACTOR_REFERENCE, role: env.ACTOR_ROLE };
+/** Usuario del prototipo con el que actúan los scripts (tabla usuario). */
+export function getDefaultActorUsername(): string {
+  return parse(ActorEnvSchema, 'actor').ACTOR_USERNAME;
 }

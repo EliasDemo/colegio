@@ -9,31 +9,32 @@ const parseEvidence = (value: unknown) => BlockchainEvidenceSchema.parse(value) 
 
 /** Implementación de AcademicLedger sobre el chaincode academic-traceability. */
 export const fabricAcademicLedger: AcademicLedger = {
-  evidenceExists: (evidenceId) =>
-    withContract((contract) => evaluateTransaction<boolean>(contract, 'academicEvidenceExists', [evidenceId])),
+  evidenceExists: (eventId) =>
+    withContract((contract) => evaluateTransaction<boolean>(contract, 'academicEvidenceExists', [eventId])),
 
   createEvidence: (args: CreateAcademicEvidenceArgs) =>
     withContract(async (contract) => {
       const result = await submitTransaction<unknown>(contract, 'createAcademicEvidence', [
-        args.evidenceId,
-        args.recordReference,
+        args.eventId,
+        args.objectType,
+        args.objectRef,
         args.eventType,
         String(args.version),
-        args.evidence,
-        args.actorReference,
+        args.commitment,
+        args.previousCommitment ?? '',
         args.actorRole,
       ]);
       return { ...result, payload: parseEvidence(result.payload) };
     }),
 
-  readEvidence: (evidenceId) =>
+  readEvidence: (eventId) =>
     withContract(async (contract) =>
-      parseEvidence(await evaluateTransaction<unknown>(contract, 'readAcademicEvidence', [evidenceId])),
+      parseEvidence(await evaluateTransaction<unknown>(contract, 'readAcademicEvidence', [eventId])),
     ),
 
-  getEvidenceHistory: (recordReference) =>
+  getEvidenceHistory: (objectType, objectRef) =>
     withContract(async (contract) => {
-      const items = await evaluateTransaction<unknown[]>(contract, 'getAcademicEvidenceHistory', [recordReference]);
+      const items = await evaluateTransaction<unknown[]>(contract, 'getAcademicEvidenceHistory', [objectType, objectRef]);
       return (items ?? []).map(parseEvidence);
     }),
 };

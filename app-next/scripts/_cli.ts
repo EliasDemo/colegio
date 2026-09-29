@@ -12,7 +12,7 @@ export function header(title: string) {
 export function requireRecordCode(): string {
   const code = process.argv[2];
   if (!code) {
-    console.error('Uso: npm run <script> -- REG-000001');
+    console.error('Uso: npm run <script> -- REG-0001');
     process.exit(2);
   }
   return code;

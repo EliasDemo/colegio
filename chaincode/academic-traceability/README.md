@@ -1,56 +1,57 @@
 # Chaincode `academic-traceability`
 
-Contrato inteligente independiente (TypeScript + `fabric-contract-api` 2.5.8) que almacena la **evidencia mínima**
-de cada versión de un registro académico. No se ejecuta dentro de Next.js: se despliega en Hyperledger Fabric
+Contrato inteligente independiente (TypeScript + `fabric-contract-api` 2.5.8) que registra los **eventos de
+trazabilidad** definidos en el Hito 2 (H2-03). No se ejecuta dentro de Next.js: se despliega en Hyperledger Fabric
 como servicio externo (Chaincode-as-a-Service).
 
-## Modelo On-chain
+## Modelo On-chain (payload de H2-03)
 
 ```text
-AcademicEvidence {
-  docType: "academicEvidence"
-  evidenceId       EVD-REG-000001-V1        (clave del estado)
-  recordReference  REG-000001
-  eventType        REGISTRO | RECTIFICACION
-  version          1, 2, ...
-  evidence         HMAC-SHA-256 hexadecimal (64)
-  algorithm        HMAC-SHA-256
-  actorReference   ADM-PSE-001 / DOC-PSE-003 ...
-  actorRole        ADMINISTRADOR / DOCENTE ...
-  submitterMspId   MSP del cliente que firmó (tomado del certificado)
-  timestamp        hora de la propuesta de transacción (determinista)
-  status           REGISTRADO
-  txId             identificador de la transacción
+AcademicEvent {
+  docType: "academicEvent"
+  eventId            UUID v4 generado por el middleware (clave del estado; = evento_trazabilidad.evento_id)
+  objectType         RESULTADO | ACTIVIDAD | ASISTENCIA
+  objectRef          referencia técnica (REG-0001)
+  eventType          CREACION | RECTIFICACION | VERIFICACION | REVOCACION
+  version            versión del dato
+  commitment         HMAC-SHA-256 del payload canónico (64 hex)
+  previousCommitment compromiso de la versión anterior (null en CREACION)
+  algorithm          HMAC-SHA-256
+  actorRole          rol técnico del actor (ADMIN, DOCENTE, AUDITOR)
+  submitterMspId     MSP del cliente que firmó (del certificado)
+  timestamp          hora de la propuesta (determinista)
+  status             REGISTRADO
+  txId               transacción de Fabric
 }
 ```
 
-Índice compuesto `record~version` → permite recorrer todas las versiones de un registro.
+**No se almacena:** identidad del actor, tokens de estudiante o docente, notas, actividades ni texto libre. El
+contrato valida con expresiones regulares cada campo y rechaza cualquier otro valor.
 
-**No se almacena:** nombres, DNI, dirección, teléfono, notas, documentos ni datos familiares. El contrato valida
-con expresiones regulares que cada campo sea una referencia seudónima o un HMAC, y rechaza cualquier otro valor.
+## Reglas
+
+- Un `eventId` solo puede registrarse una vez (reintentos idempotentes).
+- **CREACION**: versión 1, sin compromiso anterior.
+- **RECTIFICACION / REVOCACION**: versión n > 1; debe existir la versión n-1 y `previousCommitment` debe ser
+  exactamente su compromiso → las versiones forman una cadena verificable.
+- **VERIFICACION**: no ocupa versión; exige que el objeto tenga al menos la versión 1.
+- Índices compuestos: `object~ref~version` (versiones de datos) y `object~ref~event` (todos los eventos).
 
 ## Funciones
 
 | Función | Tipo | Descripción |
 |---|---|---|
-| `academicEvidenceExists(evidenceId)` | consulta | `true` / `false` |
-| `createAcademicEvidence(evidenceId, recordReference, eventType, version, evidence, actorReference, actorRole)` | transacción | Inmutable: falla si ya existe; la versión *n* exige la *n-1* |
-| `readAcademicEvidence(evidenceId)` | consulta | JSON de la evidencia |
-| `getAcademicEvidenceHistory(recordReference)` | consulta | Todas las versiones del registro |
-| `getAcademicEvidenceKeyHistory(evidenceId)` | consulta | Historial de escrituras de la clave (debe ser una) |
+| `academicEvidenceExists(eventId)` | consulta | `true` / `false` |
+| `createAcademicEvidence(eventId, objectType, objectRef, eventType, version, commitment, previousCommitment, actorRole)` | transacción | Registra el evento aplicando las reglas anteriores |
+| `readAcademicEvidence(eventId)` | consulta | JSON del evento |
+| `getAcademicEvidenceHistory(objectType, objectRef)` | consulta | Todos los eventos del objeto, en orden cronológico |
+| `getAcademicEvidenceKeyHistory(eventId)` | consulta | Historial de escrituras de la clave (debe ser una) |
 
-La transacción emite el evento `AcademicEvidenceCreated`.
+La transacción emite el evento `AcademicEventRegistered`.
 
-## Desarrollo
+## Desarrollo y despliegue
 
 ```bash
-npm install
-npm run build
-npm test          # 8 pruebas con un stub en memoria del ledger
+npm install && npm run build && npm test     # 9 pruebas con un stub en memoria del ledger
+../../fabric-network/scripts/deployChaincode.sh
 ```
-
-## Despliegue
-
-`fabric-network/scripts/deployChaincode.sh` construye la imagen `academic-traceability-ccaas:1.0` con el `Dockerfile`
-de esta carpeta, crea el paquete `ccaas` (dirección `academic-traceability-cc:9999`), lo instala en ambos peers,
-lo aprueba por ambas organizaciones y confirma la definición en `academicchannel`.

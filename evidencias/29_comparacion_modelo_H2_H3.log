@@ -1,0 +1,24 @@
+Tablas en H2_04: 19 · tablas en schema.sql (Hito 3): 19
+
+[OK ] institucion              columnas H2:  7  implementadas:  7
+[OK ] periodo_academico        columnas H2:  7  implementadas:  7
+[OK ] area_curricular          columnas H2:  5  implementadas:  5
+[OK ] grado                    columnas H2:  5  implementadas:  5
+[OK ] seccion                  columnas H2:  4  implementadas:  4
+[OK ] estudiante               columnas H2:  4  implementadas:  4
+[OK ] docente                  columnas H2:  4  implementadas:  4
+[OK ] usuario                  columnas H2:  7  implementadas:  7
+[OK ] rol                      columnas H2:  4  implementadas:  4
+[OK ] usuario_rol              columnas H2:  3  implementadas:  3
+[OK ] matricula                columnas H2:  6  implementadas:  6
+[OK ] asignacion_docente       columnas H2:  6  implementadas:  6
+[OK ] tipo_actividad           columnas H2:  4  implementadas:  4
+[OK ] actividad_academica      columnas H2: 11  implementadas: 11
+[OK ] resultado_academico      columnas H2:  9  implementadas:  9  añadidas: ['codigo']
+[OK ] historial_resultado      columnas H2: 10  implementadas: 10
+[OK ] asistencia               columnas H2:  7  implementadas:  7
+[OK ] evento_trazabilidad      columnas H2: 11  implementadas: 11  añadidas: ['resultado_verificacion', 'error_detalle']
+[OK ] evidencia_blockchain     columnas H2:  9  implementadas:  9
+
+Columnas del Hito 2 implementadas: 123/123
+Tablas adicionales: ninguna

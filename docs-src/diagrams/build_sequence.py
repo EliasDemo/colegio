@@ -18,18 +18,18 @@ X = [LEFT + i * GAP for i in range(len(LANES))]
 
 # (desde, hasta, texto, estilo)  estilo: call | ret | self | section
 STEPS = [
-    ("section", "REGISTRO  ·  npm run record -- REG-000001"),
-    (0, 1, "1. registerAcademicRecordEvidence(REG-000001)", "call"),
-    (1, 2, "2. findByCode (resultado + matrícula, actividad, periodo, área, docente)", "call"),
-    (2, 1, "3. registro v1 (solo referencias seudónimas)", "ret"),
-    (1, 3, "4. canonicalizeAcademicRecord() + HMAC-SHA-256", "call"),
-    (3, 1, "5. evidence (64 hex)", "ret"),
-    (1, 2, "6. savePending → blockchain_evidence = PENDIENTE", "call"),
-    (1, 4, "7. academicEvidenceExists (evaluate)", "call"),
+    ("section", "REGISTRO (CREACION)  ·  npm run record -- REG-0001"),
+    (0, 1, "1. registerAcademicRecordEvidence(REG-0001)", "call"),
+    (1, 2, "2. findByCode: resultado_academico + matrícula, actividad, asignación", "call"),
+    (2, 1, "3. resultado v1 (solo tokens seudónimos)", "ret"),
+    (1, 3, "4. payload canónico v2 + HMAC-SHA-256", "call"),
+    (3, 1, "5. compromiso (64 hex)", "ret"),
+    (1, 2, "6. evento_trazabilidad PENDIENTE (UUID)", "call"),
+    (1, 4, "7. academicEvidenceExists(eventId)", "call"),
     (4, 1, "8. false", "ret"),
-    (1, 4, "9. createAcademicEvidence (submit)", "call"),
+    (1, 4, "9. createAcademicEvidence(eventId, CREACION, v1, commitment)", "call"),
     (4, 5, "10. propuesta firmada (User1@NuevoHorizonteMSP)", "call"),
-    (5, 8, "11. simula la transacción", "call"),
+    (5, 8, "11. simula y valida reglas y encadenamiento", "call"),
     (5, 6, "12. solicita endoso (descubrimiento)", "call"),
     (6, 8, "13. simula y endosa", "call"),
     (4, 7, "14. envía tx endosada por ambas organizaciones", "call"),
@@ -37,17 +37,17 @@ STEPS = [
     (7, 6, "15. bloque", "ret"),
     (5, 4, "16. commit VALID · TX_ID · número de bloque", "ret"),
     (4, 1, "17. { txId, blockNumber }", "ret"),
-    (1, 2, "18. markConfirmed(TX_ID) + evento REGISTRO/CONFIRMADO", "call"),
+    (1, 2, "18. evidencia_blockchain(TX_ID) + evento CONFIRMADO", "call"),
     (1, 0, "19. PROCESO COMPLETADO · TX_ID", "ret"),
-    ("section", "VERIFICACIÓN  ·  npm run verify -- REG-000001"),
-    (0, 1, "20. verifyAcademicRecord(REG-000001)", "call"),
+    ("section", "VERIFICACIÓN  ·  npm run verify -- REG-0001"),
+    (0, 1, "20. verifyAcademicRecord(REG-0001)", "call"),
     (1, 2, "21. findByCode (estado actual en MySQL)", "call"),
     (1, 3, "22. recalcula canónico + HMAC", "call"),
-    (1, 4, "23. getAcademicEvidenceHistory (evaluate)", "call"),
+    (1, 4, "23. getAcademicEvidenceHistory(RESULTADO, REG-0001)", "call"),
     (4, 8, "24. consulta el estado del ledger (vía peer0.nuevohorizonte)", "call"),
-    (4, 1, "25. última versión anclada: evidence + TX_ID", "ret"),
-    (1, 1, "26. comparación en tiempo constante", "self"),
-    (1, 2, "27. evento VERIFICACION (INTEGRO / ALTERADO)", "call"),
+    (4, 1, "25. eventos: última versión + cadena de compromisos", "ret"),
+    (1, 1, "26. compara HMAC y previousCommitment", "self"),
+    (1, 2, "27. evento VERIFICACION (UUID), anclado como en 6-18", "call"),
     (1, 0, "28. RESULTADO: INTEGRO / ALTERADO", "ret"),
 ]
 
@@ -93,7 +93,7 @@ for step in STEPS:
         a(f'<text x="{tx}" y="{y-6}" font-size="13" fill="{color}" paint-order="stroke" stroke="#fff" stroke-width="5">{escape(label)}</text>')
     y += ROW
 
-a(f'<text x="20" y="{H-14}" font-size="13" fill="#5b6b7c">Línea continua: llamada · línea discontinua: respuesta. Si Fabric falla (pasos 9-17) el vínculo queda FALLIDO; si falla el paso 18, el reintento detecta la evidencia en el ledger (paso 7 = true) y reconcilia el TX_ID sin duplicar la transacción.</text>')
+a(f'<text x="20" y="{H-14}" font-size="13" fill="#5b6b7c">Línea continua: llamada · línea discontinua: respuesta. Si Fabric falla (pasos 9-17) el evento queda en ERROR; si falla el paso 18 queda PENDIENTE. El reintento usa el mismo UUID: si el paso 7 devuelve true, reconcilia el TX_ID sin reenviar (H2-06 §7).</text>')
 a("</svg>")
 
 html = ('<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Secuencia</title>'

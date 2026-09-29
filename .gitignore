@@ -10,3 +10,4 @@ docs-src/out/
 # Reglas del commit inicial del repositorio
 *.o
 *.ali
+hito2/~$*

@@ -6,6 +6,7 @@ class MemoryStub {
   readonly state = new Map<string, Buffer>();
   readonly events: Array<{ name: string; payload: string }> = [];
   txId = 'a'.repeat(64);
+  now = new Date('2026-09-29T15:00:00.000Z');
 
   async getState(key: string): Promise<Uint8Array> {
     return this.state.get(key) ?? new Uint8Array();
@@ -16,17 +17,22 @@ class MemoryStub {
   createCompositeKey(objectType: string, attributes: string[]): string {
     return `\u0000${objectType}\u0000${attributes.map((a) => `${a}\u0000`).join('')}`;
   }
+  splitCompositeKey(key: string) {
+    const parts = key.split('\u0000').filter((p) => p.length > 0);
+    return { objectType: parts[0]!, attributes: parts.slice(1) };
+  }
   async getStateByPartialCompositeKey(objectType: string, attributes: string[]) {
     const prefix = this.createCompositeKey(objectType, attributes);
     const entries = [...this.state.entries()].filter(([key]) => key.startsWith(prefix)).sort(([a], [b]) => a.localeCompare(b));
     let index = 0;
     return {
-      next: async () => (index < entries.length ? { done: false, value: { key: entries[index]![0], value: entries[index++]![1] } } : { done: true, value: undefined }),
+      next: async () =>
+        index < entries.length ? { done: false, value: { key: entries[index]![0], value: entries[index++]![1] } } : { done: true, value: undefined },
       close: async () => undefined,
     };
   }
   getDateTimestamp(): Date {
-    return new Date('2026-09-28T15:00:00.000Z');
+    return this.now;
   }
   getTxID(): string {
     return this.txId;
@@ -36,8 +42,9 @@ class MemoryStub {
   }
 }
 
-const HMAC_V1 = '1'.repeat(64);
-const HMAC_V2 = '2'.repeat(64);
+const C1 = '1'.repeat(64);
+const C2 = '2'.repeat(64);
+const ID = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
 
 function setup() {
   const stub = new MemoryStub();
@@ -45,91 +52,102 @@ function setup() {
   return { stub, ctx, contract: new AcademicTraceabilityContract() };
 }
 
-const createV1 = (contract: AcademicTraceabilityContract, ctx: Context) =>
-  contract.createAcademicEvidence(ctx, 'EVD-REG-000001-V1', 'REG-000001', 'REGISTRO', '1', HMAC_V1, 'ADM-PSE-001', 'ADMINISTRADOR');
+const create = (c: AcademicTraceabilityContract, ctx: Context, id: number, type: string, version: string, commitment: string, previous = '') =>
+  c.createAcademicEvidence(ctx, ID(id), 'RESULTADO', 'REG-0001', type, version, commitment, previous, 'ADMIN');
 
-describe('AcademicTraceabilityContract', () => {
-  it('registra una evidencia y la marca como existente', async () => {
+describe('AcademicTraceabilityContract (payload del Hito 2)', () => {
+  it('registra un evento CREACION con los campos de H2-03', async () => {
     const { ctx, contract, stub } = setup();
-    expect(await contract.academicEvidenceExists(ctx, 'EVD-REG-000001-V1')).toBe(false);
+    expect(await contract.academicEvidenceExists(ctx, ID(1))).toBe(false);
 
-    const created = JSON.parse(await createV1(contract, ctx));
+    const created = JSON.parse(await create(contract, ctx, 1, 'CREACION', '1', C1));
 
     expect(created).toMatchObject({
-      evidenceId: 'EVD-REG-000001-V1',
-      recordReference: 'REG-000001',
+      eventId: ID(1),
+      objectType: 'RESULTADO',
+      objectRef: 'REG-0001',
+      eventType: 'CREACION',
       version: 1,
-      evidence: HMAC_V1,
+      commitment: C1,
+      previousCommitment: null,
+      actorRole: 'ADMIN',
       submitterMspId: 'NuevoHorizonteMSP',
-      timestamp: '2026-09-28T15:00:00.000Z',
-      status: 'REGISTRADO',
+      timestamp: '2026-09-29T15:00:00.000Z',
       txId: stub.txId,
     });
-    expect(await contract.academicEvidenceExists(ctx, 'EVD-REG-000001-V1')).toBe(true);
-    expect(stub.events[0]?.name).toBe('AcademicEvidenceCreated');
+    expect(await contract.academicEvidenceExists(ctx, ID(1))).toBe(true);
+    expect(stub.events[0]?.name).toBe('AcademicEventRegistered');
   });
 
-  it('lee la evidencia registrada', async () => {
+  it('es idempotente por eventId: no registra dos veces el mismo evento', async () => {
     const { ctx, contract } = setup();
-    await createV1(contract, ctx);
-    const read = JSON.parse(await contract.readAcademicEvidence(ctx, 'EVD-REG-000001-V1'));
-    expect(read.evidence).toBe(HMAC_V1);
+    await create(contract, ctx, 1, 'CREACION', '1', C1);
+    await expect(create(contract, ctx, 1, 'CREACION', '1', C1)).rejects.toThrow('ya existe');
   });
 
-  it('rechaza registrar dos veces la misma evidencia (inmutabilidad)', async () => {
+  it('no permite dos eventos para la misma versión del dato', async () => {
     const { ctx, contract } = setup();
-    await createV1(contract, ctx);
-    await expect(createV1(contract, ctx)).rejects.toThrow('ya existe');
+    await create(contract, ctx, 1, 'CREACION', '1', C1);
+    await expect(create(contract, ctx, 2, 'CREACION', '1', C2)).rejects.toThrow('versión 1');
   });
 
-  it('falla al leer una evidencia inexistente', async () => {
-    const { ctx, contract } = setup();
-    await expect(contract.readAcademicEvidence(ctx, 'EVD-REG-999999-V1')).rejects.toThrow('No existe evidencia');
-  });
-
-  it('rechaza datos que no sean referencias seudónimas', async () => {
-    const { ctx, contract } = setup();
-    await expect(
-      contract.createAcademicEvidence(ctx, 'EVD-REG-000001-V1', 'REG-000001', 'REGISTRO', '1', HMAC_V1, 'Luis Mamani Quispe', 'ADMINISTRADOR'),
-    ).rejects.toThrow('actorReference');
-    await expect(
-      contract.createAcademicEvidence(ctx, 'EVD-REG-000001-V1', 'REG-000001', 'REGISTRO', '1', 'nota=15', 'ADM-PSE-001', 'ADMINISTRADOR'),
-    ).rejects.toThrow('evidence');
-  });
-
-  it('exige versiones consecutivas y conserva el historial', async () => {
+  it('encadena las rectificaciones con el compromiso anterior', async () => {
     const { ctx, contract, stub } = setup();
-    await expect(
-      contract.createAcademicEvidence(ctx, 'EVD-REG-000001-V2', 'REG-000001', 'RECTIFICACION', '2', HMAC_V2, 'DOC-PSE-001', 'DOCENTE'),
-    ).rejects.toThrow('No existe la versión 1');
+    await create(contract, ctx, 1, 'CREACION', '1', C1);
+    await expect(create(contract, ctx, 2, 'RECTIFICACION', '2', C2, '9'.repeat(64))).rejects.toThrow('compromiso anterior no coincide');
+    await expect(create(contract, ctx, 2, 'RECTIFICACION', '3', C2, C1)).rejects.toThrow('No existe la versión 2');
 
-    await createV1(contract, ctx);
     stub.txId = 'b'.repeat(64);
-    await contract.createAcademicEvidence(ctx, 'EVD-REG-000001-V2', 'REG-000001', 'RECTIFICACION', '2', HMAC_V2, 'DOC-PSE-001', 'DOCENTE');
+    const rect = JSON.parse(await create(contract, ctx, 2, 'RECTIFICACION', '2', C2, C1));
+    expect(rect.previousCommitment).toBe(C1);
+  });
 
-    const history = JSON.parse(await contract.getAcademicEvidenceHistory(ctx, 'REG-000001'));
-    expect(history.map((h: { version: number; evidence: string }) => [h.version, h.evidence])).toEqual([
-      [1, HMAC_V1],
-      [2, HMAC_V2],
+  it('valida las reglas de CREACION', async () => {
+    const { ctx, contract } = setup();
+    await expect(create(contract, ctx, 1, 'CREACION', '2', C1)).rejects.toThrow('versión 1');
+    await expect(create(contract, ctx, 1, 'CREACION', '1', C1, C2)).rejects.toThrow('no admite compromiso anterior');
+    await expect(create(contract, ctx, 1, 'RECTIFICACION', '1', C1)).rejects.toThrow('mayor que 1');
+  });
+
+  it('registra verificaciones sin crear versiones y solo sobre objetos anclados', async () => {
+    const { ctx, contract, stub } = setup();
+    await expect(create(contract, ctx, 9, 'VERIFICACION', '1', C1, C1)).rejects.toThrow('no se puede verificar');
+    await create(contract, ctx, 1, 'CREACION', '1', C1);
+    stub.now = new Date('2026-09-29T16:00:00.000Z');
+    await create(contract, ctx, 9, 'VERIFICACION', '1', C1, C1);
+    // La verificación no ocupa la versión 2: la rectificación sigue siendo posible.
+    stub.now = new Date('2026-09-29T17:00:00.000Z');
+    await create(contract, ctx, 2, 'RECTIFICACION', '2', C2, C1);
+
+    const history = JSON.parse(await contract.getAcademicEvidenceHistory(ctx, 'RESULTADO', 'REG-0001'));
+    expect(history.map((e: { eventType: string; version: number }) => `${e.eventType}:v${e.version}`)).toEqual([
+      'CREACION:v1',
+      'VERIFICACION:v1',
+      'RECTIFICACION:v2',
     ]);
   });
 
-  it('valida la coherencia entre evidenceId, versión y tipo de evento', async () => {
+  it('lee un evento y falla si no existe', async () => {
     const { ctx, contract } = setup();
-    await expect(
-      contract.createAcademicEvidence(ctx, 'EVD-REG-000002-V1', 'REG-000001', 'REGISTRO', '1', HMAC_V1, 'ADM-PSE-001', 'ADMINISTRADOR'),
-    ).rejects.toThrow('evidenceId inconsistente');
-    await expect(
-      contract.createAcademicEvidence(ctx, 'EVD-REG-000001-V1', 'REG-000001', 'RECTIFICACION', '1', HMAC_V1, 'ADM-PSE-001', 'ADMINISTRADOR'),
-    ).rejects.toThrow('versión 1 debe ser REGISTRO');
+    await create(contract, ctx, 1, 'CREACION', '1', C1);
+    expect(JSON.parse(await contract.readAcademicEvidence(ctx, ID(1))).commitment).toBe(C1);
+    await expect(contract.readAcademicEvidence(ctx, ID(5))).rejects.toThrow('No existe evidencia');
   });
 
-  it('no almacena campos personales en el estado', async () => {
+  it('rechaza valores que no sean referencias técnicas (sin PII On-chain)', async () => {
+    const { ctx, contract } = setup();
+    await expect(contract.createAcademicEvidence(ctx, 'evento-1', 'RESULTADO', 'REG-0001', 'CREACION', '1', C1, '', 'ADMIN')).rejects.toThrow('eventId');
+    await expect(contract.createAcademicEvidence(ctx, ID(1), 'RESULTADO', 'Luis Mamani', 'CREACION', '1', C1, '', 'ADMIN')).rejects.toThrow('objectRef');
+    await expect(contract.createAcademicEvidence(ctx, ID(1), 'RESULTADO', 'REG-0001', 'CREACION', '1', 'nota=19', '', 'ADMIN')).rejects.toThrow('commitment');
+    await expect(contract.createAcademicEvidence(ctx, ID(1), 'ALUMNO', 'REG-0001', 'CREACION', '1', C1, '', 'ADMIN')).rejects.toThrow('Tipo de objeto');
+  });
+
+  it('almacena solo los campos del modelo On-chain', async () => {
     const { ctx, contract, stub } = setup();
-    await createV1(contract, ctx);
-    const stored = JSON.parse(stub.state.get('EVD-REG-000001-V1')!.toString('utf8'));
+    await create(contract, ctx, 1, 'CREACION', '1', C1);
+    const stored = JSON.parse(stub.state.get(ID(1))!.toString('utf8'));
     expect(Object.keys(stored).sort()).toEqual(
-      ['actorReference', 'actorRole', 'algorithm', 'docType', 'eventType', 'evidence', 'evidenceId', 'recordReference', 'status', 'submitterMspId', 'timestamp', 'txId', 'version'].sort(),
+      ['actorRole', 'algorithm', 'commitment', 'docType', 'eventId', 'eventType', 'objectRef', 'objectType', 'previousCommitment', 'status', 'submitterMspId', 'timestamp', 'txId', 'version'].sort(),
     );
   });
 });

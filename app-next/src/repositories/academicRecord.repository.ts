@@ -2,53 +2,54 @@ import 'server-only';
 import { Prisma, type PrismaClient } from '@prisma/client';
 import { prisma } from '@/lib/db/prisma';
 import type { RectificationInput } from '@/schemas/academicRecord.schema';
-import type { AcademicRecordWithRelations } from '@/types/academic';
+import type { ResultadoConRelaciones } from '@/types/academic';
 
-/** Relaciones mínimas para canonicalizar un registro. No incluye student_identity (datos personales). */
-export const ACADEMIC_RECORD_INCLUDE = {
-  enrollment: { include: { student: true, section: true } },
-  activity: { include: { period: true, teachingAssignment: { include: { subject: true } } } },
-  recordedBy: true,
-} satisfies Prisma.AcademicResultInclude;
+/** Relaciones necesarias para canonicalizar un resultado (todas seudonimizadas). */
+export const RESULTADO_INCLUDE = {
+  matricula: { include: { estudiante: true, periodo: true, seccion: { include: { grado: true } } } },
+  actividad: { include: { tipoActividad: true, asignacion: { include: { area: true, docente: true } } } },
+  registrador: true,
+} satisfies Prisma.ResultadoAcademicoInclude;
 
 export function createAcademicRecordRepository(db: PrismaClient) {
   return {
-    findByCode(code: string): Promise<AcademicRecordWithRelations | null> {
-      return db.academicResult.findUnique({ where: { code }, include: ACADEMIC_RECORD_INCLUDE });
+    findByCode(codigo: string): Promise<ResultadoConRelaciones | null> {
+      return db.resultadoAcademico.findUnique({ where: { codigo }, include: RESULTADO_INCLUDE });
     },
 
     count(): Promise<number> {
-      return db.academicResult.count();
+      return db.resultadoAcademico.count();
     },
 
     /**
-     * Rectificación autorizada: guarda la versión vigente en academic_result_history y
-     * actualiza el resultado incrementando su versión, todo en una transacción MySQL.
+     * Rectificación autorizada (H2-06 §4): en una transacción MySQL registra el cambio en
+     * historial_resultado, incrementa version_actual, adopta el nuevo puntaje y marca el
+     * resultado como RECTIFICADO.
      */
-    rectify(code: string, change: RectificationInput, actorReference: string): Promise<AcademicRecordWithRelations> {
+    rectify(codigo: string, change: RectificationInput, usuarioId: bigint): Promise<ResultadoConRelaciones> {
       return db.$transaction(async (tx) => {
-        const current = await tx.academicResult.findUniqueOrThrow({ where: { code } });
-        await tx.academicResultHistory.create({
+        const current = await tx.resultadoAcademico.findUniqueOrThrow({ where: { codigo } });
+        const nextVersion = current.versionActual + 1;
+        await tx.historialResultado.create({
           data: {
-            resultId: current.id,
-            version: current.version,
-            qualitativeGrade: current.qualitativeGrade,
-            numericScore: current.numericScore,
-            observation: current.observation,
-            recordedAt: current.recordedAt,
-            changeReason: change.reason,
-            changedByReference: actorReference,
+            resultadoId: current.id,
+            version: nextVersion,
+            puntajeAnterior: current.puntajeObtenido,
+            puntajeNuevo: new Prisma.Decimal(change.newScore),
+            tipoCambio: 'RECTIFICACION',
+            motivoCodigo: change.reasonCode,
+            motivoDetalle: change.reasonDetail,
+            realizadoPor: usuarioId,
           },
         });
-        return tx.academicResult.update({
+        return tx.resultadoAcademico.update({
           where: { id: current.id },
           data: {
-            qualitativeGrade: change.qualitativeGrade,
-            numericScore: change.numericScore === null ? null : new Prisma.Decimal(change.numericScore),
-            recordedAt: new Date(),
-            version: { increment: 1 },
+            versionActual: nextVersion,
+            puntajeObtenido: new Prisma.Decimal(change.newScore),
+            estado: 'RECTIFICADO',
           },
-          include: ACADEMIC_RECORD_INCLUDE,
+          include: RESULTADO_INCLUDE,
         });
       });
     },

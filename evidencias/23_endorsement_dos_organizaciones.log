@@ -1,34 +1,18 @@
 === Endorsement: la política MAJORITY exige a ambas organizaciones ===
 --- Se detiene peer0.validator.example.com (AcademicValidatorOrg)
-[INFO] Buscando registro REG-000015
-[INFO] Registro encontrado {"version":1}
-[INFO] Evidence generada {"evidenceId":"EVD-REG-000015-V1"}
-[INFO] Conectando a Fabric {"channel":"academicchannel","chaincode":"academic-traceability"}
-[INFO] Transacción enviada {"evidenceId":"EVD-REG-000015-V1"}
-[ERROR] Fallo al registrar en Fabric {"evidenceId":"EVD-REG-000015-V1","error":"10 ABORTED: failed to collect enough transaction endorsements, see attached details for more info | AcademicValidatorMSP@peer0.validator.example.com:9051: rpc error: code = Unavailable desc = connection error: desc = \"transport: Error while dialing: dial tcp: lookup peer0.validator.example.com on 127.0.0.11:53: no such host\""}
-PROCESO NO COMPLETADO.
-[PEER_UNAVAILABLE] El peer no responde. Verifique que la red esté levantada (fabric-network/scripts/network.sh up).
-(código de salida: 1)
---- peer0.validator restablecido; reintento:
-Bloque:
-20
-PROCESO COMPLETADO CORRECTAMENTE.
-
-=== Repetición tras añadir el código ENDORSEMENT_FAILED ===
-[INFO] Buscando registro REG-000016
-[INFO] Registro encontrado {"version":1}
-[INFO] Evidence generada {"evidenceId":"EVD-REG-000016-V1"}
-[INFO] Conectando a Fabric {"channel":"academicchannel","chaincode":"academic-traceability"}
-[INFO] Transacción enviada {"evidenceId":"EVD-REG-000016-V1"}
-[ERROR] Fallo al registrar en Fabric {"evidenceId":"EVD-REG-000016-V1","error":"9 FAILED_PRECONDITION: no combination of peers can be derived which satisfy the endorsement policy: no peer combination can satisfy the endorsement policy"}
-PROCESO NO COMPLETADO.
-[UNKNOWN] Error no clasificado de Fabric.
-(código de salida: 1)
-PROCESO COMPLETADO CORRECTAMENTE.
-
-=== Segunda repetición (variante 'no peer combination can satisfy the endorsement policy') ===
-[ERROR] Fallo al registrar en Fabric {"evidenceId":"EVD-REG-000017-V1","error":"10 ABORTED: failed to collect enough transaction endorsements, see attached details for more info | AcademicValidatorMSP@peer0.validator.example.com:9051: rpc error: code = Unavailable desc = connection error: desc = \"transport: Error while dialing: dial tcp: lookup peer0.validator.example.com on 127.0.0.11:53: no such host\""}
+[INFO] Buscando registro REG-V004
+[INFO] Registro encontrado {"version":1,"estado":"VIGENTE"}
+[INFO] Compromiso HMAC generado {"eventType":"CREACION","version":1}
+[INFO] Evento PENDIENTE {"eventId":"69dad72e-2288-492d-99c4-d0283fd087c1","reintento":false}
+[INFO] Conectando a Fabric {"channel":"academicchannel"}
+[INFO] Transacción enviada {"eventId":"69dad72e-2288-492d-99c4-d0283fd087c1","eventType":"CREACION"}
+[ERROR] Fallo al registrar en Fabric {"eventId":"69dad72e-2288-492d-99c4-d0283fd087c1","error":"10 ABORTED: failed to collect enough transaction endorsements, see attached details for more info | AcademicValidatorMSP@peer0.validator.example.com:9051: rpc error: code = Unavailable desc = connection error: desc = \"transport: Error while dialing: dial tcp: lookup peer0.validator.example.com on 127.0.0.11:53: no such host\""}
 PROCESO NO COMPLETADO.
 [ENDORSEMENT_FAILED] No se reunieron los endosos que exige la política (ambas organizaciones deben endosar).
 (código de salida: 1)
+--- peer0.validator restablecido; reintento (mismo evento):
+[INFO] Evento PENDIENTE {"eventId":"69dad72e-2288-492d-99c4-d0283fd087c1","reintento":true}
+[INFO] Conectando a Fabric {"channel":"academicchannel"}
+Bloque:
+167
 PROCESO COMPLETADO CORRECTAMENTE.

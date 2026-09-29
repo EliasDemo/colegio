@@ -1,199 +1,234 @@
 /**
- * Prueba del TraceabilityService con repositorios y ledger en memoria.
- * Verifica la orquestación (orden de pasos, estados y recuperación) sin infraestructura.
+ * TraceabilityService con repositorios y ledger en memoria.
+ * Verifica la orquestación del flujo H2-06 (estados, idempotencia, encadenamiento y recuperación).
  */
-import type { BlockchainEvidence, TraceabilityEvent } from '@prisma/client';
-import { Prisma } from '@prisma/client';
+import { Prisma, type EventoTrazabilidad, type EvidenciaBlockchain } from '@prisma/client';
 import { FabricError } from '@/lib/fabric/errors';
 import type { AcademicRecordRepository } from '@/repositories/academicRecord.repository';
 import type { BlockchainEvidenceRepository } from '@/repositories/blockchainEvidence.repository';
-import type { TraceabilityEventRepository } from '@/repositories/traceabilityEvent.repository';
-import { EvidenceConflictError, EvidenceLinkError, RecordNotFoundError } from '@/services/errors';
-import { createTraceabilityService } from '@/services/traceability.service';
+import type { EventoConEvidencia, TraceabilityEventRepository } from '@/repositories/traceabilityEvent.repository';
+import type { UsuarioRepository } from '@/repositories/usuario.repository';
+import { ActorNotFoundError, EvidenceConflictError, EvidenceLinkError, RecordNotFoundError } from '@/services/errors';
+import { createTraceabilityService, isCommitmentChainIntact } from '@/services/traceability.service';
+import type { ResultadoConRelaciones } from '@/types/academic';
 import type { AcademicEvidence, AcademicLedger } from '@/types/blockchain';
-import type { AcademicRecordWithRelations } from '@/types/academic';
 import { sampleRecord, TEST_SECRET } from '../fixtures';
 
 const silentLogger = { debug: jest.fn(), info: jest.fn(), warn: jest.fn(), error: jest.fn() };
-const actor = { reference: 'ADM-PSE-001', role: 'ADMINISTRADOR' };
 
 function createHarness() {
-  let record: AcademicRecordWithRelations = sampleRecord();
-  const evidenceRows = new Map<string, BlockchainEvidence>();
-  const eventRows: TraceabilityEvent[] = [];
+  let record: ResultadoConRelaciones = sampleRecord();
+  const eventos = new Map<string, EventoTrazabilidad>();
+  const evidencias = new Map<string, EvidenciaBlockchain>();
   const ledgerState = new Map<string, AcademicEvidence>();
-  let txCounter = 0;
+  let tx = 0;
+  let uuid = 0;
   let failNextConfirmation = false;
 
+  const withEvidence = (e: EventoTrazabilidad): EventoConEvidencia => ({ ...e, evidencia: evidencias.get(e.id) ?? null });
+  const dataTypes = ['CREACION', 'RECTIFICACION', 'REVOCACION'];
+
   const records = {
-    findByCode: jest.fn(async (code: string) => (code === record.code ? record : null)),
+    findByCode: jest.fn(async (code: string) => (code === record.codigo ? record : null)),
     count: jest.fn(async () => 1),
     rectify: jest.fn(async (_code, change) => {
-      record = { ...record, qualitativeGrade: change.qualitativeGrade, numericScore: new Prisma.Decimal(change.numericScore), version: record.version + 1 };
+      record = { ...record, puntajeObtenido: new Prisma.Decimal(change.newScore), versionActual: record.versionActual + 1, estado: 'RECTIFICADO' };
       return record;
     }),
   } as unknown as AcademicRecordRepository;
 
-  const evidences = {
-    findByResultAndVersion: jest.fn(async (resultId: number, version: number) =>
-      [...evidenceRows.values()].find((e) => e.resultId === resultId && e.version === version) ?? null),
-    listByResult: jest.fn(async () => [...evidenceRows.values()]),
-    listPending: jest.fn(async () => []),
-    savePending: jest.fn(async (input) => {
-      const row = { id: evidenceRows.size + 1, algorithm: 'HMAC-SHA-256', txId: null, blockNumber: null, errorMessage: null, createdAt: new Date(), confirmedAt: null, ...input, status: 'PENDIENTE' } as BlockchainEvidence;
-      evidenceRows.set(input.evidenceId, row);
+  const events = {
+    createPending: jest.fn(async (input) => {
+      const row = { ...input, estadoEvento: 'PENDIENTE', errorDetalle: null, creadoEn: new Date(Date.now() + eventos.size), resultadoVerificacion: input.resultadoVerificacion ?? null } as EventoTrazabilidad;
+      eventos.set(row.id, row);
       return row;
     }),
-    markConfirmed: jest.fn(async (evidenceId: string, c) => {
+    resetToPending: jest.fn(async (id: string, compromisoHmac: string, compromisoAnterior: string | null) => {
+      const row = { ...eventos.get(id)!, estadoEvento: 'PENDIENTE', compromisoHmac, compromisoAnterior } as EventoTrazabilidad;
+      eventos.set(id, row);
+      return row;
+    }),
+    markError: jest.fn(async (id: string, detail: string) => {
+      const row = { ...eventos.get(id)!, estadoEvento: 'ERROR', errorDetalle: detail } as EventoTrazabilidad;
+      eventos.set(id, row);
+      return row;
+    }),
+    findDataEvent: jest.fn(async (ref: string, version: number) => {
+      const found = [...eventos.values()].filter((e) => e.objetoRef === ref && e.version === version && dataTypes.includes(e.eventoTipo)).at(-1);
+      return found ? withEvidence(found) : null;
+    }),
+    findById: jest.fn(async (id: string) => (eventos.has(id) ? withEvidence(eventos.get(id)!) : null)),
+    listByObject: jest.fn(async () => [...eventos.values()].map(withEvidence)),
+  } as unknown as TraceabilityEventRepository;
+
+  const evidences = {
+    recordConfirmation: jest.fn(async (eventoId: string, c) => {
       if (failNextConfirmation) {
         failNextConfirmation = false;
         throw new Error('MySQL no disponible');
       }
-      const row = { ...evidenceRows.get(evidenceId)!, status: 'CONFIRMADO', txId: c.txId, blockNumber: c.blockNumber } as BlockchainEvidence;
-      evidenceRows.set(evidenceId, row);
-      return row;
+      const ev = { id: BigInt(evidencias.size + 1), eventoId, txId: c.txId, blockNumber: c.blockNumber, committedAt: new Date(), validacion: 'VALIDA', red: c.red, canal: c.canal, chaincode: c.chaincode } as EvidenciaBlockchain;
+      evidencias.set(eventoId, ev);
+      eventos.set(eventoId, { ...eventos.get(eventoId)!, estadoEvento: 'CONFIRMADO' });
+      return ev;
     }),
-    markFailed: jest.fn(async (evidenceId: string, errorMessage: string) => {
-      const row = { ...evidenceRows.get(evidenceId)!, status: 'FALLIDO', errorMessage } as BlockchainEvidence;
-      evidenceRows.set(evidenceId, row);
-      return row;
-    }),
+    findByEventId: jest.fn(async (id: string) => evidencias.get(id) ?? null),
+    countValid: jest.fn(async () => evidencias.size),
   } as unknown as BlockchainEvidenceRepository;
 
-  const events = {
-    create: jest.fn(async (input) => {
-      const row = { id: eventRows.length + 1, occurredAt: new Date(), evidenceId: null, txId: null, detail: null, ...input } as TraceabilityEvent;
-      eventRows.push(row);
-      return row;
-    }),
-    listByResult: jest.fn(async () => eventRows),
-  } as unknown as TraceabilityEventRepository;
+  const users = {
+    findActor: jest.fn(async (username: string) => (username === 'admin.prototipo' ? { usuarioId: 1n, username, role: 'ADMIN' } : null)),
+  } as unknown as UsuarioRepository;
 
+  // Ledger en memoria que aplica las mismas reglas de encadenamiento que el chaincode.
   const ledger: AcademicLedger = {
     evidenceExists: jest.fn(async (id: string) => ledgerState.has(id)),
     createEvidence: jest.fn(async (args) => {
-      const txId = (++txCounter).toString(16).padStart(64, '0');
-      const item: AcademicEvidence = { docType: 'academicEvidence', algorithm: 'HMAC-SHA-256', status: 'REGISTRADO', submitterMspId: 'NuevoHorizonteMSP', timestamp: new Date().toISOString(), txId, ...args };
-      ledgerState.set(args.evidenceId, item);
-      return { txId, blockNumber: BigInt(txCounter + 3), payload: item };
+      if (ledgerState.has(args.eventId)) throw new Error(`El evento ${args.eventId} ya existe`);
+      const txId = (++tx).toString(16).padStart(64, '0');
+      const item: AcademicEvidence = {
+        docType: 'academicEvent', algorithm: 'HMAC-SHA-256', status: 'REGISTRADO', submitterMspId: 'NuevoHorizonteMSP',
+        timestamp: new Date(Date.now() + tx).toISOString(), txId, ...args,
+      };
+      ledgerState.set(args.eventId, item);
+      return { txId, blockNumber: BigInt(tx + 4), payload: item };
     }),
     readEvidence: jest.fn(async (id: string) => ledgerState.get(id)!),
-    getEvidenceHistory: jest.fn(async (ref: string) => [...ledgerState.values()].filter((e) => e.recordReference === ref)),
+    getEvidenceHistory: jest.fn(async (_t, ref: string) => [...ledgerState.values()].filter((e) => e.objectRef === ref)),
   };
 
   const service = createTraceabilityService({
-    records,
-    evidences,
-    events,
-    ledger,
+    records, events, evidences, users, ledger,
     getSecret: () => TEST_SECRET,
-    ledgerTarget: () => ({ channelName: 'academicchannel', chaincodeName: 'academic-traceability' }),
+    ledgerTarget: () => ({ network: 'fabric-academic', channelName: 'academicchannel', chaincodeName: 'academic-traceability' }),
+    newEventId: () => `00000000-0000-4000-8000-${String(++uuid).padStart(12, '0')}`,
     logger: silentLogger,
   });
 
   return {
-    service,
-    ledger,
-    evidenceRows,
-    eventRows,
-    ledgerState,
-    tamper: (score: string) => (record = { ...record, numericScore: new Prisma.Decimal(score) }),
+    service, ledger, eventos, evidencias, ledgerState,
+    tamper: (score: string) => (record = { ...record, puntajeObtenido: new Prisma.Decimal(score) }),
     failNextConfirmation: () => (failNextConfirmation = true),
   };
 }
 
-describe('TraceabilityService', () => {
-  it('registra la evidencia, guarda el TX_ID y crea el evento de trazabilidad', async () => {
-    const h = createHarness();
-    const result = await h.service.registerAcademicRecordEvidence('REG-000001', actor);
+const ACTOR = 'admin.prototipo';
 
-    expect(result.evidenceId).toBe('EVD-REG-000001-V1');
-    expect(result.evidence).toMatch(/^[0-9a-f]{64}$/);
-    expect(h.ledger.createEvidence).toHaveBeenCalledWith(expect.objectContaining({ recordReference: 'REG-000001', eventType: 'REGISTRO', actorReference: 'ADM-PSE-001' }));
-    expect(h.evidenceRows.get('EVD-REG-000001-V1')).toMatchObject({ status: 'CONFIRMADO', txId: result.txId });
-    expect(h.eventRows.at(-1)).toMatchObject({ eventType: 'REGISTRO', status: 'CONFIRMADO', txId: result.txId });
+describe('TraceabilityService (flujo H2-06)', () => {
+  it('registra: evento PENDIENTE (UUID) → Fabric → evidencia_blockchain con TX_ID → CONFIRMADO', async () => {
+    const h = createHarness();
+    const r = await h.service.registerAcademicRecordEvidence('REG-0011', ACTOR);
+
+    expect(r).toMatchObject({ eventType: 'CREACION', previousCommitment: null, alreadyRegistered: false });
+    expect(r.eventId).toMatch(/^[0-9a-f-]{36}$/);
+    expect(h.ledger.createEvidence).toHaveBeenCalledWith(expect.objectContaining({ objectType: 'RESULTADO', objectRef: 'REG-0011', eventType: 'CREACION', actorRole: 'ADMIN' }));
+    expect(h.eventos.get(r.eventId)).toMatchObject({ estadoEvento: 'CONFIRMADO', compromisoHmac: r.commitment });
+    expect(h.evidencias.get(r.eventId)).toMatchObject({ txId: r.txId, validacion: 'VALIDA' });
   });
 
-  it('no envía datos personales al ledger', async () => {
+  it('no envía datos académicos ni identidades al ledger', async () => {
     const h = createHarness();
-    await h.service.registerAcademicRecordEvidence('REG-000001', actor);
+    await h.service.registerAcademicRecordEvidence('REG-0011', ACTOR);
     const sent = JSON.stringify((h.ledger.createEvidence as jest.Mock).mock.calls[0][0]);
-    expect(sent).not.toMatch(/Docente|De Prueba|15\.50|Matemática/);
+    expect(sent).not.toMatch(/STU-|DOC-|19\.00|EV-CTA|INFORME/);
   });
 
-  it('es idempotente: un segundo registro de la misma versión no crea otra transacción', async () => {
+  it('es idempotente: reintentar una versión confirmada no crea otra transacción', async () => {
     const h = createHarness();
-    const first = await h.service.registerAcademicRecordEvidence('REG-000001', actor);
-    const second = await h.service.registerAcademicRecordEvidence('REG-000001', actor);
-    expect(second).toMatchObject({ alreadyRegistered: true, txId: first.txId });
+    const first = await h.service.registerAcademicRecordEvidence('REG-0011', ACTOR);
+    const second = await h.service.registerAcademicRecordEvidence('REG-0011', ACTOR);
+    expect(second).toMatchObject({ alreadyRegistered: true, txId: first.txId, eventId: first.eventId });
     expect(h.ledger.createEvidence).toHaveBeenCalledTimes(1);
   });
 
-  it('verifica INTEGRO y detecta ALTERADO tras una modificación directa', async () => {
+  it('verifica INTEGRO, registra la verificación y detecta ALTERADO tras una modificación directa', async () => {
     const h = createHarness();
-    await h.service.registerAcademicRecordEvidence('REG-000001', actor);
-    await expect(h.service.verifyAcademicRecord('REG-000001', actor)).resolves.toMatchObject({ status: 'INTEGRO', localCopyConsistent: true });
+    await h.service.registerAcademicRecordEvidence('REG-0011', ACTOR);
+    const ok = await h.service.verifyAcademicRecord('REG-0011', ACTOR);
+    expect(ok).toMatchObject({ status: 'INTEGRO', chainIntact: true, localCopyConsistent: true });
+    expect(h.eventos.get(ok.verificationEventId!)).toMatchObject({ eventoTipo: 'VERIFICACION', resultadoVerificacion: 'INTEGRO', estadoEvento: 'CONFIRMADO' });
 
     h.tamper('20.00');
-    const altered = await h.service.verifyAcademicRecord('REG-000001', actor);
+    const altered = await h.service.verifyAcademicRecord('REG-0011', ACTOR);
     expect(altered.status).toBe('ALTERADO');
-    expect(altered.computedEvidence).not.toBe(altered.onChain?.evidence);
-    await expect(h.service.registerAcademicRecordEvidence('REG-000001', actor)).rejects.toBeInstanceOf(EvidenceConflictError);
+    expect(h.eventos.get(altered.verificationEventId!)?.resultadoVerificacion).toBe('ALTERADO');
+    await expect(h.service.registerAcademicRecordEvidence('REG-0011', ACTOR)).rejects.toBeInstanceOf(EvidenceConflictError);
   });
 
-  it('informa NO_REGISTRADO cuando no hay evidencia anclada', async () => {
+  it('informa NO_VERIFICABLE cuando no hay evidencia anclada', async () => {
     const h = createHarness();
-    await expect(h.service.verifyAcademicRecord('REG-000001', actor)).resolves.toMatchObject({ status: 'NO_REGISTRADO' });
+    await expect(h.service.verifyAcademicRecord('REG-0011', ACTOR)).resolves.toMatchObject({ status: 'NO_VERIFICABLE' });
   });
 
   it('caso 3: registro inexistente', async () => {
     const h = createHarness();
-    await expect(h.service.registerAcademicRecordEvidence('REG-999999', actor)).rejects.toBeInstanceOf(RecordNotFoundError);
+    await expect(h.service.registerAcademicRecordEvidence('REG-9999', ACTOR)).rejects.toBeInstanceOf(RecordNotFoundError);
     expect(h.ledger.createEvidence).not.toHaveBeenCalled();
   });
 
-  it('caso 1: si Fabric falla, el intento queda FALLIDO en MySQL y puede reintentarse', async () => {
+  it('rechaza actores inexistentes', async () => {
+    const h = createHarness();
+    await expect(h.service.registerAcademicRecordEvidence('REG-0011', 'intruso')).rejects.toBeInstanceOf(ActorNotFoundError);
+  });
+
+  it('caso 1: si Fabric falla, el evento queda en ERROR y el reintento reutiliza el mismo UUID', async () => {
     const h = createHarness();
     (h.ledger.createEvidence as jest.Mock).mockRejectedValueOnce(new FabricError('PEER_UNAVAILABLE', 'peer caído'));
 
-    await expect(h.service.registerAcademicRecordEvidence('REG-000001', actor)).rejects.toBeInstanceOf(FabricError);
-    expect(h.evidenceRows.get('EVD-REG-000001-V1')).toMatchObject({ status: 'FALLIDO', txId: null });
-    expect(h.eventRows.at(-1)).toMatchObject({ status: 'FALLIDO' });
+    await expect(h.service.registerAcademicRecordEvidence('REG-0011', ACTOR)).rejects.toBeInstanceOf(FabricError);
+    const [failed] = [...h.eventos.values()];
+    expect(failed).toMatchObject({ estadoEvento: 'ERROR', errorDetalle: 'peer caído' });
+    expect(h.evidencias.size).toBe(0);
 
-    const retry = await h.service.registerAcademicRecordEvidence('REG-000001', actor);
-    expect(h.evidenceRows.get('EVD-REG-000001-V1')).toMatchObject({ status: 'CONFIRMADO', txId: retry.txId });
+    const retry = await h.service.registerAcademicRecordEvidence('REG-0011', ACTOR);
+    expect(retry.eventId).toBe(failed!.id);
+    expect(h.eventos.size).toBe(1);
+    expect(h.eventos.get(failed!.id)?.estadoEvento).toBe('CONFIRMADO');
   });
 
-  it('caso 2: si falla la escritura del TX_ID, el reintento reconcilia sin duplicar la transacción', async () => {
+  it('caso 2: si falla la escritura del TX_ID, el reintento consulta el ledger por eventId y reconcilia', async () => {
     const h = createHarness();
     h.failNextConfirmation();
 
-    await expect(h.service.registerAcademicRecordEvidence('REG-000001', actor)).rejects.toBeInstanceOf(EvidenceLinkError);
-    expect(h.ledgerState.has('EVD-REG-000001-V1')).toBe(true);
-    expect(h.evidenceRows.get('EVD-REG-000001-V1')?.status).toBe('PENDIENTE');
+    await expect(h.service.registerAcademicRecordEvidence('REG-0011', ACTOR)).rejects.toBeInstanceOf(EvidenceLinkError);
+    const [pending] = [...h.eventos.values()];
+    expect(pending?.estadoEvento).toBe('PENDIENTE');
+    expect(h.ledgerState.has(pending!.id)).toBe(true);
 
-    const retry = await h.service.registerAcademicRecordEvidence('REG-000001', actor);
+    const retry = await h.service.registerAcademicRecordEvidence('REG-0011', ACTOR);
     expect(retry.reconciled).toBe(true);
     expect(h.ledger.createEvidence).toHaveBeenCalledTimes(1);
-    expect(h.evidenceRows.get('EVD-REG-000001-V1')).toMatchObject({ status: 'CONFIRMADO', txId: retry.txId });
+    expect(h.evidencias.get(pending!.id)?.txId).toBe(retry.txId);
   });
 
-  it('la rectificación crea una nueva versión On-chain y conserva la anterior', async () => {
+  it('la rectificación ancla una nueva versión encadenada al compromiso anterior', async () => {
     const h = createHarness();
-    await h.service.registerAcademicRecordEvidence('REG-000001', actor);
-    const rectified = await h.service.rectifyAcademicRecord('REG-000001', { qualitativeGrade: 'AD', numericScore: 18, reason: 'Revisión de rúbrica' }, actor);
+    const v1 = await h.service.registerAcademicRecordEvidence('REG-0011', ACTOR);
+    const v2 = await h.service.rectifyAcademicRecord('REG-0011', { newScore: 17, reasonCode: 'ERROR_DIGITACION', reasonDetail: 'Revisión de rúbrica' }, ACTOR);
 
-    expect(rectified).toMatchObject({ evidenceId: 'EVD-REG-000001-V2', eventType: 'RECTIFICACION' });
-    expect([...h.ledgerState.keys()]).toEqual(['EVD-REG-000001-V1', 'EVD-REG-000001-V2']);
-    await expect(h.service.verifyAcademicRecord('REG-000001', actor)).resolves.toMatchObject({ status: 'INTEGRO' });
-
-    const report = await h.service.getTraceability('REG-000001');
-    expect(report.onChain?.map((e) => e.version)).toEqual([1, 2]);
-    expect(report.events.map((e) => e.eventType)).toEqual(['REGISTRO', 'RECTIFICACION', 'VERIFICACION']);
+    expect(v2).toMatchObject({ eventType: 'RECTIFICACION', previousCommitment: v1.commitment });
+    await expect(h.service.verifyAcademicRecord('REG-0011', ACTOR)).resolves.toMatchObject({ status: 'INTEGRO', chainIntact: true });
+    const report = await h.service.getTraceability('REG-0011');
+    expect(report.onChain?.map((e) => `${e.eventType}:v${e.version}`)).toEqual(['CREACION:v1', 'RECTIFICACION:v2', 'VERIFICACION:v2']);
   });
 
-  it('rechaza actores que no sean seudónimos', async () => {
+  it('la rectificación ancla primero la versión vigente si aún no estaba anclada', async () => {
     const h = createHarness();
-    await expect(h.service.registerAcademicRecordEvidence('REG-000001', { reference: 'Juan Pérez', role: 'ADMIN' })).rejects.toThrow();
+    await h.service.rectifyAcademicRecord('REG-0011', { newScore: 18, reasonCode: 'ERROR_DIGITACION', reasonDetail: 'Revisión de rúbrica' }, ACTOR);
+    expect((h.ledger.createEvidence as jest.Mock).mock.calls.map((c) => c[0].eventType)).toEqual(['CREACION', 'RECTIFICACION']);
+  });
+
+  it('rechaza un puntaje de rectificación mayor que el máximo de la actividad', async () => {
+    const h = createHarness();
+    await expect(h.service.rectifyAcademicRecord('REG-0011', { newScore: 25, reasonCode: 'ERROR_DIGITACION', reasonDetail: 'Revisión' }, ACTOR)).rejects.toThrow('supera el máximo');
+  });
+});
+
+describe('isCommitmentChainIntact()', () => {
+  const ev = (version: number, commitment: string, previousCommitment: string | null) => ({ version, commitment, previousCommitment }) as AcademicEvidence;
+  it('acepta una cadena correcta y rechaza eslabones rotos', () => {
+    expect(isCommitmentChainIntact([ev(1, 'a', null), ev(2, 'b', 'a')])).toBe(true);
+    expect(isCommitmentChainIntact([ev(1, 'a', null), ev(2, 'b', 'x')])).toBe(false);
+    expect(isCommitmentChainIntact([ev(2, 'b', 'a')])).toBe(false);
   });
 });

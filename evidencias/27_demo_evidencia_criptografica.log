@@ -5,28 +5,28 @@
 DEMOSTRACIÓN DE EVIDENCIA CRIPTOGRÁFICA
 ------------------------------------
 
-1) Forma canónica (UTF-8, orden fijo, sin espacios):
+1) Payload canónico v2 (UTF-8, orden fijo, sin espacios):
 
-{"canonicalVersion":"1","academicRecordId":"REG-000001","studentReference":"EST-PSE-001","enrollmentReference":"MAT-2026-0001","sectionReference":"2026-1A","subjectReference":"MAT","activityReference":"ACT-2026-001","periodReference":"2026-B2","teacherReference":"DOC-PSE-001","qualitativeGrade":"AD","numericScore":"19.50","observation":null,"recordedAt":"2026-06-10T20:20:00.000Z","version":1}
+{"canonicalVersion":"2","objectType":"RESULTADO","objectRef":"REG-0001","studentToken":"STU-99D2DC1D4BF4F412","periodCode":"2026-B3","gradeNumber":3,"sectionCode":"A","areaCode":"MAT","activityCode":"EV-MAT-301","activityType":"PRACTICA","activityDate":"2026-09-01","maxScore":"20.00","score":"20.00","status":"VIGENTE","registeredBy":"DOC-BE24E1269F2EB449","registeredAt":"2026-09-01T00:00:00.000Z","version":1}
 
-   Longitud: 395 bytes
+   Longitud: 412 bytes
 
 2) Resúmenes de la misma cadena:
 
-   SHA-256 (sin clave)        : 7e592276882699d1811bc38dc6970688521f3ab7df0eb073f15c1d378ad71c63
-   HMAC-SHA-256 (HMAC_SECRET) : f5d60c6a21d19aa36947382e340943348b158da73b8d1e490f42196d31df9c10
+   SHA-256 (sin clave)        : e49ef103f99a9bb05c45ea2c442783f805de83f52ef90d69135cfeec6f57a37b
+   HMAC-SHA-256 (HMAC_SECRET) : e68d43b57c32539240eefff1a57523a16d91d46f45292c6a5764865428999b36
 
 3) Determinismo: 1000 cálculos → 1 valor(es) distinto(s)
    Mismo registro con propiedades en otro orden → misma evidencia
 
-4) Efecto avalancha: nota 19.50 → 19.51
-   270cc8d7ebebcf5106ae593bd09abc6901984074b951f255cb07a3dd4c540c89
-   Bits distintos: 135 de 256
+4) Efecto avalancha: puntaje 20.00 → 19.99
+   c2e6bc58c038675c6df6f9caf3d4fe2aaccb16b1ef8b3f97b12fcf7793b498d2
+   Bits distintos: 130 de 256
 
 5) Verificación:
-   verifyEvidence(registro original, evidence)  → valid = true
-   verifyEvidence(registro alterado, evidence)  → valid = false
+   verifyEvidence(registro original, compromiso)  → valid = true
+   verifyEvidence(registro alterado, compromiso)  → valid = false
 
-6) Ataque de diccionario sobre 164 combinaciones de calificación y nota:
-   Contra SHA-256 sin clave      → NOTA DESCUBIERTA: AD / 19.50
-   Contra HMAC sin conocer la clave → no encontrada (la evidencia no revela la nota)
+6) Ataque de diccionario sobre 21 puntajes posibles (0-20):
+   Contra SHA-256 sin clave         → NOTA DESCUBIERTA: 20.00
+   Contra HMAC sin conocer la clave → no encontrada (el compromiso no revela la nota)

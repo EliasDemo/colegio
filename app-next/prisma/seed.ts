@@ -1,18 +1,46 @@
 /**
- * Seed de datos de VALIDACIÓN del prototipo (Hito 3).
+ * Seed del prototipo (Hito 3).
  *
- * Los registros son ficticios, generados de forma determinista y contextualizados en
- * Juliaca - Puno. NO son información oficial entregada por la I.E. Nuevo Horizonte.
- * Los documentos de identidad usan el tipo "COD-VAL" para que no puedan confundirse
- * con un DNI real.
+ * 1. Datos principales: los 77 registros depurados y seudonimizados del Hito 2
+ *    (prisma/data/h2_02_dataset_seudonimizado.json, origen hito2/H2_02_Seudonimizacion_Dataset.xlsx).
+ * 2. Complemento de validación: datos SINTÉTICOS, identificables por sus códigos (REG-Vxxx, STU-VAL…,
+ *    DOC-VAL…), para alcanzar los volúmenes mínimos que pide el Hito 3 (5 docentes, 8 áreas, 3 secciones,
+ *    2 periodos, 15 actividades, 100-200 resultados). No se inventan notas para los estudiantes del Hito 2.
+ *
+ * Privacidad (RNF-07): no se carga ningún nombre ni documento; solo tokens seudónimos.
  */
-import { ActivityType, AttendanceStatus, PrismaClient, QualitativeGrade } from '@prisma/client';
+import { randomBytes, scryptSync } from 'node:crypto';
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
+import { PrismaClient, type TipoCambio } from '@prisma/client';
 
 const prisma = new PrismaClient();
-const ACADEMIC_YEAR = 2026;
 
-/** PRNG determinista (mulberry32): el mismo seed produce siempre los mismos datos. */
-function createRandom(seed: number): () => number {
+interface H2Registro {
+  registro_id: string;
+  estudiante_token: string;
+  grado: number;
+  seccion: string;
+  periodo: string;
+  area_codigo: string;
+  area_nombre: string;
+  evaluacion_codigo: string;
+  evaluacion_nombre: string;
+  tipo_evaluacion: string;
+  fecha_evaluacion: string;
+  puntaje_maximo: number;
+  nota: number | null;
+  fecha_registro: string;
+  docente_token: string;
+  estado: 'VIGENTE' | 'RECTIFICADO' | 'REVOCADO';
+}
+
+const dataset = JSON.parse(
+  readFileSync(path.join(__dirname, 'data', 'h2_02_dataset_seudonimizado.json'), 'utf8'),
+) as { registros: H2Registro[] };
+
+/** PRNG determinista (mulberry32) para el complemento sintético. */
+function createRandom(seed: number) {
   let state = seed;
   return () => {
     state = (state + 0x6d2b79f5) | 0;
@@ -22,293 +50,323 @@ function createRandom(seed: number): () => number {
   };
 }
 const random = createRandom(20260929);
+const pad = (n: number, size: number) => String(n).padStart(size, '0');
+const day = (iso: string) => new Date(`${iso}T00:00:00.000Z`);
 
-const pad = (value: number, size: number) => String(value).padStart(size, '0');
-const date = (iso: string) => new Date(`${iso}T00:00:00.000Z`);
-
-/** Conversión de nota vigesimal a escala CNEB usada en el prototipo. */
-function toQualitative(score: number): QualitativeGrade {
-  if (score >= 18) return QualitativeGrade.AD;
-  if (score >= 14) return QualitativeGrade.A;
-  if (score >= 11) return QualitativeGrade.B;
-  return QualitativeGrade.C;
+/** Hash scrypt de una contraseña aleatoria: la cuenta existe pero no puede iniciar sesión hasta el Hito 5. */
+function disabledPasswordHash(): string {
+  const salt = randomBytes(16);
+  return `scrypt$${salt.toString('hex')}$${scryptSync(randomBytes(32), salt, 32).toString('hex')}`;
 }
 
-const STUDENTS: Array<[string, string]> = [
-  ['Luis Alberto', 'Mamani Quispe'],
-  ['María Fernanda', 'Condori Apaza'],
-  ['Andrea Milagros', 'Huanca Yucra'],
-  ['José Carlos', 'Coaquira Mamani'],
-  ['Diego Alejandro', 'Apaza Cutipa'],
-  ['Valeria Nicole', 'Quispe Ccama'],
-  ['Ruth Daniela', 'Chambi Condori'],
-  ['Kevin Rodrigo', 'Choque Sucari'],
-  ['Lucero Anahí', 'Yucra Mamani'],
-  ['Brayan Josué', 'Cutipa Huanca'],
-  ['Milagros Estefany', 'Ccama Choque'],
-  ['Jhon Franklin', 'Sucari Apaza'],
-  ['Katherine Lizbeth', 'Mamani Chambi'],
-  ['Edwin Rolando', 'Quispe Coaquira'],
-  ['Sheyla Maribel', 'Condori Cutipa'],
-  ['Rodrigo Andrés', 'Huanca Quispe'],
-  ['Yesenia Paola', 'Apaza Yucra'],
-  ['Alexander Iván', 'Chambi Mamani'],
-  ['Nayeli Fiorella', 'Coaquira Ccama'],
-  ['Franco Sebastián', 'Choque Condori'],
-  ['Rocío Belén', 'Yucra Sucari'],
-  ['Cristian Omar', 'Cutipa Apaza'],
-  ['Dayana Sofía', 'Ccama Huanca'],
-  ['Gabriel Esteban', 'Sucari Choque'],
+const AREAS: Array<[string, string, 'H2' | 'VAL']> = [
+  ['MAT', 'Matemática', 'H2'],
+  ['COM', 'Comunicación', 'H2'],
+  ['CTA', 'Ciencia y Tecnología', 'H2'],
+  ['CCSS', 'Ciencias Sociales', 'H2'],
+  ['ING', 'Inglés', 'VAL'],
+  ['EPT', 'Educación para el Trabajo', 'VAL'],
+  ['DPCC', 'Desarrollo Personal, Ciudadanía y Cívica', 'VAL'],
+  ['AYC', 'Arte y Cultura', 'VAL'],
 ];
 
-const TEACHERS: Array<[string, string, string]> = [
-  ['Rosa Elena', 'Quispe Chambi', 'Matemática'],
-  ['Juan Carlos', 'Mamani Sucari', 'Comunicación'],
-  ['Edith Marleny', 'Condori Yucra', 'Ciencia y Tecnología'],
-  ['Wilber Ronald', 'Apaza Ccama', 'Ciencias Sociales'],
-  ['Nancy Pilar', 'Huanca Cutipa', 'Inglés'],
+/** Catálogo del Hito 2 + TRABAJO (presente en el dataset H2_02, ausente en el catálogo H2_04). */
+const TIPOS: Array<[string, string, string]> = [
+  ['PRACTICA', 'Práctica calificada', 'Actividad práctica con resultado cuantificable.'],
+  ['EXAMEN', 'Examen', 'Evaluación escrita u oral.'],
+  ['TAREA', 'Tarea', 'Actividad asignada fuera o dentro del aula.'],
+  ['INFORME', 'Informe', 'Producto escrito evaluable.'],
+  ['PROYECTO', 'Proyecto', 'Producto o trabajo de mayor alcance.'],
+  ['PARTICIPACION', 'Participación', 'Registro de participación académica.'],
+  ['TRABAJO', 'Trabajo', 'Trabajo evaluable (tipo presente en el dataset H2_02).'],
 ];
 
-const SUBJECTS: Array<[string, string]> = [
-  ['MAT', 'Matemática'],
-  ['COM', 'Comunicación'],
-  ['CYT', 'Ciencia y Tecnología'],
-  ['CCSS', 'Ciencias Sociales'],
-  ['ING', 'Inglés'],
-  ['EPT', 'Educación para el Trabajo'],
-  ['DPCC', 'Desarrollo Personal, Ciudadanía y Cívica'],
-  ['AYC', 'Arte y Cultura'],
-  ['EFI', 'Educación Física'],
-  ['ERE', 'Educación Religiosa'],
+/** Complemento sintético: sección 3.º C, 10 estudiantes, docente DOC-VAL…, 7 actividades. */
+const VAL_STUDENTS = Array.from({ length: 10 }, (_, i) => `STU-VAL${pad(i + 1, 13)}`);
+const VAL_TEACHER = `DOC-VAL${pad(1, 13)}`;
+const VAL_ACTIVITIES: Array<{ periodo: string; area: string; codigo: string; titulo: string; tipo: string; fecha: string }> = [
+  { periodo: '2026-B2', area: 'ING', codigo: 'EV-ING-3C1', titulo: 'Reading comprehension: Lake Titicaca', tipo: 'EXAMEN', fecha: '2026-06-09' },
+  { periodo: '2026-B2', area: 'EPT', codigo: 'EV-EPT-3C1', titulo: 'Proyecto de emprendimiento textil', tipo: 'PROYECTO', fecha: '2026-06-16' },
+  { periodo: '2026-B2', area: 'DPCC', codigo: 'EV-DPCC-3C1', titulo: 'Debate sobre convivencia escolar', tipo: 'PARTICIPACION', fecha: '2026-06-23' },
+  { periodo: '2026-B2', area: 'AYC', codigo: 'EV-AYC-3C1', titulo: 'Muestra de danzas del altiplano', tipo: 'TRABAJO', fecha: '2026-07-07' },
+  { periodo: '2026-B3', area: 'ING', codigo: 'EV-ING-3C2', titulo: 'Oral presentation: my community', tipo: 'EXAMEN', fecha: '2026-09-08' },
+  { periodo: '2026-B3', area: 'EPT', codigo: 'EV-EPT-3C2', titulo: 'Plan de negocio para la feria de Juliaca', tipo: 'TAREA', fecha: '2026-09-10' },
+  { periodo: '2026-B3', area: 'DPCC', codigo: 'EV-DPCC-3C2', titulo: 'Práctica calificada de derechos ciudadanos', tipo: 'PRACTICA', fecha: '2026-09-15' },
 ];
-
-/** Sección → grado, letra. Ocho estudiantes por sección. */
-const SECTIONS = [
-  { id: 1, code: '2026-1A', gradeNumber: 1, letter: 'A', birthYear: 2013 },
-  { id: 2, code: '2026-1B', gradeNumber: 1, letter: 'B', birthYear: 2013 },
-  { id: 3, code: '2026-2A', gradeNumber: 2, letter: 'A', birthYear: 2012 },
-];
-
-/** Docente asignado por área (subjectId → teacherId). */
-const ASSIGNED_SUBJECTS: Array<{ subjectId: number; teacherId: number }> = [
-  { subjectId: 1, teacherId: 1 },
-  { subjectId: 2, teacherId: 2 },
-  { subjectId: 3, teacherId: 3 },
-  { subjectId: 4, teacherId: 4 },
-  { subjectId: 5, teacherId: 5 },
-];
-
-/** Plan de evaluaciones por sección: 5 actividades × 3 secciones = 15 actividades. */
-const ACTIVITY_PLAN: Array<{
-  subjectId: number;
-  periodId: number;
-  type: ActivityType;
-  title: string;
-  competency: string;
-  dayOffset: number;
-}> = [
-  { subjectId: 1, periodId: 1, type: ActivityType.EVALUACION_DIAGNOSTICA, title: 'Evaluación diagnóstica de números racionales', competency: 'Resuelve problemas de cantidad', dayOffset: 0 },
-  { subjectId: 2, periodId: 1, type: ActivityType.EXPOSICION, title: 'Exposición sobre leyendas del altiplano puneño', competency: 'Se comunica oralmente en su lengua materna', dayOffset: 2 },
-  { subjectId: 1, periodId: 2, type: ActivityType.PRACTICA_CALIFICADA, title: 'Práctica calificada de proporcionalidad', competency: 'Resuelve problemas de regularidad, equivalencia y cambio', dayOffset: 0 },
-  { subjectId: 3, periodId: 2, type: ActivityType.PROYECTO, title: 'Proyecto: calidad del agua del río Coata', competency: 'Indaga mediante métodos científicos', dayOffset: 3 },
-  { subjectId: 4, periodId: 2, type: ActivityType.TRABAJO_GRUPAL, title: 'Trabajo grupal: economía de la feria de Juliaca', competency: 'Gestiona responsablemente los recursos económicos', dayOffset: 5 },
-];
-
-const PERIOD_ACTIVITY_START: Record<number, string> = { 1: '2026-06-08', 2: '2026-09-07' };
-
-function addDays(iso: string, days: number): Date {
-  const result = date(iso);
-  result.setUTCDate(result.getUTCDate() + days);
-  return result;
-}
 
 async function clearDatabase() {
-  // Orden inverso de dependencias.
-  await prisma.traceabilityEvent.deleteMany();
-  await prisma.blockchainEvidence.deleteMany();
-  await prisma.academicResultHistory.deleteMany();
-  await prisma.academicResult.deleteMany();
-  await prisma.attendance.deleteMany();
-  await prisma.academicActivity.deleteMany();
-  await prisma.teachingAssignment.deleteMany();
-  await prisma.enrollment.deleteMany();
-  await prisma.studentIdentity.deleteMany();
-  await prisma.student.deleteMany();
-  await prisma.user.deleteMany();
-  await prisma.teacher.deleteMany();
-  await prisma.role.deleteMany();
-  await prisma.subject.deleteMany();
-  await prisma.section.deleteMany();
-  await prisma.grade.deleteMany();
-  await prisma.academicPeriod.deleteMany();
-  await prisma.institution.deleteMany();
+  await prisma.evidenciaBlockchain.deleteMany();
+  await prisma.eventoTrazabilidad.deleteMany();
+  await prisma.historialResultado.deleteMany();
+  await prisma.resultadoAcademico.deleteMany();
+  await prisma.asistencia.deleteMany();
+  await prisma.actividadAcademica.deleteMany();
+  await prisma.asignacionDocente.deleteMany();
+  await prisma.matricula.deleteMany();
+  await prisma.usuarioRol.deleteMany();
+  await prisma.usuario.deleteMany();
+  await prisma.docente.deleteMany();
+  await prisma.estudiante.deleteMany();
+  await prisma.rol.deleteMany();
+  await prisma.tipoActividad.deleteMany();
+  await prisma.seccion.deleteMany();
+  await prisma.grado.deleteMany();
+  await prisma.areaCurricular.deleteMany();
+  await prisma.periodoAcademico.deleteMany();
+  await prisma.institucion.deleteMany();
 }
 
 async function main() {
+  const rows = dataset.registros;
+  console.log(`[SEED] Dataset Hito 2: ${rows.length} registros`);
   console.log('[SEED] Limpiando tablas...');
   await clearDatabase();
 
-  await prisma.institution.create({
-    data: { id: 1, code: 'IE-NH', name: 'Institución Educativa Nuevo Horizonte', city: 'Juliaca', region: 'Puno' },
+  const inst = await prisma.institucion.create({
+    data: { codigo: 'NH-JUL', nombre: 'Institución Educativa Nuevo Horizonte', ciudad: 'Juliaca' },
   });
 
-  await prisma.academicPeriod.createMany({
-    data: [
-      { id: 1, institutionId: 1, code: '2026-B2', academicYear: ACADEMIC_YEAR, name: 'II Bimestre 2026', startDate: date('2026-05-18'), endDate: date('2026-07-24') },
-      { id: 2, institutionId: 1, code: '2026-B3', academicYear: ACADEMIC_YEAR, name: 'III Bimestre 2026', startDate: date('2026-08-10'), endDate: date('2026-10-16') },
-    ],
-  });
-
-  await prisma.grade.createMany({
-    data: [1, 2, 3, 4, 5].map((n) => ({ id: n, institutionId: 1, level: 'SECUNDARIA', number: n, name: `${n}.º de secundaria` })),
-  });
-
-  await prisma.section.createMany({
-    data: SECTIONS.map((s) => ({ id: s.id, gradeId: s.gradeNumber, code: s.code, letter: s.letter, academicYear: ACADEMIC_YEAR })),
-  });
-
-  await prisma.subject.createMany({ data: SUBJECTS.map(([code, name], i) => ({ id: i + 1, code, name })) });
-
-  await prisma.teacher.createMany({
-    data: TEACHERS.map(([firstNames, lastNames, specialty], i) => ({
-      id: i + 1,
-      institutionId: 1,
-      pseudonymCode: `DOC-PSE-${pad(i + 1, 3)}`,
-      firstNames,
-      lastNames,
-      specialty,
-    })),
-  });
-
-  await prisma.role.createMany({
-    data: [
-      { id: 1, code: 'ADMINISTRADOR', name: 'Administrador del prototipo', description: 'Registra y ancla evidencias; administra la infraestructura.' },
-      { id: 2, code: 'DOCENTE', name: 'Docente', description: 'Registra y rectifica resultados de sus actividades.' },
-      { id: 3, code: 'AUDITOR', name: 'Auditor académico', description: 'Verifica la integridad y consulta la trazabilidad.' },
-    ],
-  });
-
-  await prisma.user.createMany({
-    data: [
-      { id: 1, username: 'admin.prototipo', actorReference: 'ADM-PSE-001', roleId: 1 },
-      ...TEACHERS.map((_, i) => ({
-        id: i + 2,
-        username: `docente${pad(i + 1, 2)}`,
-        actorReference: `DOC-PSE-${pad(i + 1, 3)}`,
-        roleId: 2,
-        teacherId: i + 1,
-      })),
-      { id: 7, username: 'auditor.academico', actorReference: 'AUD-PSE-001', roleId: 3 },
-    ],
-  });
-
-  // Estudiantes, identidad separada y matrícula.
-  await prisma.student.createMany({
-    data: STUDENTS.map((_, i) => ({ id: i + 1, institutionId: 1, pseudonymCode: `EST-PSE-${pad(i + 1, 3)}` })),
-  });
-  await prisma.studentIdentity.createMany({
-    data: STUDENTS.map(([firstNames, lastNames], i) => {
-      const section = SECTIONS[Math.floor(i / 8)]!;
-      const month = 1 + Math.floor(random() * 12);
-      const day = 1 + Math.floor(random() * 28);
-      return {
-        studentId: i + 1,
-        firstNames,
-        lastNames,
-        documentType: 'COD-VAL',
-        documentNumber: `VAL-${pad(i + 1, 4)}`,
-        birthDate: date(`${section.birthYear}-${pad(month, 2)}-${pad(day, 2)}`),
-      };
+  const periodos = {
+    '2026-B2': await prisma.periodoAcademico.create({
+      data: { institucionId: inst.id, codigo: '2026-B2', nombre: 'II Bimestre 2026', fechaInicio: day('2026-05-18'), fechaFin: day('2026-07-24'), estado: 'CERRADO' },
     }),
-  });
-  await prisma.enrollment.createMany({
-    data: STUDENTS.map((_, i) => ({
-      id: i + 1,
-      code: `MAT-2026-${pad(i + 1, 4)}`,
-      studentId: i + 1,
-      sectionId: SECTIONS[Math.floor(i / 8)]!.id,
-      academicYear: ACADEMIC_YEAR,
-      enrolledAt: date('2026-03-02'),
-    })),
-  });
-
-  // Asignaciones docentes: 5 áreas × 3 secciones.
-  const assignments = SECTIONS.flatMap((section) =>
-    ASSIGNED_SUBJECTS.map((a) => ({ ...a, sectionId: section.id })),
-  ).map((a, i) => ({ id: i + 1, teacherId: a.teacherId, subjectId: a.subjectId, sectionId: a.sectionId, academicYear: ACADEMIC_YEAR }));
-  await prisma.teachingAssignment.createMany({ data: assignments });
-
-  // Actividades: 5 por sección.
-  const activities = SECTIONS.flatMap((section, sectionIndex) =>
-    ACTIVITY_PLAN.map((plan) => {
-      const assignment = assignments.find((a) => a.sectionId === section.id && a.subjectId === plan.subjectId)!;
-      return { plan, section, sectionIndex, assignment };
+    '2026-B3': await prisma.periodoAcademico.create({
+      data: { institucionId: inst.id, codigo: '2026-B3', nombre: 'III Bimestre 2026', fechaInicio: day('2026-08-10'), fechaFin: day('2026-10-16'), estado: 'ABIERTO' },
     }),
-  ).map(({ plan, sectionIndex, assignment }, i) => ({
-    id: i + 1,
-    code: `ACT-2026-${pad(i + 1, 3)}`,
-    teachingAssignmentId: assignment.id,
-    periodId: plan.periodId,
-    type: plan.type,
-    title: plan.title,
-    competency: plan.competency,
-    scheduledDate: addDays(PERIOD_ACTIVITY_START[plan.periodId]!, plan.dayOffset + sectionIndex),
-  }));
-  await prisma.academicActivity.createMany({ data: activities });
+  } as const;
+  type PeriodoCode = keyof typeof periodos;
 
-  // Resultados: cada actividad × 8 estudiantes de su sección = 120 registros.
-  const results = activities.flatMap((activity) => {
-    const assignment = assignments.find((a) => a.id === activity.teachingAssignmentId)!;
-    const sectionIndex = SECTIONS.findIndex((s) => s.id === assignment.sectionId);
-    return Array.from({ length: 8 }, (_, k) => ({ activity, assignment, enrollmentId: sectionIndex * 8 + k + 1 }));
-  }).map(({ activity, assignment, enrollmentId }, i) => {
-    const score = Math.min(20, Math.max(6, Math.round((9 + random() * 11) * 2) / 2));
-    const recordedAt = new Date(activity.scheduledDate);
-    recordedAt.setUTCDate(recordedAt.getUTCDate() + 2);
-    recordedAt.setUTCHours(20, Math.floor(random() * 60), 0, 0); // 15:xx hora de Perú (UTC-5)
-    return {
-      id: i + 1,
-      code: `REG-${pad(i + 1, 6)}`,
-      enrollmentId,
-      activityId: activity.id,
-      qualitativeGrade: toQualitative(score),
-      numericScore: score.toFixed(2),
-      observation: score < 11 ? 'Requiere acompañamiento pedagógico.' : null,
-      recordedAt,
-      recordedByTeacherId: assignment.teacherId,
-    };
-  });
-  await prisma.academicResult.createMany({ data: results });
+  const areas = new Map<string, bigint>();
+  for (const [codigo, nombre] of AREAS) {
+    const area = await prisma.areaCurricular.create({ data: { institucionId: inst.id, codigo, nombre } });
+    areas.set(codigo, area.id);
+  }
 
-  // Asistencia: 5 días de septiembre por matrícula.
-  const attendanceDays = ['2026-09-14', '2026-09-15', '2026-09-16', '2026-09-17', '2026-09-18'];
-  await prisma.attendance.createMany({
-    data: STUDENTS.flatMap((_, i) =>
-      attendanceDays.map((day) => {
-        const roll = random();
-        const status =
-          roll < 0.86 ? AttendanceStatus.PRESENTE
-          : roll < 0.93 ? AttendanceStatus.TARDANZA
-          : roll < 0.97 ? AttendanceStatus.FALTA_JUSTIFICADA
-          : AttendanceStatus.FALTA;
-        return { enrollmentId: i + 1, date: date(day), status };
-      }),
-    ),
+  const grados = new Map<number, bigint>();
+  for (const numero of [1, 2, 3, 4, 5]) {
+    const g = await prisma.grado.create({ data: { institucionId: inst.id, numero, nombre: `${numero}.º de secundaria` } });
+    grados.set(numero, g.id);
+  }
+  const secciones = new Map<string, bigint>();
+  for (const codigo of ['A', 'B', 'C']) {
+    const s = await prisma.seccion.create({ data: { gradoId: grados.get(3)!, codigo, nombre: `3.º ${codigo}` } });
+    secciones.set(codigo, s.id);
+  }
+
+  const tipos = new Map<string, number>();
+  for (const [codigo, nombre, descripcion] of TIPOS) {
+    const t = await prisma.tipoActividad.create({ data: { codigo, nombre, descripcion } });
+    tipos.set(codigo, t.id);
+  }
+
+  const roles = new Map<string, number>();
+  for (const [codigo, nombre, descripcion] of [
+    ['ADMIN', 'Administrador', 'Gestiona usuarios, catálogos y configuración del prototipo.'],
+    ['DOCENTE', 'Docente', 'Registra y consulta actividades y resultados de sus asignaciones.'],
+    ['AUDITOR', 'Auditor', 'Consulta trazabilidad y verifica evidencia de integridad.'],
+  ] as const) {
+    const r = await prisma.rol.create({ data: { codigo, nombre, descripcion } });
+    roles.set(codigo, r.id);
+  }
+
+  // Estudiantes y docentes: solo tokens.
+  const estudiantes = new Map<string, bigint>();
+  for (const token of [...new Set(rows.map((r) => r.estudiante_token)), ...VAL_STUDENTS]) {
+    estudiantes.set(token, (await prisma.estudiante.create({ data: { tokenEstudiante: token } })).id);
+  }
+  const docentes = new Map<string, bigint>();
+  const docenteUsuario = new Map<string, bigint>();
+  for (const token of [...new Set(rows.map((r) => r.docente_token)), VAL_TEACHER]) {
+    const doc = await prisma.docente.create({ data: { tokenDocente: token } });
+    docentes.set(token, doc.id);
+    const user = await prisma.usuario.create({
+      data: { username: token, passwordHash: disabledPasswordHash(), docenteId: doc.id, roles: { create: { rolId: roles.get('DOCENTE')! } } },
+    });
+    docenteUsuario.set(token, user.id);
+  }
+  await prisma.usuario.create({
+    data: { username: 'admin.prototipo', passwordHash: disabledPasswordHash(), roles: { create: { rolId: roles.get('ADMIN')! } } },
   });
+  await prisma.usuario.create({
+    data: { username: 'auditor.prototipo', passwordHash: disabledPasswordHash(), roles: { create: { rolId: roles.get('AUDITOR')! } } },
+  });
+
+  // Matrículas: estudiante × periodo (única, como en H2_04).
+  const matriculas = new Map<string, bigint>();
+  const enroll = async (token: string, periodo: PeriodoCode, seccion: string) => {
+    const key = `${token}|${periodo}`;
+    if (matriculas.has(key)) return;
+    const m = await prisma.matricula.create({
+      data: { estudianteId: estudiantes.get(token)!, periodoId: periodos[periodo].id, seccionId: secciones.get(seccion)!, fechaMatricula: day('2026-03-02') },
+    });
+    matriculas.set(key, m.id);
+  };
+
+  // Asignaciones docente × área × sección × periodo y actividades.
+  const asignaciones = new Map<string, { id: bigint; docente: string }>();
+  const assign = async (docente: string, area: string, seccion: string, periodo: PeriodoCode) => {
+    const key = `${area}|${seccion}|${periodo}`;
+    const existing = asignaciones.get(key);
+    if (existing) {
+      if (existing.docente !== docente) throw new Error(`Dos docentes para ${key}`);
+      return existing.id;
+    }
+    const a = await prisma.asignacionDocente.create({
+      data: { docenteId: docentes.get(docente)!, areaId: areas.get(area)!, seccionId: secciones.get(seccion)!, periodoId: periodos[periodo].id },
+    });
+    asignaciones.set(key, { id: a.id, docente });
+    return a.id;
+  };
+  const actividades = new Map<string, bigint>();
+  const activity = async (asignacionId: bigint, seccion: string, a: { codigo: string; titulo: string; tipo: string; fecha: string; maximo: number; creador: bigint }) => {
+    const key = `${a.codigo}|${seccion}`;
+    if (actividades.has(key)) return actividades.get(key)!;
+    const act = await prisma.actividadAcademica.create({
+      data: {
+        asignacionId,
+        tipoActividadId: tipos.get(a.tipo)!,
+        codigo: a.codigo,
+        titulo: a.titulo,
+        fechaActividad: day(a.fecha),
+        puntajeMaximo: a.maximo,
+        creadoPor: a.creador,
+      },
+    });
+    actividades.set(key, act.id);
+    return act.id;
+  };
+
+  // Área real de cada evaluación: la que usa la mayoría de sus registros (corrige normalizaciones erróneas).
+  const areaDeEvaluacion = new Map<string, string>();
+  for (const code of new Set(rows.map((r) => r.evaluacion_codigo))) {
+    const counts = new Map<string, number>();
+    for (const r of rows.filter((x) => x.evaluacion_codigo === code)) counts.set(r.area_codigo, (counts.get(r.area_codigo) ?? 0) + 1);
+    areaDeEvaluacion.set(code, [...counts.entries()].sort((a, b) => b[1] - a[1])[0]![0]);
+  }
+
+  const hallazgos: string[] = [];
+  let creados = 0;
+  const createResult = async (r: {
+    codigo: string;
+    matriculaId: bigint;
+    actividadId: bigint;
+    puntaje: number | null;
+    registrador: bigint;
+    registradoEn: Date;
+  }) => {
+    const res = await prisma.resultadoAcademico.create({
+      data: {
+        codigo: r.codigo,
+        matriculaId: r.matriculaId,
+        actividadId: r.actividadId,
+        puntajeObtenido: r.puntaje,
+        registradoPor: r.registrador,
+        registradoEn: r.registradoEn,
+      },
+    });
+    await prisma.historialResultado.create({
+      data: {
+        resultadoId: res.id,
+        version: 1,
+        puntajeAnterior: null,
+        puntajeNuevo: r.puntaje,
+        tipoCambio: 'CREACION' satisfies TipoCambio,
+        motivoCodigo: 'CARGA_INICIAL',
+        motivoDetalle: r.codigo.startsWith('REG-V') ? 'Complemento de validación sintético' : 'Carga del dataset seudonimizado H2_02',
+        realizadoPor: r.registrador,
+        realizadoEn: r.registradoEn,
+      },
+    });
+    creados++;
+  };
+
+  // 1) Registros del Hito 2.
+  for (const r of rows) {
+    const periodo = r.periodo as PeriodoCode;
+    await enroll(r.estudiante_token, periodo, r.seccion);
+    const area = areaDeEvaluacion.get(r.evaluacion_codigo)!;
+    if (area !== r.area_codigo) {
+      hallazgos.push(`${r.registro_id}: área ${r.area_codigo} en H2_02, pero la evaluación ${r.evaluacion_codigo} pertenece a ${area}; se carga en ${area}.`);
+    }
+    const asignacionId = await assign(r.docente_token, area, r.seccion, periodo);
+    const actividadId = await activity(asignacionId, r.seccion, {
+      codigo: r.evaluacion_codigo,
+      titulo: r.evaluacion_nombre,
+      tipo: r.tipo_evaluacion,
+      fecha: r.fecha_evaluacion,
+      maximo: r.puntaje_maximo,
+      creador: docenteUsuario.get(r.docente_token)!,
+    });
+    await createResult({
+      codigo: r.registro_id,
+      matriculaId: matriculas.get(`${r.estudiante_token}|${periodo}`)!,
+      actividadId,
+      puntaje: r.nota,
+      registrador: docenteUsuario.get(r.docente_token)!,
+      registradoEn: day(r.fecha_registro),
+    });
+  }
+
+  // 2) Complemento sintético de validación.
+  let n = 0;
+  for (const a of VAL_ACTIVITIES) {
+    const periodo = a.periodo as PeriodoCode;
+    const asignacionId = await assign(VAL_TEACHER, a.area, 'C', periodo);
+    const actividadId = await activity(asignacionId, 'C', { ...a, maximo: 20, creador: docenteUsuario.get(VAL_TEACHER)! });
+    for (const token of VAL_STUDENTS) {
+      await enroll(token, periodo, 'C');
+      const nota = Math.round(8 + random() * 12);
+      const registro = day(a.fecha);
+      registro.setUTCDate(registro.getUTCDate() + 1 + Math.floor(random() * 3));
+      await createResult({
+        codigo: `REG-V${pad(++n, 3)}`,
+        matriculaId: matriculas.get(`${token}|${periodo}`)!,
+        actividadId,
+        puntaje: nota,
+        registrador: docenteUsuario.get(VAL_TEACHER)!,
+        registradoEn: registro,
+      });
+    }
+  }
+
+  // Asistencia del complemento (el dataset H2 no incluye asistencia).
+  const asigIngB3 = asignaciones.get('ING|C|2026-B3')!.id;
+  const estados = ['PRESENTE', 'PRESENTE', 'PRESENTE', 'PRESENTE', 'TARDANZA', 'JUSTIFICADA', 'FALTA'] as const;
+  for (const token of VAL_STUDENTS) {
+    for (const fecha of ['2026-09-14', '2026-09-15', '2026-09-16', '2026-09-17', '2026-09-18']) {
+      await prisma.asistencia.create({
+        data: {
+          matriculaId: matriculas.get(`${token}|2026-B3`)!,
+          asignacionId: asigIngB3,
+          fecha: day(fecha),
+          estado: estados[Math.floor(random() * estados.length)]!,
+          registradoPor: docenteUsuario.get(VAL_TEACHER)!,
+        },
+      });
+    }
+  }
 
   const counts = {
-    estudiantes: await prisma.student.count(),
-    docentes: await prisma.teacher.count(),
-    asignaturas: await prisma.subject.count(),
-    secciones: await prisma.section.count(),
-    periodos: await prisma.academicPeriod.count(),
-    actividades: await prisma.academicActivity.count(),
-    resultados: await prisma.academicResult.count(),
-    asistencias: await prisma.attendance.count(),
-    usuarios: await prisma.user.count(),
+    'resultados (total)': await prisma.resultadoAcademico.count(),
+    '  del dataset Hito 2': await prisma.resultadoAcademico.count({ where: { NOT: { codigo: { startsWith: 'REG-V' } } } }),
+    '  complemento sintético': await prisma.resultadoAcademico.count({ where: { codigo: { startsWith: 'REG-V' } } }),
+    estudiantes: await prisma.estudiante.count(),
+    docentes: await prisma.docente.count(),
+    'áreas curriculares': await prisma.areaCurricular.count(),
+    secciones: await prisma.seccion.count(),
+    periodos: await prisma.periodoAcademico.count(),
+    actividades: await prisma.actividadAcademica.count(),
+    matrículas: await prisma.matricula.count(),
+    'historial (CREACION)': await prisma.historialResultado.count(),
+    asistencias: await prisma.asistencia.count(),
+    usuarios: await prisma.usuario.count(),
   };
-  console.log('[SEED] Datos de validación cargados:');
+  console.log(`[SEED] ${creados} resultados creados.`);
   console.table(counts);
+  if (hallazgos.length > 0) {
+    console.log('[SEED] Hallazgos en el dataset del Hito 2 (requieren confirmación del equipo):');
+    for (const h of hallazgos) console.log(`  - ${h}`);
+  }
 }
 
 main()

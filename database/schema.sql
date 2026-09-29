@@ -2,342 +2,358 @@
 -- Esquema Off-chain (MySQL 8) - Prototipo de trazabilidad microcurricular
 -- I.E. Nuevo Horizonte - Hito 3
 --
--- Generado desde prisma/schema.prisma (migración 20260928223657_init_hito3).
--- Prisma es la fuente de verdad: este archivo y la migración son idénticos en contenido.
--- Uso sin Prisma:  mysql -u root -p trazabilidad_academica < schema.sql
+-- Implementa tabla por tabla el modelo del Hito 2 (hito2/H2_04_Modelo_Datos_OffChain.sql)
+-- con las extensiones E1-E4 documentadas en app-next/prisma/schema.prisma e informes/H3_03.
+-- Generado desde prisma/schema.prisma (migración 20260929214236_modelo_hito2): Prisma y este archivo son idénticos.
+--
+-- Uso sin Prisma:
+--   CREATE DATABASE nuevo_horizonte_trazabilidad CHARACTER SET utf8mb4;
+--   mysql -u root -p nuevo_horizonte_trazabilidad < schema.sql
 -- =============================================================================
 
 -- CreateTable
-CREATE TABLE `institution` (
-    `id` INTEGER NOT NULL AUTO_INCREMENT,
-    `code` VARCHAR(20) NOT NULL,
-    `name` VARCHAR(150) NOT NULL,
-    `city` VARCHAR(80) NOT NULL,
-    `region` VARCHAR(80) NOT NULL,
-    `created_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+CREATE TABLE `institucion` (
+    `institucion_id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `codigo` VARCHAR(30) NOT NULL,
+    `nombre` VARCHAR(180) NOT NULL,
+    `ciudad` VARCHAR(100) NOT NULL,
+    `estado` ENUM('ACTIVO', 'INACTIVO') NOT NULL DEFAULT 'ACTIVO',
+    `creado_en` TIMESTAMP(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0),
+    `actualizado_en` TIMESTAMP(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0),
 
-    UNIQUE INDEX `institution_code_key`(`code`),
-    PRIMARY KEY (`id`)
+    UNIQUE INDEX `institucion_codigo_key`(`codigo`),
+    PRIMARY KEY (`institucion_id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
-CREATE TABLE `academic_period` (
-    `id` INTEGER NOT NULL AUTO_INCREMENT,
-    `institution_id` INTEGER NOT NULL,
-    `code` VARCHAR(20) NOT NULL,
-    `academic_year` INTEGER NOT NULL,
-    `name` VARCHAR(60) NOT NULL,
-    `start_date` DATE NOT NULL,
-    `end_date` DATE NOT NULL,
+CREATE TABLE `periodo_academico` (
+    `periodo_id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `institucion_id` BIGINT UNSIGNED NOT NULL,
+    `codigo` VARCHAR(30) NOT NULL,
+    `nombre` VARCHAR(100) NOT NULL,
+    `fecha_inicio` DATE NOT NULL,
+    `fecha_fin` DATE NOT NULL,
+    `estado` ENUM('PLANIFICADO', 'ABIERTO', 'CERRADO') NOT NULL DEFAULT 'ABIERTO',
 
-    UNIQUE INDEX `academic_period_code_key`(`code`),
-    INDEX `academic_period_academic_year_idx`(`academic_year`),
-    PRIMARY KEY (`id`)
+    UNIQUE INDEX `uq_periodo`(`institucion_id`, `codigo`),
+    PRIMARY KEY (`periodo_id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
-CREATE TABLE `grade` (
-    `id` INTEGER NOT NULL AUTO_INCREMENT,
-    `institution_id` INTEGER NOT NULL,
-    `level` VARCHAR(20) NOT NULL,
-    `number` TINYINT NOT NULL,
-    `name` VARCHAR(40) NOT NULL,
+CREATE TABLE `area_curricular` (
+    `area_id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `institucion_id` BIGINT UNSIGNED NOT NULL,
+    `codigo` VARCHAR(30) NOT NULL,
+    `nombre` VARCHAR(120) NOT NULL,
+    `estado` ENUM('ACTIVO', 'INACTIVO') NOT NULL DEFAULT 'ACTIVO',
 
-    UNIQUE INDEX `grade_institution_id_level_number_key`(`institution_id`, `level`, `number`),
-    PRIMARY KEY (`id`)
+    UNIQUE INDEX `uq_area`(`institucion_id`, `codigo`),
+    PRIMARY KEY (`area_id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
-CREATE TABLE `section` (
-    `id` INTEGER NOT NULL AUTO_INCREMENT,
-    `grade_id` INTEGER NOT NULL,
-    `code` VARCHAR(20) NOT NULL,
-    `letter` CHAR(1) NOT NULL,
-    `academic_year` INTEGER NOT NULL,
+CREATE TABLE `grado` (
+    `grado_id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `institucion_id` BIGINT UNSIGNED NOT NULL,
+    `nivel` VARCHAR(40) NOT NULL DEFAULT 'SECUNDARIA',
+    `numero` TINYINT UNSIGNED NOT NULL,
+    `nombre` VARCHAR(60) NOT NULL,
 
-    UNIQUE INDEX `section_code_key`(`code`),
-    UNIQUE INDEX `section_grade_id_letter_academic_year_key`(`grade_id`, `letter`, `academic_year`),
-    PRIMARY KEY (`id`)
+    UNIQUE INDEX `uq_grado`(`institucion_id`, `nivel`, `numero`),
+    PRIMARY KEY (`grado_id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
-CREATE TABLE `student` (
-    `id` INTEGER NOT NULL AUTO_INCREMENT,
-    `institution_id` INTEGER NOT NULL,
-    `pseudonym_code` VARCHAR(20) NOT NULL,
-    `status` ENUM('ACTIVO', 'INACTIVO') NOT NULL DEFAULT 'ACTIVO',
-    `created_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+CREATE TABLE `seccion` (
+    `seccion_id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `grado_id` BIGINT UNSIGNED NOT NULL,
+    `codigo` VARCHAR(10) NOT NULL,
+    `nombre` VARCHAR(40) NULL,
 
-    UNIQUE INDEX `student_pseudonym_code_key`(`pseudonym_code`),
-    PRIMARY KEY (`id`)
+    UNIQUE INDEX `uq_seccion`(`grado_id`, `codigo`),
+    PRIMARY KEY (`seccion_id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
-CREATE TABLE `student_identity` (
-    `student_id` INTEGER NOT NULL,
-    `first_names` VARCHAR(80) NOT NULL,
-    `last_names` VARCHAR(80) NOT NULL,
-    `document_type` VARCHAR(10) NOT NULL DEFAULT 'DNI',
-    `document_number` VARCHAR(15) NOT NULL,
-    `birth_date` DATE NOT NULL,
+CREATE TABLE `estudiante` (
+    `estudiante_id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `token_estudiante` VARCHAR(40) NOT NULL,
+    `estado` ENUM('ACTIVO', 'INACTIVO', 'RETIRADO') NOT NULL DEFAULT 'ACTIVO',
+    `creado_en` TIMESTAMP(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0),
 
-    UNIQUE INDEX `student_identity_document_number_key`(`document_number`),
-    PRIMARY KEY (`student_id`)
+    UNIQUE INDEX `estudiante_token_estudiante_key`(`token_estudiante`),
+    PRIMARY KEY (`estudiante_id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
-CREATE TABLE `teacher` (
-    `id` INTEGER NOT NULL AUTO_INCREMENT,
-    `institution_id` INTEGER NOT NULL,
-    `pseudonym_code` VARCHAR(20) NOT NULL,
-    `first_names` VARCHAR(80) NOT NULL,
-    `last_names` VARCHAR(80) NOT NULL,
-    `specialty` VARCHAR(80) NOT NULL,
-    `status` ENUM('ACTIVO', 'INACTIVO') NOT NULL DEFAULT 'ACTIVO',
+CREATE TABLE `docente` (
+    `docente_id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `token_docente` VARCHAR(40) NOT NULL,
+    `estado` ENUM('ACTIVO', 'INACTIVO') NOT NULL DEFAULT 'ACTIVO',
+    `creado_en` TIMESTAMP(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0),
 
-    UNIQUE INDEX `teacher_pseudonym_code_key`(`pseudonym_code`),
-    PRIMARY KEY (`id`)
+    UNIQUE INDEX `docente_token_docente_key`(`token_docente`),
+    PRIMARY KEY (`docente_id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
-CREATE TABLE `enrollment` (
-    `id` INTEGER NOT NULL AUTO_INCREMENT,
-    `code` VARCHAR(20) NOT NULL,
-    `student_id` INTEGER NOT NULL,
-    `section_id` INTEGER NOT NULL,
-    `academic_year` INTEGER NOT NULL,
-    `enrolled_at` DATE NOT NULL,
-    `status` ENUM('MATRICULADO', 'RETIRADO', 'TRASLADADO') NOT NULL DEFAULT 'MATRICULADO',
+CREATE TABLE `usuario` (
+    `usuario_id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `username` VARCHAR(80) NOT NULL,
+    `password_hash` VARCHAR(255) NOT NULL,
+    `docente_id` BIGINT UNSIGNED NULL,
+    `estado` ENUM('ACTIVO', 'BLOQUEADO', 'INACTIVO') NOT NULL DEFAULT 'ACTIVO',
+    `ultimo_acceso_en` DATETIME(0) NULL,
+    `creado_en` TIMESTAMP(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0),
 
-    UNIQUE INDEX `enrollment_code_key`(`code`),
-    INDEX `enrollment_section_id_idx`(`section_id`),
-    UNIQUE INDEX `enrollment_student_id_academic_year_key`(`student_id`, `academic_year`),
-    PRIMARY KEY (`id`)
+    UNIQUE INDEX `usuario_username_key`(`username`),
+    PRIMARY KEY (`usuario_id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
-CREATE TABLE `subject` (
-    `id` INTEGER NOT NULL AUTO_INCREMENT,
-    `code` VARCHAR(10) NOT NULL,
-    `name` VARCHAR(80) NOT NULL,
+CREATE TABLE `rol` (
+    `rol_id` SMALLINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `codigo` VARCHAR(40) NOT NULL,
+    `nombre` VARCHAR(80) NOT NULL,
+    `descripcion` VARCHAR(255) NULL,
 
-    UNIQUE INDEX `subject_code_key`(`code`),
-    UNIQUE INDEX `subject_name_key`(`name`),
-    PRIMARY KEY (`id`)
+    UNIQUE INDEX `rol_codigo_key`(`codigo`),
+    PRIMARY KEY (`rol_id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
-CREATE TABLE `teaching_assignment` (
-    `id` INTEGER NOT NULL AUTO_INCREMENT,
-    `teacher_id` INTEGER NOT NULL,
-    `subject_id` INTEGER NOT NULL,
-    `section_id` INTEGER NOT NULL,
-    `academic_year` INTEGER NOT NULL,
+CREATE TABLE `usuario_rol` (
+    `usuario_id` BIGINT UNSIGNED NOT NULL,
+    `rol_id` SMALLINT UNSIGNED NOT NULL,
+    `asignado_en` TIMESTAMP(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0),
 
-    INDEX `teaching_assignment_teacher_id_idx`(`teacher_id`),
-    UNIQUE INDEX `teaching_assignment_subject_id_section_id_academic_year_key`(`subject_id`, `section_id`, `academic_year`),
-    PRIMARY KEY (`id`)
+    PRIMARY KEY (`usuario_id`, `rol_id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
-CREATE TABLE `academic_activity` (
-    `id` INTEGER NOT NULL AUTO_INCREMENT,
-    `code` VARCHAR(20) NOT NULL,
-    `teaching_assignment_id` INTEGER NOT NULL,
-    `period_id` INTEGER NOT NULL,
-    `type` ENUM('EVALUACION_DIAGNOSTICA', 'PRACTICA_CALIFICADA', 'EXAMEN_UNIDAD', 'TRABAJO_GRUPAL', 'EXPOSICION', 'PROYECTO', 'EVALUACION_BIMESTRAL', 'ACTIVIDAD_APRENDIZAJE') NOT NULL,
-    `title` VARCHAR(150) NOT NULL,
-    `competency` VARCHAR(150) NOT NULL,
-    `scheduled_date` DATE NOT NULL,
+CREATE TABLE `matricula` (
+    `matricula_id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `estudiante_id` BIGINT UNSIGNED NOT NULL,
+    `periodo_id` BIGINT UNSIGNED NOT NULL,
+    `seccion_id` BIGINT UNSIGNED NOT NULL,
+    `estado` ENUM('VIGENTE', 'RETIRADA', 'TRASLADADA', 'CERRADA') NOT NULL DEFAULT 'VIGENTE',
+    `fecha_matricula` DATE NULL,
 
-    UNIQUE INDEX `academic_activity_code_key`(`code`),
-    INDEX `academic_activity_period_id_idx`(`period_id`),
-    INDEX `academic_activity_teaching_assignment_id_idx`(`teaching_assignment_id`),
-    PRIMARY KEY (`id`)
+    UNIQUE INDEX `uq_matricula`(`estudiante_id`, `periodo_id`),
+    PRIMARY KEY (`matricula_id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
-CREATE TABLE `academic_result` (
-    `id` INTEGER NOT NULL AUTO_INCREMENT,
-    `code` VARCHAR(20) NOT NULL,
-    `enrollment_id` INTEGER NOT NULL,
-    `activity_id` INTEGER NOT NULL,
-    `qualitative_grade` ENUM('AD', 'A', 'B', 'C') NOT NULL,
-    `numeric_score` DECIMAL(4, 2) NULL,
-    `observation` VARCHAR(255) NULL,
-    `recorded_at` DATETIME(3) NOT NULL,
-    `recorded_by_teacher_id` INTEGER NOT NULL,
-    `version` INTEGER NOT NULL DEFAULT 1,
-    `status` ENUM('ACTIVO', 'INACTIVO') NOT NULL DEFAULT 'ACTIVO',
-    `updated_at` DATETIME(3) NOT NULL,
+CREATE TABLE `asignacion_docente` (
+    `asignacion_id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `docente_id` BIGINT UNSIGNED NOT NULL,
+    `area_id` BIGINT UNSIGNED NOT NULL,
+    `seccion_id` BIGINT UNSIGNED NOT NULL,
+    `periodo_id` BIGINT UNSIGNED NOT NULL,
+    `estado` ENUM('ACTIVA', 'FINALIZADA') NOT NULL DEFAULT 'ACTIVA',
 
-    UNIQUE INDEX `academic_result_code_key`(`code`),
-    INDEX `academic_result_activity_id_idx`(`activity_id`),
-    UNIQUE INDEX `academic_result_enrollment_id_activity_id_key`(`enrollment_id`, `activity_id`),
-    PRIMARY KEY (`id`)
+    UNIQUE INDEX `uq_asignacion`(`docente_id`, `area_id`, `seccion_id`, `periodo_id`),
+    PRIMARY KEY (`asignacion_id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
-CREATE TABLE `academic_result_history` (
-    `id` INTEGER NOT NULL AUTO_INCREMENT,
-    `result_id` INTEGER NOT NULL,
-    `version` INTEGER NOT NULL,
-    `qualitative_grade` ENUM('AD', 'A', 'B', 'C') NOT NULL,
-    `numeric_score` DECIMAL(4, 2) NULL,
-    `observation` VARCHAR(255) NULL,
-    `recorded_at` DATETIME(3) NOT NULL,
-    `change_reason` VARCHAR(255) NOT NULL,
-    `changed_by_reference` VARCHAR(20) NOT NULL,
-    `changed_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+CREATE TABLE `tipo_actividad` (
+    `tipo_actividad_id` SMALLINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `codigo` VARCHAR(30) NOT NULL,
+    `nombre` VARCHAR(80) NOT NULL,
+    `descripcion` VARCHAR(255) NULL,
 
-    UNIQUE INDEX `academic_result_history_result_id_version_key`(`result_id`, `version`),
-    PRIMARY KEY (`id`)
+    UNIQUE INDEX `tipo_actividad_codigo_key`(`codigo`),
+    PRIMARY KEY (`tipo_actividad_id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
-CREATE TABLE `attendance` (
-    `id` INTEGER NOT NULL AUTO_INCREMENT,
-    `enrollment_id` INTEGER NOT NULL,
-    `date` DATE NOT NULL,
-    `status` ENUM('PRESENTE', 'TARDANZA', 'FALTA', 'FALTA_JUSTIFICADA') NOT NULL,
+CREATE TABLE `actividad_academica` (
+    `actividad_id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `asignacion_id` BIGINT UNSIGNED NOT NULL,
+    `tipo_actividad_id` SMALLINT UNSIGNED NOT NULL,
+    `codigo` VARCHAR(40) NOT NULL,
+    `titulo` VARCHAR(180) NOT NULL,
+    `descripcion` TEXT NULL,
+    `fecha_actividad` DATE NOT NULL,
+    `puntaje_maximo` DECIMAL(6, 2) NOT NULL DEFAULT 20.00,
+    `estado` ENUM('BORRADOR', 'PUBLICADA', 'CERRADA', 'ANULADA') NOT NULL DEFAULT 'PUBLICADA',
+    `creado_por` BIGINT UNSIGNED NOT NULL,
+    `creado_en` TIMESTAMP(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0),
 
-    UNIQUE INDEX `attendance_enrollment_id_date_key`(`enrollment_id`, `date`),
-    PRIMARY KEY (`id`)
+    INDEX `idx_actividad_fecha`(`fecha_actividad`, `estado`),
+    UNIQUE INDEX `uq_actividad`(`asignacion_id`, `codigo`),
+    PRIMARY KEY (`actividad_id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
-CREATE TABLE `role` (
-    `id` INTEGER NOT NULL AUTO_INCREMENT,
-    `code` VARCHAR(20) NOT NULL,
-    `name` VARCHAR(60) NOT NULL,
-    `description` VARCHAR(255) NOT NULL,
+CREATE TABLE `resultado_academico` (
+    `resultado_id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `codigo` VARCHAR(20) NOT NULL,
+    `matricula_id` BIGINT UNSIGNED NOT NULL,
+    `actividad_id` BIGINT UNSIGNED NOT NULL,
+    `version_actual` INTEGER UNSIGNED NOT NULL DEFAULT 1,
+    `puntaje_obtenido` DECIMAL(6, 2) NULL,
+    `estado` ENUM('VIGENTE', 'RECTIFICADO', 'REVOCADO') NOT NULL DEFAULT 'VIGENTE',
+    `registrado_por` BIGINT UNSIGNED NOT NULL,
+    `registrado_en` DATETIME(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0),
+    `actualizado_en` DATETIME(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0),
 
-    UNIQUE INDEX `role_code_key`(`code`),
-    PRIMARY KEY (`id`)
+    UNIQUE INDEX `resultado_academico_codigo_key`(`codigo`),
+    INDEX `idx_resultado_actividad`(`actividad_id`, `estado`),
+    INDEX `idx_resultado_matricula`(`matricula_id`, `estado`),
+    UNIQUE INDEX `uq_resultado`(`matricula_id`, `actividad_id`),
+    PRIMARY KEY (`resultado_id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
-CREATE TABLE `app_user` (
-    `id` INTEGER NOT NULL AUTO_INCREMENT,
-    `username` VARCHAR(40) NOT NULL,
-    `actor_reference` VARCHAR(20) NOT NULL,
-    `role_id` INTEGER NOT NULL,
-    `teacher_id` INTEGER NULL,
-    `active` BOOLEAN NOT NULL DEFAULT true,
-    `created_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+CREATE TABLE `historial_resultado` (
+    `historial_id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `resultado_id` BIGINT UNSIGNED NOT NULL,
+    `version` INTEGER UNSIGNED NOT NULL,
+    `puntaje_anterior` DECIMAL(6, 2) NULL,
+    `puntaje_nuevo` DECIMAL(6, 2) NULL,
+    `tipo_cambio` ENUM('CREACION', 'RECTIFICACION', 'REVOCACION', 'RESTAURACION') NOT NULL,
+    `motivo_codigo` VARCHAR(40) NULL,
+    `motivo_detalle` VARCHAR(500) NULL,
+    `realizado_por` BIGINT UNSIGNED NOT NULL,
+    `realizado_en` DATETIME(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0),
 
-    UNIQUE INDEX `app_user_username_key`(`username`),
-    UNIQUE INDEX `app_user_actor_reference_key`(`actor_reference`),
-    UNIQUE INDEX `app_user_teacher_id_key`(`teacher_id`),
-    PRIMARY KEY (`id`)
+    INDEX `idx_historial_fecha`(`realizado_en`),
+    UNIQUE INDEX `uq_historial_version`(`resultado_id`, `version`),
+    PRIMARY KEY (`historial_id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
-CREATE TABLE `blockchain_evidence` (
-    `id` INTEGER NOT NULL AUTO_INCREMENT,
-    `result_id` INTEGER NOT NULL,
-    `evidence_id` VARCHAR(40) NOT NULL,
-    `version` INTEGER NOT NULL,
-    `event_type` ENUM('REGISTRO', 'VERIFICACION', 'RECTIFICACION') NOT NULL,
-    `evidence_hash` CHAR(64) NOT NULL,
-    `algorithm` VARCHAR(20) NOT NULL DEFAULT 'HMAC-SHA-256',
-    `canonical_version` VARCHAR(10) NOT NULL,
-    `channel_name` VARCHAR(50) NOT NULL,
-    `chaincode_name` VARCHAR(50) NOT NULL,
-    `tx_id` CHAR(64) NULL,
-    `block_number` BIGINT NULL,
-    `status` ENUM('PENDIENTE', 'CONFIRMADO', 'FALLIDO') NOT NULL DEFAULT 'PENDIENTE',
-    `error_message` VARCHAR(500) NULL,
-    `created_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
-    `confirmed_at` DATETIME(3) NULL,
+CREATE TABLE `asistencia` (
+    `asistencia_id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `matricula_id` BIGINT UNSIGNED NOT NULL,
+    `asignacion_id` BIGINT UNSIGNED NOT NULL,
+    `fecha` DATE NOT NULL,
+    `estado` ENUM('PRESENTE', 'TARDANZA', 'FALTA', 'JUSTIFICADA') NOT NULL,
+    `registrado_por` BIGINT UNSIGNED NOT NULL,
+    `registrado_en` DATETIME(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0),
 
-    UNIQUE INDEX `blockchain_evidence_evidence_id_key`(`evidence_id`),
-    UNIQUE INDEX `blockchain_evidence_tx_id_key`(`tx_id`),
-    INDEX `blockchain_evidence_status_idx`(`status`),
-    UNIQUE INDEX `blockchain_evidence_result_id_version_key`(`result_id`, `version`),
-    PRIMARY KEY (`id`)
+    INDEX `idx_asistencia_fecha`(`fecha`, `estado`),
+    UNIQUE INDEX `uq_asistencia`(`matricula_id`, `asignacion_id`, `fecha`),
+    PRIMARY KEY (`asistencia_id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
-CREATE TABLE `traceability_event` (
-    `id` INTEGER NOT NULL AUTO_INCREMENT,
-    `result_id` INTEGER NOT NULL,
-    `event_type` ENUM('REGISTRO', 'VERIFICACION', 'RECTIFICACION') NOT NULL,
-    `version` INTEGER NOT NULL,
-    `status` ENUM('PENDIENTE', 'CONFIRMADO', 'INTEGRO', 'ALTERADO', 'FALLIDO') NOT NULL,
-    `actor_reference` VARCHAR(20) NOT NULL,
-    `actor_role` VARCHAR(30) NOT NULL,
-    `evidence_id` VARCHAR(40) NULL,
-    `tx_id` CHAR(64) NULL,
-    `detail` VARCHAR(500) NULL,
-    `occurred_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+CREATE TABLE `evento_trazabilidad` (
+    `evento_id` CHAR(36) NOT NULL,
+    `objeto_tipo` ENUM('RESULTADO', 'ACTIVIDAD', 'ASISTENCIA') NOT NULL,
+    `objeto_ref` VARCHAR(80) NOT NULL,
+    `evento_tipo` ENUM('CREACION', 'ACTUALIZACION', 'RECTIFICACION', 'VERIFICACION', 'REVOCACION') NOT NULL,
+    `version` INTEGER UNSIGNED NOT NULL,
+    `actor_usuario_id` BIGINT UNSIGNED NOT NULL,
+    `actor_rol_codigo` VARCHAR(40) NOT NULL,
+    `compromiso_hmac` CHAR(64) NOT NULL,
+    `compromiso_anterior` CHAR(64) NULL,
+    `estado_evento` ENUM('PENDIENTE', 'CONFIRMADO', 'ERROR') NOT NULL DEFAULT 'PENDIENTE',
+    `resultado_verificacion` ENUM('INTEGRO', 'ALTERADO', 'NO_VERIFICABLE') NULL,
+    `error_detalle` VARCHAR(500) NULL,
+    `creado_en` DATETIME(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0),
 
-    INDEX `traceability_event_result_id_occurred_at_idx`(`result_id`, `occurred_at`),
-    PRIMARY KEY (`id`)
+    INDEX `idx_evt_objeto`(`objeto_tipo`, `objeto_ref`, `version`),
+    INDEX `idx_evt_fecha`(`creado_en`),
+    PRIMARY KEY (`evento_id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
+CREATE TABLE `evidencia_blockchain` (
+    `evidencia_id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `evento_id` CHAR(36) NOT NULL,
+    `red` VARCHAR(80) NOT NULL DEFAULT 'fabric-academic',
+    `canal` VARCHAR(80) NOT NULL DEFAULT 'academicchannel',
+    `chaincode` VARCHAR(80) NOT NULL DEFAULT 'academic-traceability',
+    `tx_id` VARCHAR(160) NOT NULL,
+    `block_number` BIGINT UNSIGNED NULL,
+    `committed_at` DATETIME(0) NULL,
+    `validacion` ENUM('VALIDA', 'INVALIDA', 'PENDIENTE') NOT NULL DEFAULT 'PENDIENTE',
+
+    UNIQUE INDEX `evidencia_blockchain_evento_id_key`(`evento_id`),
+    UNIQUE INDEX `evidencia_blockchain_tx_id_key`(`tx_id`),
+    PRIMARY KEY (`evidencia_id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- AddForeignKey
-ALTER TABLE `academic_period` ADD CONSTRAINT `academic_period_institution_id_fkey` FOREIGN KEY (`institution_id`) REFERENCES `institution`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE `periodo_academico` ADD CONSTRAINT `fk_periodo_institucion` FOREIGN KEY (`institucion_id`) REFERENCES `institucion`(`institucion_id`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `grade` ADD CONSTRAINT `grade_institution_id_fkey` FOREIGN KEY (`institution_id`) REFERENCES `institution`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE `area_curricular` ADD CONSTRAINT `fk_area_institucion` FOREIGN KEY (`institucion_id`) REFERENCES `institucion`(`institucion_id`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `section` ADD CONSTRAINT `section_grade_id_fkey` FOREIGN KEY (`grade_id`) REFERENCES `grade`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE `grado` ADD CONSTRAINT `fk_grado_institucion` FOREIGN KEY (`institucion_id`) REFERENCES `institucion`(`institucion_id`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `student` ADD CONSTRAINT `student_institution_id_fkey` FOREIGN KEY (`institution_id`) REFERENCES `institution`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE `seccion` ADD CONSTRAINT `fk_seccion_grado` FOREIGN KEY (`grado_id`) REFERENCES `grado`(`grado_id`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `student_identity` ADD CONSTRAINT `student_identity_student_id_fkey` FOREIGN KEY (`student_id`) REFERENCES `student`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE `usuario` ADD CONSTRAINT `fk_usuario_docente` FOREIGN KEY (`docente_id`) REFERENCES `docente`(`docente_id`) ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `teacher` ADD CONSTRAINT `teacher_institution_id_fkey` FOREIGN KEY (`institution_id`) REFERENCES `institution`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE `usuario_rol` ADD CONSTRAINT `fk_ur_usuario` FOREIGN KEY (`usuario_id`) REFERENCES `usuario`(`usuario_id`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `enrollment` ADD CONSTRAINT `enrollment_student_id_fkey` FOREIGN KEY (`student_id`) REFERENCES `student`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE `usuario_rol` ADD CONSTRAINT `fk_ur_rol` FOREIGN KEY (`rol_id`) REFERENCES `rol`(`rol_id`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `enrollment` ADD CONSTRAINT `enrollment_section_id_fkey` FOREIGN KEY (`section_id`) REFERENCES `section`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE `matricula` ADD CONSTRAINT `fk_matricula_estudiante` FOREIGN KEY (`estudiante_id`) REFERENCES `estudiante`(`estudiante_id`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `teaching_assignment` ADD CONSTRAINT `teaching_assignment_teacher_id_fkey` FOREIGN KEY (`teacher_id`) REFERENCES `teacher`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE `matricula` ADD CONSTRAINT `fk_matricula_periodo` FOREIGN KEY (`periodo_id`) REFERENCES `periodo_academico`(`periodo_id`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `teaching_assignment` ADD CONSTRAINT `teaching_assignment_subject_id_fkey` FOREIGN KEY (`subject_id`) REFERENCES `subject`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE `matricula` ADD CONSTRAINT `fk_matricula_seccion` FOREIGN KEY (`seccion_id`) REFERENCES `seccion`(`seccion_id`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `teaching_assignment` ADD CONSTRAINT `teaching_assignment_section_id_fkey` FOREIGN KEY (`section_id`) REFERENCES `section`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE `asignacion_docente` ADD CONSTRAINT `fk_asig_docente` FOREIGN KEY (`docente_id`) REFERENCES `docente`(`docente_id`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `academic_activity` ADD CONSTRAINT `academic_activity_teaching_assignment_id_fkey` FOREIGN KEY (`teaching_assignment_id`) REFERENCES `teaching_assignment`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE `asignacion_docente` ADD CONSTRAINT `fk_asig_area` FOREIGN KEY (`area_id`) REFERENCES `area_curricular`(`area_id`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `academic_activity` ADD CONSTRAINT `academic_activity_period_id_fkey` FOREIGN KEY (`period_id`) REFERENCES `academic_period`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE `asignacion_docente` ADD CONSTRAINT `fk_asig_seccion` FOREIGN KEY (`seccion_id`) REFERENCES `seccion`(`seccion_id`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `academic_result` ADD CONSTRAINT `academic_result_enrollment_id_fkey` FOREIGN KEY (`enrollment_id`) REFERENCES `enrollment`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE `asignacion_docente` ADD CONSTRAINT `fk_asig_periodo` FOREIGN KEY (`periodo_id`) REFERENCES `periodo_academico`(`periodo_id`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `academic_result` ADD CONSTRAINT `academic_result_activity_id_fkey` FOREIGN KEY (`activity_id`) REFERENCES `academic_activity`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE `actividad_academica` ADD CONSTRAINT `fk_act_asig` FOREIGN KEY (`asignacion_id`) REFERENCES `asignacion_docente`(`asignacion_id`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `academic_result` ADD CONSTRAINT `academic_result_recorded_by_teacher_id_fkey` FOREIGN KEY (`recorded_by_teacher_id`) REFERENCES `teacher`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE `actividad_academica` ADD CONSTRAINT `fk_act_tipo` FOREIGN KEY (`tipo_actividad_id`) REFERENCES `tipo_actividad`(`tipo_actividad_id`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `academic_result_history` ADD CONSTRAINT `academic_result_history_result_id_fkey` FOREIGN KEY (`result_id`) REFERENCES `academic_result`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE `actividad_academica` ADD CONSTRAINT `fk_act_usuario` FOREIGN KEY (`creado_por`) REFERENCES `usuario`(`usuario_id`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `attendance` ADD CONSTRAINT `attendance_enrollment_id_fkey` FOREIGN KEY (`enrollment_id`) REFERENCES `enrollment`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE `resultado_academico` ADD CONSTRAINT `fk_res_matricula` FOREIGN KEY (`matricula_id`) REFERENCES `matricula`(`matricula_id`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `app_user` ADD CONSTRAINT `app_user_role_id_fkey` FOREIGN KEY (`role_id`) REFERENCES `role`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE `resultado_academico` ADD CONSTRAINT `fk_res_actividad` FOREIGN KEY (`actividad_id`) REFERENCES `actividad_academica`(`actividad_id`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `app_user` ADD CONSTRAINT `app_user_teacher_id_fkey` FOREIGN KEY (`teacher_id`) REFERENCES `teacher`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE `resultado_academico` ADD CONSTRAINT `fk_res_usuario` FOREIGN KEY (`registrado_por`) REFERENCES `usuario`(`usuario_id`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `blockchain_evidence` ADD CONSTRAINT `blockchain_evidence_result_id_fkey` FOREIGN KEY (`result_id`) REFERENCES `academic_result`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE `historial_resultado` ADD CONSTRAINT `fk_hist_resultado` FOREIGN KEY (`resultado_id`) REFERENCES `resultado_academico`(`resultado_id`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `traceability_event` ADD CONSTRAINT `traceability_event_result_id_fkey` FOREIGN KEY (`result_id`) REFERENCES `academic_result`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE `historial_resultado` ADD CONSTRAINT `fk_hist_usuario` FOREIGN KEY (`realizado_por`) REFERENCES `usuario`(`usuario_id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `asistencia` ADD CONSTRAINT `fk_asis_matricula` FOREIGN KEY (`matricula_id`) REFERENCES `matricula`(`matricula_id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `asistencia` ADD CONSTRAINT `fk_asis_asignacion` FOREIGN KEY (`asignacion_id`) REFERENCES `asignacion_docente`(`asignacion_id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `asistencia` ADD CONSTRAINT `fk_asis_usuario` FOREIGN KEY (`registrado_por`) REFERENCES `usuario`(`usuario_id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `evento_trazabilidad` ADD CONSTRAINT `fk_evt_usuario` FOREIGN KEY (`actor_usuario_id`) REFERENCES `usuario`(`usuario_id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `evidencia_blockchain` ADD CONSTRAINT `fk_evidencia_evento` FOREIGN KEY (`evento_id`) REFERENCES `evento_trazabilidad`(`evento_id`) ON DELETE RESTRICT ON UPDATE CASCADE;

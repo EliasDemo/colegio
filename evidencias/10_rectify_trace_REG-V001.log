@@ -1,0 +1,91 @@
+--- Estado inicial de REG-V001:
++----------+----------------+------------------+---------+
+| codigo   | version_actual | puntaje_obtenido | estado  |
++----------+----------------+------------------+---------+
+| REG-V001 |              1 |            12.00 | VIGENTE |
++----------+----------------+------------------+---------+
+--- npm run rectify -- REG-V001 17 ERROR_DIGITACION "Corrección autorizada por coordinación académica"
+------------------------------------
+RECTIFICACIÓN AUTORIZADA
+------------------------------------
+[INFO] Buscando registro REG-V001
+[INFO] Registro encontrado {"version":1,"estado":"VIGENTE"}
+[INFO] La versión vigente no está anclada: se registra antes de rectificar
+[INFO] Buscando registro REG-V001
+[INFO] Registro encontrado {"version":1,"estado":"VIGENTE"}
+[INFO] Compromiso HMAC generado {"eventType":"CREACION","version":1}
+[INFO] Evento PENDIENTE {"eventId":"29b2f2ca-e762-41c4-b180-34cc43062996","reintento":false}
+[INFO] Conectando a Fabric {"channel":"academicchannel"}
+[INFO] Transacción enviada {"eventId":"29b2f2ca-e762-41c4-b180-34cc43062996","eventType":"CREACION"}
+[INFO] TX_ID obtenido {"txId":"00218a01cff25dc8327d89d72eaa8e389e0b58f9935346db6f0c6f3d200c0392"}
+[INFO] Referencia persistida en evidencia_blockchain
+[INFO] Rectificación guardada en MySQL {"nuevaVersion":2}
+[INFO] Buscando registro REG-V001
+[INFO] Registro encontrado {"version":2,"estado":"RECTIFICADO"}
+[INFO] Compromiso HMAC generado {"eventType":"RECTIFICACION","version":2}
+[INFO] Evento PENDIENTE {"eventId":"0a9f7290-db93-4ac7-9a67-45a45edaa7ee","reintento":false}
+[INFO] Conectando a Fabric {"channel":"academicchannel"}
+[INFO] Transacción enviada {"eventId":"0a9f7290-db93-4ac7-9a67-45a45edaa7ee","eventType":"RECTIFICACION"}
+[INFO] TX_ID obtenido {"txId":"483fe148f837b4e1937f19be22cbc39fbeabd54626f00e8bdf71c59a9774311c"}
+[INFO] Referencia persistida en evidencia_blockchain
+Registro: REG-V001 → versión 2 (RECTIFICADO)
+Evento RECTIFICACION: 0a9f7290-db93-4ac7-9a67-45a45edaa7ee
+Compromiso: 811fed8cd6ee7ae69173f744cf33360a30c3b1033128525af982ecf4e7dfe825
+Compromiso anterior: 68c966ab9a0f56bc6ac1a96d05a60ede47e5975bdbf26218c797d43d13d6eddb
+TX_ID: 483fe148f837b4e1937f19be22cbc39fbeabd54626f00e8bdf71c59a9774311c
+PROCESO COMPLETADO CORRECTAMENTE.
+--- historial_resultado:
++---------+------------------+---------------+---------------+------------------+-----------------------------------------------------+
+| version | puntaje_anterior | puntaje_nuevo | tipo_cambio   | motivo_codigo    | motivo                                              |
++---------+------------------+---------------+---------------+------------------+-----------------------------------------------------+
+|       1 |             NULL |         12.00 | CREACION      | CARGA_INICIAL    | Complemento de validación sintético                 |
+|       2 |            12.00 |         17.00 | RECTIFICACION | ERROR_DIGITACION | Corrección autorizada por coordinación académica    |
++---------+------------------+---------------+---------------+------------------+-----------------------------------------------------+
+--- npm run verify -- REG-V001
+
+Compromiso en blockchain (v2 RECTIFICACION, TX 483fe148f837b4e1...):
+811fed8cd6ee7ae69173f744cf33360a30c3b1033128525af982ecf4e7dfe825
+
+Compromiso calculado:
+811fed8cd6ee7ae69173f744cf33360a30c3b1033128525af982ecf4e7dfe825
+
+Cadena de compromisos entre versiones íntegra: SÍ
+Copia local del vínculo (MySQL) consistente con el ledger: SÍ
+Verificación registrada On-chain: evento a0f5fce6-c67a-4b6e-8bec-50fe5ad7450a · TX 4ce93d0c379e53bf...
+
+RESULTADO:
+
+INTEGRO
+--- npm run trace -- REG-V001
+REGISTRO:
+REG-V001
+Estudiante: STU-VAL0000000000001 · Actividad: EV-ING-3C1 (ING, 2026-B2) · Versión vigente: 2 · Estado: RECTIFICADO
+
+EVENTOS OFF-CHAIN (evento_trazabilidad, hora de Lima):
+
+2026-09-29 17:02:15
+CREACION
+Versión: 1 · Estado: CONFIRMADO · Rol: ADMIN · Evento: 29b2f2ca-e762-41c4-b180-34cc43062996
+Compromiso: 68c966ab9a0f56bc... · Anterior: -
+TX: 00218a01cff25dc8... · Bloque: 161 · Validación: VALIDA
+
+2026-09-29 17:02:17
+RECTIFICACION
+Versión: 2 · Estado: CONFIRMADO · Rol: ADMIN · Evento: 0a9f7290-db93-4ac7-9a67-45a45edaa7ee
+Compromiso: 811fed8cd6ee7ae6... · Anterior: 68c966ab9a0f56bc...
+TX: 483fe148f837b4e1... · Bloque: 162 · Validación: VALIDA
+
+2026-09-29 17:02:21
+VERIFICACION → INTEGRO
+Versión: 2 · Estado: CONFIRMADO · Rol: ADMIN · Evento: a0f5fce6-c67a-4b6e-8bec-50fe5ad7450a
+Compromiso: 811fed8cd6ee7ae6... · Anterior: 811fed8cd6ee7ae6...
+TX: 4ce93d0c379e53bf... · Bloque: 163 · Validación: VALIDA
+
+EVENTOS ON-CHAIN (Hyperledger Fabric):
+
+2026-09-29T22:02:15.356Z · CREACION · v1 · rol ADMIN · MSP NuevoHorizonteMSP
+  evento 29b2f2ca-e762-41c4-b180-34cc43062996 · compromiso 68c966ab9a0f56bc... · anterior - · TX 00218a01cff25dc8...
+2026-09-29T22:02:17.451Z · RECTIFICACION · v2 · rol ADMIN · MSP NuevoHorizonteMSP
+  evento 0a9f7290-db93-4ac7-9a67-45a45edaa7ee · compromiso 811fed8cd6ee7ae6... · anterior 68c966ab9a0f56bc... · TX 483fe148f837b4e1...
+2026-09-29T22:02:20.707Z · VERIFICACION · v2 · rol ADMIN · MSP NuevoHorizonteMSP
+  evento a0f5fce6-c67a-4b6e-8bec-50fe5ad7450a · compromiso 811fed8cd6ee7ae6... · anterior 811fed8cd6ee7ae6... · TX 4ce93d0c379e53bf...

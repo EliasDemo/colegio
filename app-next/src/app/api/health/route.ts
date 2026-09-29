@@ -20,7 +20,7 @@ async function databaseStatus() {
 async function fabricStatus() {
   if (!isFabricConfigured()) return { status: 'not-configured' as const };
   try {
-    await fabricAcademicLedger.evidenceExists('EVD-REG-000000-V1');
+    await fabricAcademicLedger.evidenceExists('00000000-0000-4000-8000-000000000000');
     return {
       status: 'connected' as const,
       channel: process.env.FABRIC_CHANNEL_NAME,
