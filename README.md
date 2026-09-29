@@ -1,5 +1,7 @@
 # Hito 3 — Blockchain y almacenamiento Off-chain integrados
 
+> Repositorio **colegio** · proyecto 2026-2
+
 **Proyecto:** Arquitectura híbrida basada en blockchain permisionada para la trazabilidad microcurricular de registros académicos
 **Caso de estudio:** Institución Educativa Nuevo Horizonte — Juliaca, Puno, Perú
 **Grupo 7:** Abdul · Franck · Julmer

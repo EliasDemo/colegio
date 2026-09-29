@@ -6,3 +6,7 @@ node_modules/
 *.zip
 .DS_Store
 docs-src/out/
+
+# Reglas del commit inicial del repositorio
+*.o
+*.ali
