@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Mi tarjeta de presentación</title>
+
+  <!-- Tipo de letra de Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+
+  <style>
+    /* ===== FONDO DE LA PÁGINA ===== */
+    body {
+      font-family: 'Poppins', sans-serif;   /* ✏️ CAMBIA AQUÍ: tipo de letra */
+      background: linear-gradient(135deg, #667eea, #764ba2); /* ✏️ CAMBIA AQUÍ: colores del fondo */
+      min-height: 100vh;                    /* ocupa toda la pantalla */
+      display: flex;                        /* estas 3 líneas centran la tarjeta */
+      justify-content: center;
+      align-items: center;
+      margin: 0;
+    }
+
+    /* ===== LA TARJETA ===== */
+    .tarjeta {
+      background-color: white;              /* ✏️ CAMBIA AQUÍ: color de la tarjeta */
+      width: 320px;                         /* ✏️ CAMBIA AQUÍ: ancho */
+      border-radius: 20px;                  /* ✏️ CAMBIA AQUÍ: esquinas (0px = cuadrada) */
+      border: 3px solid #667eea;            /* ✏️ CAMBIA AQUÍ: grosor, estilo y color del borde */
+      box-shadow: 0 10px 25px rgba(0,0,0,0.3); /* sombra */
+      text-align: center;
+      overflow: hidden;
+      transition: 0.3s;                     /* hace suave la animación */
+    }
+
+    /* Efecto: la tarjeta crece al pasar el mouse */
+    .tarjeta:hover {
+      transform: scale(1.05);               /* ✏️ CAMBIA AQUÍ: 1.05 = crece 5% */
+    }
+
+    /* ===== FRANJA DE COLOR SUPERIOR ===== */
+    .portada {
+      background-color: #667eea;            /* ✏️ CAMBIA AQUÍ: color de la franja */
+      height: 100px;
+    }
+
+    /* ===== FOTO DE PERFIL ===== */
+    .foto {
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;                   /* 50% = círculo */
+      border: 5px solid white;              /* ✏️ CAMBIA AQUÍ: borde de la foto */
+      margin-top: -60px;                    /* sube la foto sobre la franja */
+      object-fit: cover;
+    }
+
+    /* ===== NOMBRE ===== */
+    .nombre {
+      font-size: 24px;                      /* ✏️ CAMBIA AQUÍ: tamaño del nombre */
+      color: #333333;                       /* ✏️ CAMBIA AQUÍ: color del nombre */
+      margin: 10px 0 0;
+    }
+
+    /* ===== PROFESIÓN ===== */
+    .profesion {
+      font-size: 15px;
+      color: #667eea;                       /* ✏️ CAMBIA AQUÍ: color de la profesión */
+      font-weight: 600;                     /* 600 = semi negrita */
+      margin: 5px 0 15px;
+    }
+
+    /* ===== DESCRIPCIÓN ===== */
+    .descripcion {
+      font-size: 14px;
+      color: #666666;
+      padding: 0 25px;
+    }
+
+    /* ===== LISTA DE DATOS ===== */
+    .datos {
+      list-style: none;                     /* quita las viñetas */
+      padding: 0;
+      font-size: 14px;
+      color: #444444;
+    }
+    .datos li {
+      margin: 8px 0;
+    }
+
+    /* ===== BOTONES ===== */
+    .boton {
+      display: inline-block;
+      background-color: #667eea;            /* ✏️ CAMBIA AQUÍ: color del botón */
+      color: white;
+      padding: 10px 22px;
+      border-radius: 25px;
+      text-decoration: none;                /* quita el subrayado */
+      margin: 15px 5px 25px;
+      transition: 0.3s;
+    }
+    .boton:hover {
+      background-color: #764ba2;            /* ✏️ CAMBIA AQUÍ: color al pasar el mouse */
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ===== INICIO DE LA TARJETA ===== -->
+  <div class="tarjeta">
+
+    <!-- Franja de color -->
+    <div class="portada"></div>
+
+    <!-- Foto: ✏️ CAMBIA AQUÍ el link de la imagen -->
+    <img class="foto" src="https://picsum.photos/200" alt="Foto de perfil">
+
+    <!-- ✏️ CAMBIA AQUÍ tus datos -->
+    <h1 class="nombre">Ana Torres</h1>
+    <p class="profesion">Futura Ingeniera de Sistemas</p>
+
+    <p class="descripcion">
+      Me encanta la tecnología, los videojuegos y aprender cosas nuevas.
+    </p>
+
+    <ul class="datos">
+      <li>🎓 Colegio San Martín</li>
+      <li>📍 Lima, Perú</li>
+      <li>⚽ Hobby: vóley</li>
+    </ul>
+
+    <!-- Botones con enlaces -->
+    <a class="boton" href="https://www.google.com" target="_blank">Contacto</a>
+    <a class="boton" href="https://www.youtube.com" target="_blank">Mi canal</a>
+
+  </div>
+  <!-- ===== FIN DE LA TARJETA ===== -->
+
+</body>
+</html>
